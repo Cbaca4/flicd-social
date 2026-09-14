@@ -1,0 +1,4 @@
+import React from 'react';
+import GlobalCompetition from '../competition/GlobalCompetition.jsx';
+import Explore from './Explore.jsx';
+export default function Discovery({onToast}){const [tab,setTab]=React.useState('explore');return <div className="screen"><div className="topbar"><div><div className="eyebrow">Discovery</div><h1 className="title">Find your next thing</h1><p className="subtitle">Explore your trails or see what the world is making.</p></div></div><div className="segmented"><button className={`seg ${tab==='explore'?'active':''}`} onClick={()=>setTab('explore')}>Explore</button><button className={`seg ${tab==='global'?'active':''}`} onClick={()=>setTab('global')}>Global</button></div><div style={{marginTop:14}}>{tab==='explore'?<Explore/>:<GlobalCompetition onToast={onToast}/>}</div></div>}
