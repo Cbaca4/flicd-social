@@ -13,6 +13,7 @@ export default function EditProfile({
     profile.displayName || ""
   );
   const [bio, setBio] = React.useState(profile.bio || "");
+
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
@@ -90,8 +91,12 @@ export default function EditProfile({
         onSubmit={handleSave}
         style={{ marginTop: 18 }}
       >
+        {/* Username */}
         <div>
-          <label className="eyebrow" htmlFor="profile-username">
+          <label
+            className="eyebrow"
+            htmlFor="profile-username"
+          >
             Username
           </label>
 
@@ -111,8 +116,12 @@ export default function EditProfile({
           </p>
         </div>
 
+        {/* Display Name */}
         <div>
-          <label className="eyebrow" htmlFor="profile-display-name">
+          <label
+            className="eyebrow"
+            htmlFor="profile-display-name"
+          >
             Display name
           </label>
 
@@ -121,14 +130,24 @@ export default function EditProfile({
             className="input"
             style={{ marginTop: 8 }}
             value={displayName}
-            onChange={(event) => setDisplayName(event.target.value)}
+            onChange={(event) =>
+              setDisplayName(event.target.value)
+            }
             placeholder="Your name"
             maxLength={50}
           />
+
+          <p className="subtitle" style={{ marginTop: 6 }}>
+            The name people see on your profile.
+          </p>
         </div>
 
+        {/* Bio */}
         <div>
-          <label className="eyebrow" htmlFor="profile-bio">
+          <label
+            className="eyebrow"
+            htmlFor="profile-bio"
+          >
             Bio
           </label>
 
@@ -141,7 +160,9 @@ export default function EditProfile({
               resize: "vertical",
             }}
             value={bio}
-            onChange={(event) => setBio(event.target.value)}
+            onChange={(event) =>
+              setBio(event.target.value)
+            }
             placeholder="Tell people a little about yourself..."
             maxLength={160}
           />
@@ -151,18 +172,26 @@ export default function EditProfile({
           </p>
         </div>
 
+        {/* Error */}
         {error && (
-          <div className="card" style={{ borderColor: "rgba(255,80,80,.4)" }}>
+          <div
+            className="card"
+            style={{
+              borderColor: "rgba(255,80,80,.4)",
+            }}
+          >
             <p>{error}</p>
           </div>
         )}
 
+        {/* Save */}
         <button
           className="btn btn-primary"
           type="submit"
           disabled={saving}
         >
           <Save size={15} />
+
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>

@@ -1,3 +1,268 @@
 import React from 'react';
-import {Settings,Plus,ChevronRight} from 'lucide-react';
-export default function Profile({profile,activeSpace,onSwitchSpaces,theme,onCustomize,boards,onOpenBoard}){return <div className="screen" style={{background:theme.background}}><div className="profile-hero"><div className="row" style={{alignItems:'flex-start'}}><div className="avatar lg">{profile.handle[0].toUpperCase()}</div><div style={{flex:1}}><div className="row" style={{justifyContent:'space-between'}}><div><div className="eyebrow">{activeSpace.label} space</div><h1 className="title" style={{fontSize:28,marginTop:2}}>@{profile.handle}</h1></div><button className="btn icon-btn" onClick={onCustomize} aria-label="Customize profile"><Settings size={18}/></button></div><p className="subtitle" style={{marginTop:10}}>{theme.message}</p><p style={{marginTop:8,color:theme.accent,fontSize:12}}>{theme.statusEmoji} {theme.status}</p></div></div><div className="row" style={{gap:28,marginTop:22}}><div><strong>{profile.followers}</strong><div className="subtitle">followers</div></div><div><strong>{profile.following}</strong><div className="subtitle">following</div></div><div><strong>{boards.length}</strong><div className="subtitle">boards</div></div></div></div><div className="profile-layout" style={{marginTop:14}}><div className="stack">{theme.showBoards&&<div className="card"><div className="row" style={{justifyContent:'space-between'}}><div><div className="eyebrow">Boards</div><h2 style={{marginTop:3}}>Your corners of the internet</h2></div><button className="btn" onClick={onCustomize}>Customize</button></div><div className="grid grid-2" style={{marginTop:14}}>{boards.map(b=><button className="card" key={b.id} style={{textAlign:'left',padding:10}} onClick={()=>onOpenBoard(b)}><div className="board-cover"><span className="tag" style={{position:'absolute',left:9,bottom:9}}>{b.count} items</span></div><strong style={{display:'block',marginTop:8}}>{b.name}</strong><p className="subtitle" style={{marginTop:3}}>{b.description}</p></button>)}<button className="card" style={{display:'grid',placeItems:'center',minHeight:190,borderStyle:'dashed'}} onClick={()=>onCustomize()}><Plus size={22}/><span style={{marginTop:8}}>New board</span></button></div></div>}{theme.showMusic&&<div className="card"><div className="eyebrow">On repeat</div><h3 style={{marginTop:6}}>{theme.favoriteArtist||'Your soundtrack goes here'}</h3><p className="subtitle" style={{marginTop:4}}>A small detail that makes your profile yours.</p></div>}</div><div className="stack"><button className="card" style={{textAlign:'left'}} onClick={onSwitchSpaces}><div className="eyebrow">Active space</div><div className="row" style={{marginTop:7}}><div style={{flex:1}}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch between your identities.</p></div><ChevronRight size={18} className="muted"/></div></button><div className="card"><div className="eyebrow">Profile Studio</div><h3 style={{marginTop:5}}>Build your page your way</h3><p className="subtitle" style={{marginTop:5}}>Nostalgic customization, with modern controls and privacy intact.</p><button className="btn btn-primary" style={{marginTop:12}} onClick={onCustomize}><Settings size={15}/>Customize profile</button></div></div></div></div>}
+import { Settings, Plus, ChevronRight, Pencil } from 'lucide-react';
+
+export default function Profile({
+  profile,
+  activeSpace,
+  onSwitchSpaces,
+  theme,
+  onCustomize,
+  onEditProfile,
+  boards,
+  onOpenBoard
+}) {
+  return (
+    <div className="screen" style={{ background: theme.background }}>
+      <div className="profile-hero">
+        <div className="row" style={{ alignItems: 'flex-start' }}>
+          <div className="avatar lg">
+            {profile.handle[0].toUpperCase()}
+          </div>
+
+          <div style={{ flex: 1 }}>
+            <div
+              className="row"
+              style={{
+                justifyContent: 'space-between',
+                alignItems: 'flex-start'
+              }}
+            >
+              <div>
+                <div className="eyebrow">
+                  {activeSpace.label} space
+                </div>
+
+                <h1
+                  className="title"
+                  style={{ fontSize: 28, marginTop: 2 }}
+                >
+                  @{profile.handle}
+                </h1>
+                {profile.displayName && (
+  <div style={{ marginTop: 4, fontSize: 15, fontWeight: 600 }}>
+    {profile.displayName}
+  </div>
+)}
+
+{profile.bio && (
+  <p className="subtitle" style={{ marginTop: 6 }}>
+    {profile.bio}
+  </p>
+)}
+              </div>
+
+              <div className="row" style={{ gap: 8 }}>
+                <button
+                  className="btn"
+                  onClick={onEditProfile}
+                  aria-label="Edit profile"
+                >
+                  <Pencil size={15} />
+                  Edit profile
+                </button>
+
+                <button
+                  className="btn icon-btn"
+                  onClick={onCustomize}
+                  aria-label="Customize profile"
+                >
+                  <Settings size={18} />
+                </button>
+              </div>
+            </div>
+
+            <p className="subtitle" style={{ marginTop: 10 }}>
+              {theme.message}
+            </p>
+
+            <p
+              style={{
+                marginTop: 8,
+                color: theme.accent,
+                fontSize: 12
+              }}
+            >
+              {theme.statusEmoji} {theme.status}
+            </p>
+          </div>
+        </div>
+
+        <div className="row" style={{ gap: 28, marginTop: 22 }}>
+          <div>
+            <strong>{profile.followers}</strong>
+            <div className="subtitle">followers</div>
+          </div>
+
+          <div>
+            <strong>{profile.following}</strong>
+            <div className="subtitle">following</div>
+          </div>
+
+          <div>
+            <strong>{boards.length}</strong>
+            <div className="subtitle">boards</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-layout" style={{ marginTop: 14 }}>
+        <div className="stack">
+          {theme.showBoards && (
+            <div className="card">
+              <div
+                className="row"
+                style={{ justifyContent: 'space-between' }}
+              >
+                <div>
+                  <div className="eyebrow">Boards</div>
+
+                  <h2 style={{ marginTop: 3 }}>
+                    Your corners of the internet
+                  </h2>
+                </div>
+
+                <button
+                  className="btn"
+                  onClick={onCustomize}
+                >
+                  Customize
+                </button>
+              </div>
+
+              <div
+                className="grid grid-2"
+                style={{ marginTop: 14 }}
+              >
+                {boards.map((b) => (
+                  <button
+                    className="card"
+                    key={b.id}
+                    style={{
+                      textAlign: 'left',
+                      padding: 10
+                    }}
+                    onClick={() => onOpenBoard(b)}
+                  >
+                    <div className="board-cover">
+                      <span
+                        className="tag"
+                        style={{
+                          position: 'absolute',
+                          left: 9,
+                          bottom: 9
+                        }}
+                      >
+                        {b.count} items
+                      </span>
+                    </div>
+
+                    <strong
+                      style={{
+                        display: 'block',
+                        marginTop: 8
+                      }}
+                    >
+                      {b.name}
+                    </strong>
+
+                    <p
+                      className="subtitle"
+                      style={{ marginTop: 3 }}
+                    >
+                      {b.description}
+                    </p>
+                  </button>
+                ))}
+
+                <button
+                  className="card"
+                  style={{
+                    display: 'grid',
+                    placeItems: 'center',
+                    minHeight: 190,
+                    borderStyle: 'dashed'
+                  }}
+                  onClick={() => onCustomize()}
+                >
+                  <Plus size={22} />
+
+                  <span style={{ marginTop: 8 }}>
+                    New board
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {theme.showMusic && (
+            <div className="card">
+              <div className="eyebrow">On repeat</div>
+
+              <h3 style={{ marginTop: 6 }}>
+                {theme.favoriteArtist ||
+                  'Your soundtrack goes here'}
+              </h3>
+
+              <p
+                className="subtitle"
+                style={{ marginTop: 4 }}
+              >
+                A small detail that makes your profile yours.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="stack">
+          <button
+            className="card"
+            style={{ textAlign: 'left' }}
+            onClick={onSwitchSpaces}
+          >
+            <div className="eyebrow">Active space</div>
+
+            <div className="row" style={{ marginTop: 7 }}>
+              <div style={{ flex: 1 }}>
+                <strong>@{activeSpace.handle}</strong>
+
+                <p className="subtitle">
+                  Switch between your identities.
+                </p>
+              </div>
+
+              <ChevronRight
+                size={18}
+                className="muted"
+              />
+            </div>
+          </button>
+
+          <div className="card">
+            <div className="eyebrow">Profile Studio</div>
+
+            <h3 style={{ marginTop: 5 }}>
+              Build your page your way
+            </h3>
+
+            <p
+              className="subtitle"
+              style={{ marginTop: 5 }}
+            >
+              Nostalgic customization, with modern controls
+              and privacy intact.
+            </p>
+
+            <button
+              className="btn btn-primary"
+              style={{ marginTop: 12 }}
+              onClick={onCustomize}
+            >
+              <Settings size={15} />
+              Customize profile
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
