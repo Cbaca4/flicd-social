@@ -5,6 +5,7 @@ import AppShell from './AppShell.jsx';
 import Home,{Viewer} from '../features/home/Home.jsx';
 import CreateChoose from '../features/capture/CreateChoose.jsx';
 import {DumpBuilder,RollBuilder} from '../features/capture/CaptureBuilders.jsx';
+import { createDump, getDumps } from "../features/capture/dumpApi.js";
 import Messages from '../features/messages/Messages.jsx';
 import Profile from '../features/profile/Profile.jsx';
 import ProfileStudio from '../features/profile/ProfileStudio.jsx';
@@ -76,6 +77,45 @@ export default function FlicdApp() {
       console.log("No user logged in");
       return;
     }
+    React.useEffect(() => {
+  async function loadDumps() {
+    try {
+      const savedDumps = await getDumps();
+
+      if (!savedDumps.length) {
+        return;
+      }
+
+      const formattedDumps = savedDumps.map((dump) => ({
+        id: dump.id,
+        channel: dump.space_id,
+        author: dump.user_id,
+        mood: dump.mood,
+        mode: dump.expiry,
+        postedMinutesAgo: Math.floor(
+          (Date.now() - new Date(dump.created_at).getTime()) / 60000
+        ),
+        likes: 0,
+        liked: false,
+        viewed: false,
+        comments: [],
+        items: (dump.dump_items || [])
+          .sort((a, b) => a.position - b.position)
+          .map((item) => ({
+            note: item.note || "",
+            imagePath: item.image_path || null,
+          })),
+        context: dump.context || "",
+      }));
+
+      setDumps(formattedDumps);
+    } catch (error) {
+      console.error("Failed to load dumps:", error);
+    }
+  }
+
+  loadDumps();
+}, []);
 
     const { data, error } = await supabase
       .from("profiles")
@@ -142,11 +182,23 @@ export default function FlicdApp() {
     );
   };
 
-  const keep = (post, index) => {
+  const keep = async (post, index) => {
+  try {
+    const { saveBoardItem } = await import(
+      "../features/profile/boardApi.js"
+    );
+
+    await saveBoardItem({
+      dumpId: post.id,
+      itemPosition: index,
+      note: post.items[index]?.note || "",
+      mood: post.mood || "",
+    });
+
     setKept((currentKept) => [
       ...currentKept,
       {
-        id: Date.now(),
+        id: `${post.id}-${index}`,
         author: post.author,
         note: post.items[index]?.note || "",
         mood: post.mood,
@@ -155,7 +207,11 @@ export default function FlicdApp() {
     ]);
 
     onToast("Saved to Boards");
-  };
+  } catch (error) {
+    console.error("Failed to save board item:", error);
+    onToast(error.message || "Failed to save to Boards");
+  }
+};
 
   const markViewed = (id) => {
     setDumps((currentDumps) =>
@@ -170,9 +226,21 @@ export default function FlicdApp() {
     );
   };
 
-  const postDump = ({ mood, expiry, channel, items }) => {
-    const newDump = {
-      id: Date.now(),
+  const postDump = async ({ mood, expiry, channel, items }) => {
+  try {
+
+    const savedDump = await createDump({
+  type: "dump",
+  spaceId: channel,
+  mood,
+  expiry,
+  context: items[0]?.note || "new dump",
+  frameCount: items.length,
+  items,
+});
+
+const newDump = {
+  id: savedDump.id,
       channel,
       author: activeSpace.handle,
       mood,
@@ -188,11 +256,33 @@ export default function FlicdApp() {
     setDumps((currentDumps) => [newDump, ...currentDumps]);
     setScreen("home");
     onToast("Dump posted");
-  };
+  } catch (error) {
+    console.error("Failed to post dump:", error);
+    onToast(error.message || "Failed to post dump");
+  }
+};
 
-  const postRoll = ({ mood, expiry, channel, frameCount }) => {
+  const postRoll = async ({ mood, expiry, channel, frameCount }) => {
+  try {
+
+
+    const items = Array.from(
+      { length: frameCount },
+      () => ({ note: "" })
+    );
+
+   const savedDump = await createDump({
+  type: "roll",
+      spaceId: channel,
+      mood,
+      expiry,
+      context: `${frameCount} frame roll`,
+      frameCount,
+      items,
+    });
+
     const newRoll = {
-      id: Date.now(),
+  id: savedDump.id,
       channel,
       author: activeSpace.handle,
       mood,
@@ -201,16 +291,18 @@ export default function FlicdApp() {
       likes: 0,
       liked: false,
       comments: [],
-      items: Array.from({ length: frameCount }, () => ({
-        note: "",
-      })),
+      items,
       context: `${frameCount} frame roll`,
     };
 
     setDumps((currentDumps) => [newRoll, ...currentDumps]);
     setScreen("home");
     onToast("Roll posted");
-  };
+  } catch (error) {
+    console.error("Failed to post roll:", error);
+    onToast(error.message || "Failed to post roll");
+  }
+};
 
   const profile = {
   handle: supabaseProfile?.username || activeSpace.handle,
