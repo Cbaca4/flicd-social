@@ -8,6 +8,7 @@ import {DumpBuilder,RollBuilder} from '../features/capture/CaptureBuilders.jsx';
 import Messages from '../features/messages/Messages.jsx';
 import Profile from '../features/profile/Profile.jsx';
 import ProfileStudio from '../features/profile/ProfileStudio.jsx';
+import EditProfile from '../features/profile/EditProfile.jsx';
 import Discovery from '../features/discovery/Discovery.jsx';
 import SpaceSwitcher from '../features/spaces/SpaceSwitcher.jsx';
 import {DEFAULT_THEME,sanitizeProfileTheme} from '../features/profile/profileTheme.js';
@@ -87,14 +88,12 @@ export default function FlicdApp() {
       return;
     }
 
-    if (data) {
+        if (data) {
       console.log("✅ Profile loaded:", data);
       setSupabaseProfile(data);
     } else {
       console.log("No profile found yet.");
     }
-
-    setProfileLoading(false);
   }
 
   loadProfile();
@@ -266,18 +265,56 @@ export default function FlicdApp() {
         onToast={onToast}
       />
     );
-  } else if (screen === "profile") {
+   } else if (screen === "profile") {
+
     content = (
+
       <Profile
+
         profile={profile}
+
         activeSpace={activeSpace}
+
         onSwitchSpaces={() => setScreen("spaces")}
+
         theme={theme}
+
         onCustomize={() => setStudio(true)}
+
         boards={boards}
+
         onOpenBoard={() => onToast("Board opened")}
+
+        onEditProfile={() => setScreen("edit-profile")}
+
       />
+
     );
+
+  } else if (screen === "edit-profile") {
+
+    content = (
+
+      <EditProfile
+
+        profile={profile}
+
+        onBack={() => setScreen("profile")}
+
+        onSaved={(updatedProfile) => {
+
+          setSupabaseProfile(updatedProfile);
+
+          setScreen("profile");
+
+        }}
+
+        onToast={onToast}
+
+      />
+
+    );
+
   } else if (screen === "spaces") {
     content = (
       <SpaceSwitcher
