@@ -29,11 +29,13 @@ describe("PublicProfile", () => {
       />
     );
 
-    expect(screen.getByRole("heading", { name: "@maren_" })).toBeTruthy();
+    const usernameHeadings = screen.getAllByRole("heading", { name: "@maren_" });
+    expect(usernameHeadings).toHaveLength(2);
     expect(screen.getByText("Maren")).toBeTruthy();
     expect(screen.getByText("moments + coffee")).toBeTruthy();
     expect(screen.getByText("42")).toBeTruthy();
     expect(screen.getByText("18")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Follow user/i })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Edit Profile/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /Customize/i })).toBeNull();
 
