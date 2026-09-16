@@ -15,7 +15,7 @@ function FileSummary({ files }) {
       <p className="subtitle">{files.length} {files.length === 1 ? 'photo' : 'photos'} selected</p>
       <div className="stack" style={{ gap: 6 }}>
         {files.map((file, index) => (
-          <div key={`${file.name}-${index}`} className="row" style={{ justifyContent: 'space-between' }}>
+          <div key={`${file.name}-${file.size}-${file.lastModified}-${index}`} className="row" style={{ justifyContent: 'space-between' }}>
             <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
             <span className="flicd-mono" style={{ flexShrink: 0, marginLeft: 10 }}>{Math.max(1, Math.round(file.size / 1024))} KB</span>
           </div>
@@ -33,16 +33,32 @@ export function DumpBuilder({ spaces, activeSpaceId, onCancel, onPost }) {
   const [note, setNote] = React.useState('');
   const [error, setError] = React.useState('');
   const [posting, setPosting] = React.useState(false);
-  const moods = ['golden hour', 'late night', 'chaotic', 'nostalgic', 'summer'];
+  const cameraInputRef = React.useRef(null);
 
-  const onFilesChange = (event) => {
+  const addFiles = (incomingFiles) => {
     try {
-      const nextFiles = validateMediaFiles(event.target.files);
+      const nextFiles = validateMediaFiles([...files, ...Array.from(incomingFiles || [])]);
       setFiles(nextFiles);
       setError('');
     } catch (fileError) {
-      setFiles([]);
       setError(fileError.message || 'Could not select those images.');
+    }
+  };
+
+  const onGalleryChange = (event) => {
+    addFiles(event.target.files);
+    event.target.value = '';
+  };
+
+  const onCameraChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      validateMediaFile(file);
+      addFiles([file]);
+    } catch (fileError) {
+      setError(fileError.message || 'Could not capture that photo.');
     }
   };
 
@@ -66,13 +82,17 @@ export function DumpBuilder({ spaces, activeSpaceId, onCancel, onPost }) {
   return <div className="screen"><div className="topbar"><div><div className="eyebrow">New dump</div><h1 className="title">A handful of moments</h1></div><button className="btn" onClick={onCancel} disabled={posting}>Cancel</button></div><div className="stack">
     <div className="card">
       <p className="eyebrow">Photos</p>
-      <label className="btn btn-cyan" style={{ display: 'inline-flex', marginTop: 10, cursor: posting ? 'not-allowed' : 'pointer', opacity: posting ? 0.6 : 1 }}>
-        Choose photos
-        <input type="file" accept={MEDIA_ACCEPT} multiple onChange={onFilesChange} disabled={posting} style={{ display: 'none' }} />
-      </label>
+      <div className="row" style={{ marginTop: 10, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn-cyan" onClick={() => cameraInputRef.current?.click()} disabled={posting || files.length >= MAX_MEDIA_COUNT}>Take photo</button>
+        <label className="btn" style={{ display: 'inline-flex', cursor: posting || files.length >= MAX_MEDIA_COUNT ? 'not-allowed' : 'pointer', opacity: posting || files.length >= MAX_MEDIA_COUNT ? 0.6 : 1 }}>
+          Choose photos
+          <input type="file" accept={MEDIA_ACCEPT} multiple onChange={onGalleryChange} disabled={posting || files.length >= MAX_MEDIA_COUNT} style={{ display: 'none' }} />
+        </label>
+      </div>
+      <input ref={cameraInputRef} type="file" accept={MEDIA_ACCEPT} capture="environment" onChange={onCameraChange} disabled={posting || files.length >= MAX_MEDIA_COUNT} style={{ display: 'none' }} />
       <FileSummary files={files} />
       {error && <p role="alert" className="subtitle" style={{ marginTop: 10 }}>{error}</p>}
-      <p className="subtitle" style={{ marginTop: 10 }}>Up to {MAX_MEDIA_COUNT} photos. Your first note becomes the dump context.</p>
+      <p className="subtitle" style={{ marginTop: 10 }}>Up to {MAX_MEDIA_COUNT} photos. Mix camera shots and gallery photos in the same dump. Your first note becomes the dump context.</p>
     </div>
     <div className="card"><p className="eyebrow">Mood</p><div className="wrap" style={{ marginTop: 10 }}>{moods.map(m => <Pill key={m} active={mood === m} onClick={() => setMood(m)}>{m}</Pill>)}</div></div>
     <div className="card"><p className="eyebrow">Context card</p><input className="input" style={{ marginTop: 10 }} value={note} onChange={e => setNote(e.target.value)} placeholder="A memory, song, location…" maxLength={240} /></div>
