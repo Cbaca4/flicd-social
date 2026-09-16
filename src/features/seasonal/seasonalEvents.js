@@ -2,8 +2,8 @@ export const SEASONAL_EVENTS = {
   christmas: {
     id: "christmas",
     label: "Christmas",
-    startMonth: 11,
-    startDay: 25,
+    startMonth: 12,
+    startDay: 1,
     endMonth: 12,
     endDay: 26,
     intensity: "full",
@@ -41,7 +41,7 @@ export const SEASONAL_EVENTS = {
 };
 
 function dateKey(date) {
-  return date.getMonth() * 100 + date.getDate();
+  return (date.getMonth() + 1) * 100 + date.getDate();
 }
 
 export function getActiveSeasonalEvent(date = new Date()) {
