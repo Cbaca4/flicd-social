@@ -3,13 +3,6 @@ import "./Companion.css";
 import { loadCompanionSettings } from "./companionStorage.js";
 import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
 
-const TALK_LINES = [
-  "just vibin' 🦫",
-  "hey, what's up?",
-  "tiny break?",
-  "look at us go",
-];
-
 const REACTION_ICONS = {
   snow: "❄️",
   candy: "🍬",
@@ -26,8 +19,6 @@ const SPRITE_ROWS = {
 
 const PATROL_MIN_POSITION = 10;
 const PATROL_MAX_POSITION = 73;
-const TALK_MIN_POSITION = 24;
-const TALK_MAX_POSITION = 58;
 const PATROL_START_DELAY = 4500;
 const PATROL_MIN_PAUSE = 4000;
 const PATROL_MAX_PAUSE = 7000;
@@ -71,21 +62,14 @@ function getPatrolTravelDuration(distance) {
   );
 }
 
-function clampTalkPosition(position) {
-  return Math.min(
-    TALK_MAX_POSITION,
-    Math.max(TALK_MIN_POSITION, position),
-  );
-}
-
 function PixelCapybara({ costume }) {
   return (
     <span
       className="capybara-pixel-sprite"
       data-testid="capybara-pixel-sprite"
-      data-walk-animation="step-and-bob"
+      data-sprite-style="retro-16bit"
+      data-leg-detail="visible"
       data-walk-frames="8"
-      data-sprite-frame="96x72"
       style={{
         "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
       }}
@@ -99,7 +83,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
     loadCompanionSettings(userId),
   );
   const [reaction, setReaction] = React.useState("");
-  const [talkLineIndex, setTalkLineIndex] = React.useState(0);
   const [patrol, setPatrol] = React.useState({
     position: INITIAL_POSITION,
     direction: 1,
@@ -110,7 +93,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   const isWalking = settings.animation === "walk";
   const isSitting = settings.animation === "sit";
-  const isTalking = settings.animation === "talk";
 
   React.useEffect(() => {
     setSettings(loadCompanionSettings(userId));
@@ -125,10 +107,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
       }
     };
 
-    window.addEventListener(
-      "flicd:companion-settings",
-      handleSettingsChange,
-    );
+    window.addEventListener("flicd:companion-settings", handleSettingsChange);
 
     return () =>
       window.removeEventListener(
@@ -136,24 +115,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
         handleSettingsChange,
       );
   }, [userId]);
-
-  React.useEffect(() => {
-    if (
-      !settings.enabled ||
-      settings.animation !== "talk" ||
-      !settings.bubbles
-    ) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      setTalkLineIndex(
-        (current) => (current + 1) % TALK_LINES.length,
-      );
-    }, 4200);
-
-    return () => window.clearInterval(timer);
-  }, [settings.enabled, settings.animation, settings.bubbles]);
 
   React.useEffect(() => {
     if (!settings.enabled || !isWalking) {
@@ -224,9 +185,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
   if (!settings.enabled) return null;
 
   const seasonalReaction = getSeasonalReaction(seasonalEvent);
-  const displayPosition = isTalking
-    ? clampTalkPosition(patrol.position)
-    : patrol.position;
   const walkerClassName = [
     "companion-walker",
     `companion-${settings.animation}`,
@@ -244,19 +202,19 @@ export default function Companion({ userId, seasonalEvent = null }) {
       <div
         className={walkerClassName}
         data-motion-state={isWalking ? patrol.motion : undefined}
-        data-talk-contained={isTalking ? "true" : undefined}
-        data-bubble-contained={isTalking ? "true" : undefined}
         data-walk-speed={isWalking ? "slow" : undefined}
         style={{
-          "--companion-position": `${displayPosition}%`,
-          "--companion-travel-duration": `${patrol.travelDuration}ms`,
+          "--companion-position": `${patrol.position}%`,
+          "--companion-travel-duration": isWalking
+            ? `${patrol.travelDuration}ms`
+            : "0ms",
           "--capy-facing": patrol.direction,
         }}
       >
         <button
           type="button"
           className="companion-character"
-          aria-label={`${settings.name} the capybara companion`}
+          aria-label={`${settings.name || "Unnamed"} the capybara companion`}
           onClick={() => {
             if (settings.reactions) {
               setReaction(
@@ -267,29 +225,13 @@ export default function Companion({ userId, seasonalEvent = null }) {
         >
           <PixelCapybara costume={settings.costume} />
         </button>
-
-        {!isSitting && !isTalking && (
-          <span className="companion-nameplate" aria-hidden="true">
-            {settings.name}
-          </span>
-        )}
       </div>
-
-      {isTalking && settings.bubbles && (
-        <span
-          className="companion-talk"
-          aria-live="polite"
-          style={{ "--companion-bubble-position": `${displayPosition}%` }}
-        >
-          {TALK_LINES[talkLineIndex]}
-        </span>
-      )}
 
       {reaction && settings.reactions && (
         <span
           className="companion-reaction"
           aria-live="polite"
-          style={{ "--companion-bubble-position": `${displayPosition}%` }}
+          style={{ "--companion-bubble-position": `${patrol.position}%` }}
         >
           {reaction}
         </span>
@@ -298,6 +240,8 @@ export default function Companion({ userId, seasonalEvent = null }) {
       {isWalking && (
         <span className="companion-path" aria-hidden="true" />
       )}
+
+      {isSitting && <span className="companion-rest-marker" aria-hidden="true" />}
     </div>
   );
 }
