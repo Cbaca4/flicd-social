@@ -10,7 +10,7 @@ const { authMock, apiMock, profileFromMock } = vi.hoisted(() => ({
     getUser: vi.fn(),
   },
   apiMock: {
-    getDumps: vi.fn(),
+    getFeedDumps: vi.fn(),
     getBoards: vi.fn(),
     getBoardItems: vi.fn(),
     getOrCreateDefaultBoard: vi.fn(),
@@ -27,7 +27,7 @@ vi.mock("../lib/supabase", () => ({
 
 vi.mock("../features/capture/dumpApi.js", () => ({
   createDump: vi.fn(),
-  getDumps: apiMock.getDumps,
+  getFeedDumps: apiMock.getFeedDumps,
 }));
 
 vi.mock("../features/profile/boardApi.js", () => ({
@@ -89,7 +89,7 @@ describe("FlicdApp public profile navigation", () => {
     authMock.getSession.mockResolvedValue({ data: { session: { user: { id: "me" } } } });
     authMock.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
     authMock.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
-    apiMock.getDumps.mockResolvedValue([]);
+    apiMock.getFeedDumps.mockResolvedValue([]);
     apiMock.getBoards.mockResolvedValue([]);
     apiMock.getBoardItems.mockResolvedValue([]);
     apiMock.getOrCreateDefaultBoard.mockResolvedValue({ id: "saved", name: "Saved" });
@@ -110,6 +110,11 @@ describe("FlicdApp public profile navigation", () => {
         }),
       }),
     });
+  });
+
+  it("uses the social feed API instead of the unrestricted dump loader", async () => {
+    render(<FlicdApp />);
+    expect(apiMock.getFeedDumps).toHaveBeenCalled();
   });
 
   it("opens the selected user as a public profile and returns home on back", async () => {
