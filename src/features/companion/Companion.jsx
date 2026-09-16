@@ -209,7 +209,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   const triggerReaction = () => {
     if (!settings.reactions) return;
-
     setReaction(getRandomItem(getCompanionReactions(seasonalEventId)));
   };
 
@@ -249,6 +248,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
       {reaction && settings.reactions && (
         <span
           className="companion-reaction"
+          role="status"
           aria-live="polite"
           aria-label={`Companion reaction: ${reaction}`}
           style={{
