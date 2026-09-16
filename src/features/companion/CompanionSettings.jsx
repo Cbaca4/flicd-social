@@ -41,7 +41,13 @@ export function normalizeCompanionSettings(value = {}) {
 
 export default function CompanionSettings({ value, onChange }) {
   const settings = normalizeCompanionSettings(value);
-  const update = (patch) => onChange?.(normalizeCompanionSettings({ ...settings, ...patch }));
+  const update = (patch) => {
+    const next = normalizeCompanionSettings({ ...settings, ...patch });
+    onChange?.(next);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("flicd:companion-settings", { detail: next }));
+    }
+  };
 
   return (
     <section className="card companion-settings" aria-labelledby="companion-settings-title">

@@ -1,19 +1,12 @@
 import {
-  COMPANION_MODES,
   DEFAULT_COMPANION_STATE,
-  clampCompanionPosition,
+  COMPANION_MODES,
   getCompanionStorageKey,
 } from "./companionState.js";
+import { normalizeCompanionSettings } from "./CompanionSettings.jsx";
 
-function normalizeState(state) {
-  const position = clampCompanionPosition({
-    x: Number(state?.x),
-    y: Number(state?.y),
-  });
-  const mode = state?.mode === COMPANION_MODES.QUIET
-    ? COMPANION_MODES.QUIET
-    : COMPANION_MODES.ACTIVE;
-  return { ...position, mode };
+function getSettingsKey(userId) {
+  return `${getCompanionStorageKey(userId)}:settings`;
 }
 
 export function loadCompanionState(userId) {
@@ -21,7 +14,9 @@ export function loadCompanionState(userId) {
   try {
     const stored = localStorage.getItem(getCompanionStorageKey(userId));
     if (!stored) return { ...DEFAULT_COMPANION_STATE };
-    return normalizeState(JSON.parse(stored));
+    const parsed = JSON.parse(stored);
+    const mode = parsed?.mode === COMPANION_MODES.QUIET ? COMPANION_MODES.QUIET : COMPANION_MODES.ACTIVE;
+    return { ...DEFAULT_COMPANION_STATE, ...parsed, mode };
   } catch {
     return { ...DEFAULT_COMPANION_STATE };
   }
@@ -29,5 +24,21 @@ export function loadCompanionState(userId) {
 
 export function saveCompanionState(userId, state) {
   if (!userId || typeof localStorage === "undefined") return;
-  localStorage.setItem(getCompanionStorageKey(userId), JSON.stringify(normalizeState(state)));
+  localStorage.setItem(getCompanionStorageKey(userId), JSON.stringify(state));
+}
+
+export function loadCompanionSettings(userId) {
+  if (!userId || typeof localStorage === "undefined") return normalizeCompanionSettings();
+  try {
+    const stored = localStorage.getItem(getSettingsKey(userId));
+    if (!stored) return normalizeCompanionSettings();
+    return normalizeCompanionSettings(JSON.parse(stored));
+  } catch {
+    return normalizeCompanionSettings();
+  }
+}
+
+export function saveCompanionSettings(userId, settings) {
+  if (!userId || typeof localStorage === "undefined") return;
+  localStorage.setItem(getSettingsKey(userId), JSON.stringify(normalizeCompanionSettings(settings)));
 }
