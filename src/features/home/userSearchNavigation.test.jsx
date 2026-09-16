@@ -20,18 +20,20 @@ describe("UserSearch public profile navigation", () => {
     fromMock.mockReset();
     fromMock.mockReturnValue({
       select: () => ({
-        or: async () => ({
-          data: [
-            {
-              id: "profile-123",
-              username: "maren_",
-              display_name: "Maren",
-              bio: "moments + coffee",
-              avatar_url: "",
-              profile_theme: null,
-            },
-          ],
-          error: null,
+        or: () => ({
+          limit: async () => ({
+            data: [
+              {
+                id: "profile-123",
+                username: "maren_",
+                display_name: "Maren",
+                bio: "moments + coffee",
+                avatar_url: "",
+                profile_theme: null,
+              },
+            ],
+            error: null,
+          }),
         }),
       }),
     });
