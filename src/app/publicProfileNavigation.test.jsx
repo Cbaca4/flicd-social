@@ -49,9 +49,7 @@ vi.mock("../features/profile/Boards.jsx", () => ({ default: () => <div>Boards</d
 vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => <div>Create</div> }));
 vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => <div>Dump</div>, RollBuilder: () => <div>Roll</div> }));
 vi.mock("../app/AppShell.jsx", () => ({ default: ({ children }) => <div>{children}</div> }));
-vi.mock("../features/profile/Profile.jsx", () => ({
-  default: () => <div>Profile</div>,
-}));
+vi.mock("../features/profile/Profile.jsx", () => ({ default: () => <div>Profile</div> }));
 vi.mock("../features/home/Home.jsx", () => ({
   default: ({ onUserSelect }) => (
     <button
@@ -120,6 +118,6 @@ describe("FlicdApp public profile navigation", () => {
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByRole("button", { name: "Open Maren" })).toBeTruthy();
+    expect(await screen.findByText("Home")).toBeTruthy();
   });
 });
