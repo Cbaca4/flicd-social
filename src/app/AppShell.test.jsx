@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import React from "react";
+import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import AppShell from "./AppShell.jsx";
@@ -20,11 +21,20 @@ beforeEach(() => {
 describe("AppShell Companion integration", () => {
   it("mounts the capybara companion after onboarding is ready", async () => {
     render(
-      <AppShell userId="u1" screen="home" onNavigate={() => {}} onCapture={() => {}}>
+      <AppShell
+        userId="u1"
+        screen="home"
+        onNavigate={() => {}}
+        onCapture={() => {}}
+      >
         <div>content</div>
       </AppShell>,
     );
 
-    expect(await screen.findByRole("button", { name: /capybara companion/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", {
+        name: /capybara companion/i,
+      }),
+    ).toBeInTheDocument();
   });
 });

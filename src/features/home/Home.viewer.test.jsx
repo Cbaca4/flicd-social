@@ -63,9 +63,10 @@ describe("Viewer", () => {
       />
     );
 
-    expect(screen.getByRole("img", { name: /rooftop/i })).toHaveAttribute(
-      "src",
-      "https://cdn.example.com/user-1/rooftop.jpg"
-    );
+    const image = screen.getByRole("img", { name: /rooftop/i });
+
+expect(image.getAttribute("src")).toBe(
+  "https://cdn.example.com/user-1/rooftop.jpg"
+);
   });
 });
