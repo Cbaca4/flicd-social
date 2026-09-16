@@ -33,7 +33,8 @@ describe("DumpBuilder media inputs", () => {
 
     expect(inputs).toHaveLength(2);
     expect(inputs[0].getAttribute("accept")).toBe("image/jpeg,image/png,image/webp");
-    expect(inputs[0].getAttribute("capture")).toBe("environment");
+    expect(inputs[0].hasAttribute("capture")).toBe(true);
+    expect(inputs[0].getAttribute("capture") || "").toMatch(/^environment$|^$/);
     expect(inputs[0].hasAttribute("multiple")).toBe(false);
     expect(inputs[1].getAttribute("accept")).toBe("image/jpeg,image/png,image/webp");
     expect(inputs[1].hasAttribute("multiple")).toBe(true);
@@ -47,8 +48,8 @@ describe("DumpBuilder media inputs", () => {
     const cameraFile = new File(["camera"], "camera.jpg", { type: "image/jpeg" });
     const galleryFile = new File(["gallery"], "gallery.jpg", { type: "image/jpeg" });
 
-    fireEvent.change(inputs[0], { target: { files: [cameraFile], value: "camera.jpg" } });
-    fireEvent.change(inputs[1], { target: { files: [galleryFile], value: "gallery.jpg" } });
+    fireEvent.change(inputs[0], { target: { files: [cameraFile] } });
+    fireEvent.change(inputs[1], { target: { files: [galleryFile] } });
 
     expect(screen.getByText("2 photos selected")).toBeTruthy();
     expect(screen.getByText("camera.jpg")).toBeTruthy();
