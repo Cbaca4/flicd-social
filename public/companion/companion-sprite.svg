@@ -3,8 +3,6 @@
     <!-- 96x72 frame. Low body, long muzzle, tiny ear, four readable legs. -->
     <g id="base">
       <rect x="10" y="68" width="78" height="2" fill="#34241b" opacity=".24"/>
-
-      <!-- far-side legs -->
       <rect x="18" y="50" width="8" height="17" fill="#7b4a30"/>
       <rect x="37" y="50" width="8" height="17" fill="#7b4a30"/>
       <rect x="55" y="50" width="8" height="17" fill="#7b4a30"/>
@@ -13,33 +11,21 @@
       <rect x="35" y="66" width="12" height="4" fill="#52301f"/>
       <rect x="53" y="66" width="12" height="4" fill="#52301f"/>
       <rect x="70" y="66" width="12" height="4" fill="#52301f"/>
-
-      <!-- long, low capy body -->
       <rect x="14" y="31" width="56" height="25" fill="#8e5738"/>
       <rect x="19" y="27" width="48" height="29" fill="#9f6743"/>
       <rect x="24" y="25" width="39" height="31" fill="#a86f49"/>
       <rect x="18" y="48" width="48" height="8" fill="#7a482f"/>
       <rect x="22" y="29" width="34" height="4" fill="#c18a5d" opacity=".7"/>
-
-      <!-- shoulder/head rises gently instead of vertically -->
       <rect x="48" y="22" width="22" height="28" fill="#a86f49"/>
       <rect x="54" y="19" width="16" height="28" fill="#a86f49"/>
-
-      <!-- small rounded ear -->
       <rect x="57" y="14" width="9" height="8" fill="#75462f"/>
       <rect x="59" y="12" width="5" height="4" fill="#a86f49"/>
-
-      <!-- long capy muzzle -->
       <rect x="65" y="29" width="18" height="16" fill="#b97a4f"/>
       <rect x="75" y="32" width="12" height="11" fill="#bd7f54"/>
       <rect x="84" y="35" width="6" height="6" fill="#221710"/>
       <rect x="79" y="43" width="7" height="3" fill="#6a3d29"/>
-
-      <!-- single side eye -->
       <rect x="63" y="28" width="5" height="5" fill="#20160f"/>
       <rect x="64" y="27" width="2" height="2" fill="#f4e9dc"/>
-
-      <!-- tiny tail -->
       <rect x="10" y="36" width="5" height="7" fill="#70432c"/>
       <rect x="7" y="38" width="4" height="4" fill="#8e5738"/>
     </g>
@@ -55,103 +41,77 @@
     <g id="walk8"><use href="#base"/><rect x="15" y="49" width="8" height="20" fill="#68402a"/><rect x="58" y="55" width="8" height="14" fill="#68402a"/></g>
     <g id="walk9"><use href="#base" transform="translate(0,-1)"/><rect x="21" y="50" width="8" height="19" fill="#68402a"/><rect x="64" y="52" width="8" height="17" fill="#68402a"/></g>
 
+    <!-- Seated frames are separate art so Sit is visibly different immediately. -->
     <g id="sit0">
-      <use href="#base" transform="translate(0,4)"/>
-      <rect x="17" y="57" width="58" height="12" fill="#633c28"/>
-      <rect x="12" y="65" width="18" height="5" fill="#4d2d1f"/>
-      <rect x="60" y="65" width="18" height="5" fill="#4d2d1f"/>
+      <rect x="18" y="68" width="62" height="2" fill="#34241b" opacity=".24"/>
+      <rect x="24" y="38" width="43" height="26" fill="#8e5738"/>
+      <rect x="29" y="33" width="36" height="29" fill="#a86f49"/>
+      <rect x="50" y="27" width="21" height="27" fill="#a86f49"/>
+      <rect x="56" y="23" width="14" height="27" fill="#a86f49"/>
+      <rect x="59" y="18" width="9" height="8" fill="#75462f"/>
+      <rect x="61" y="16" width="5" height="4" fill="#a86f49"/>
+      <rect x="67" y="33" width="18" height="16" fill="#b97a4f"/>
+      <rect x="77" y="36" width="11" height="10" fill="#bd7f54"/>
+      <rect x="84" y="39" width="6" height="6" fill="#221710"/>
+      <rect x="65" y="32" width="5" height="5" fill="#20160f"/>
+      <rect x="66" y="31" width="2" height="2" fill="#f4e9dc"/>
+      <rect x="11" y="43" width="5" height="7" fill="#70432c"/>
+      <rect x="8" y="45" width="4" height="4" fill="#8e5738"/>
+      <rect x="29" y="55" width="14" height="14" fill="#68402a"/>
+      <rect x="50" y="55" width="14" height="14" fill="#68402a"/>
+      <rect x="27" y="66" width="18" height="4" fill="#4d2d1f"/>
+      <rect x="48" y="66" width="18" height="4" fill="#4d2d1f"/>
+      <rect x="35" y="47" width="24" height="5" fill="#c18a5d" opacity=".55"/>
     </g>
     <g id="sit1">
-      <use href="#base" transform="translate(0,5)"/>
-      <rect x="14" y="57" width="62" height="13" fill="#633c28"/>
-      <rect x="10" y="65" width="21" height="5" fill="#4d2d1f"/>
-      <rect x="59" y="65" width="21" height="5" fill="#4d2d1f"/>
+      <rect x="16" y="68" width="66" height="2" fill="#34241b" opacity=".24"/>
+      <rect x="21" y="40" width="48" height="25" fill="#8e5738"/>
+      <rect x="27" y="35" width="39" height="29" fill="#a86f49"/>
+      <rect x="51" y="28" width="21" height="28" fill="#a86f49"/>
+      <rect x="57" y="24" width="14" height="28" fill="#a86f49"/>
+      <rect x="60" y="19" width="9" height="8" fill="#75462f"/>
+      <rect x="62" y="17" width="5" height="4" fill="#a86f49"/>
+      <rect x="68" y="34" width="18" height="16" fill="#b97a4f"/>
+      <rect x="78" y="37" width="10" height="10" fill="#bd7f54"/>
+      <rect x="84" y="40" width="6" height="6" fill="#221710"/>
+      <rect x="66" y="33" width="5" height="5" fill="#20160f"/>
+      <rect x="67" y="32" width="2" height="2" fill="#f4e9dc"/>
+      <rect x="9" y="44" width="5" height="7" fill="#70432c"/>
+      <rect x="6" y="46" width="4" height="4" fill="#8e5738"/>
+      <rect x="27" y="55" width="17" height="14" fill="#68402a"/>
+      <rect x="49" y="55" width="15" height="14" fill="#68402a"/>
+      <rect x="24" y="66" width="21" height="4" fill="#4d2d1f"/>
+      <rect x="47" y="66" width="19" height="4" fill="#4d2d1f"/>
+      <rect x="34" y="49" width="25" height="5" fill="#c18a5d" opacity=".55"/>
     </g>
 
     <g id="frame-row">
-      <use href="#walk0" x="0"/>
-      <use href="#walk1" x="96"/>
-      <use href="#walk2" x="192"/>
-      <use href="#walk3" x="288"/>
-      <use href="#walk4" x="384"/>
-      <use href="#walk5" x="480"/>
-      <use href="#walk6" x="576"/>
-      <use href="#walk7" x="672"/>
-      <use href="#walk8" x="768"/>
-      <use href="#walk9" x="864"/>
-      <use href="#sit0" x="960"/>
-      <use href="#sit1" x="1056"/>
+      <use href="#walk0" x="0"/><use href="#walk1" x="96"/><use href="#walk2" x="192"/><use href="#walk3" x="288"/>
+      <use href="#walk4" x="384"/><use href="#walk5" x="480"/><use href="#walk6" x="576"/><use href="#walk7" x="672"/>
+      <use href="#walk8" x="768"/><use href="#walk9" x="864"/><use href="#sit0" x="960"/><use href="#sit1" x="1056"/>
     </g>
 
     <g id="santa">
-      <rect x="50" y="9" width="19" height="5" fill="#c83f46"/>
-      <rect x="56" y="5" width="12" height="6" fill="#c83f46"/>
-      <rect x="62" y="2" width="7" height="5" fill="#c83f46"/>
-      <rect x="51" y="14" width="21" height="4" fill="#f2e9df"/>
-      <rect x="65" y="2" width="5" height="5" fill="#f2e9df"/>
-      <rect x="30" y="46" width="31" height="8" fill="#c83f46"/>
-      <rect x="50" y="46" width="4" height="8" fill="#f2e9df"/>
+      <rect x="50" y="9" width="19" height="5" fill="#c83f46"/><rect x="56" y="5" width="12" height="6" fill="#c83f46"/><rect x="62" y="2" width="7" height="5" fill="#c83f46"/>
+      <rect x="51" y="14" width="21" height="4" fill="#f2e9df"/><rect x="65" y="2" width="5" height="5" fill="#f2e9df"/><rect x="30" y="46" width="31" height="8" fill="#c83f46"/><rect x="50" y="46" width="4" height="8" fill="#f2e9df"/>
     </g>
-
     <g id="ghost">
-      <rect x="9" y="24" width="74" height="35" fill="#e8edf7"/>
-      <rect x="16" y="19" width="61" height="39" fill="#eef1f8"/>
-      <rect x="62" y="29" width="7" height="7" fill="#303541"/>
-      <rect x="16" y="56" width="13" height="5" fill="#eef1f8"/>
-      <rect x="35" y="54" width="13" height="7" fill="#eef1f8"/>
-      <rect x="53" y="55" width="13" height="6" fill="#eef1f8"/>
-      <rect x="70" y="54" width="11" height="7" fill="#eef1f8"/>
-      <rect x="11" y="58" width="72" height="3" fill="#8a93a5"/>
+      <rect x="9" y="24" width="74" height="35" fill="#e8edf7"/><rect x="16" y="19" width="61" height="39" fill="#eef1f8"/><rect x="62" y="29" width="7" height="7" fill="#303541"/>
+      <rect x="16" y="56" width="13" height="5" fill="#eef1f8"/><rect x="35" y="54" width="13" height="7" fill="#eef1f8"/><rect x="53" y="55" width="13" height="6" fill="#eef1f8"/><rect x="70" y="54" width="11" height="7" fill="#eef1f8"/><rect x="11" y="58" width="72" height="3" fill="#8a93a5"/>
     </g>
-
     <g id="witch">
-      <rect x="50" y="14" width="25" height="5" fill="#53317a"/>
-      <rect x="56" y="8" width="18" height="8" fill="#53317a"/>
-      <rect x="62" y="2" width="9" height="8" fill="#53317a"/>
-      <rect x="49" y="19" width="28" height="4" fill="#df9b43"/>
-      <rect x="28" y="47" width="36" height="11" fill="#53317a"/>
-      <rect x="34" y="53" width="23" height="7" fill="#6b4192"/>
-      <rect x="51" y="48" width="4" height="11" fill="#df9b43"/>
+      <rect x="50" y="14" width="25" height="5" fill="#53317a"/><rect x="56" y="8" width="18" height="8" fill="#53317a"/><rect x="62" y="2" width="9" height="8" fill="#53317a"/><rect x="49" y="19" width="28" height="4" fill="#df9b43"/>
+      <rect x="28" y="47" width="36" height="11" fill="#53317a"/><rect x="34" y="53" width="23" height="7" fill="#6b4192"/><rect x="51" y="48" width="4" height="11" fill="#df9b43"/>
     </g>
-
     <g id="valentine">
-      <rect x="54" y="45" width="7" height="5" fill="#e45c88"/>
-      <rect x="61" y="45" width="7" height="5" fill="#e45c88"/>
-      <rect x="57" y="50" width="9" height="7" fill="#e45c88"/>
-      <rect x="60" y="57" width="4" height="3" fill="#b63862"/>
-      <rect x="56" y="20" width="5" height="5" fill="#e45c88"/>
-      <rect x="50" y="21" width="7" height="4" fill="#e45c88"/>
-      <rect x="61" y="21" width="7" height="4" fill="#e45c88"/>
+      <rect x="54" y="45" width="7" height="5" fill="#e45c88"/><rect x="61" y="45" width="7" height="5" fill="#e45c88"/><rect x="57" y="50" width="9" height="7" fill="#e45c88"/><rect x="60" y="57" width="4" height="3" fill="#b63862"/>
+      <rect x="56" y="20" width="5" height="5" fill="#e45c88"/><rect x="50" y="21" width="7" height="4" fill="#e45c88"/><rect x="61" y="21" width="7" height="4" fill="#e45c88"/>
     </g>
   </defs>
 
   <g transform="translate(0,0)"><use href="#frame-row"/></g>
-
-  <g transform="translate(0,72)">
-    <use href="#frame-row"/>
-    <use href="#santa" x="0"/><use href="#santa" x="96"/><use href="#santa" x="192"/><use href="#santa" x="288"/>
-    <use href="#santa" x="384"/><use href="#santa" x="480"/><use href="#santa" x="576"/><use href="#santa" x="672"/>
-    <use href="#santa" x="768"/><use href="#santa" x="864"/><use href="#santa" x="960"/><use href="#santa" x="1056"/>
-  </g>
-
-  <g transform="translate(0,144)">
-    <use href="#frame-row"/>
-    <use href="#ghost" x="0"/><use href="#ghost" x="96"/><use href="#ghost" x="192"/><use href="#ghost" x="288"/>
-    <use href="#ghost" x="384"/><use href="#ghost" x="480"/><use href="#ghost" x="576"/><use href="#ghost" x="672"/>
-    <use href="#ghost" x="768"/><use href="#ghost" x="864"/><use href="#ghost" x="960"/><use href="#ghost" x="1056"/>
-  </g>
-
-  <g transform="translate(0,216)">
-    <use href="#frame-row"/>
-    <use href="#witch" x="0"/><use href="#witch" x="96"/><use href="#witch" x="192"/><use href="#witch" x="288"/>
-    <use href="#witch" x="384"/><use href="#witch" x="480"/><use href="#witch" x="576"/><use href="#witch" x="672"/>
-    <use href="#witch" x="768"/><use href="#witch" x="864"/><use href="#witch" x="960"/><use href="#witch" x="1056"/>
-  </g>
-
-  <g transform="translate(0,288)">
-    <use href="#frame-row"/>
-    <use href="#valentine" x="0"/><use href="#valentine" x="96"/><use href="#valentine" x="192"/><use href="#valentine" x="288"/>
-    <use href="#valentine" x="384"/><use href="#valentine" x="480"/><use href="#valentine" x="576"/><use href="#valentine" x="672"/>
-    <use href="#valentine" x="768"/><use href="#valentine" x="864"/><use href="#valentine" x="960"/><use href="#valentine" x="1056"/>
-  </g>
+  <g transform="translate(0,72)"><use href="#frame-row"/><use href="#santa" x="0"/><use href="#santa" x="96"/><use href="#santa" x="192"/><use href="#santa" x="288"/><use href="#santa" x="384"/><use href="#santa" x="480"/><use href="#santa" x="576"/><use href="#santa" x="672"/><use href="#santa" x="768"/><use href="#santa" x="864"/><use href="#santa" x="960"/><use href="#santa" x="1056"/></g>
+  <g transform="translate(0,144)"><use href="#frame-row"/><use href="#ghost" x="0"/><use href="#ghost" x="96"/><use href="#ghost" x="192"/><use href="#ghost" x="288"/><use href="#ghost" x="384"/><use href="#ghost" x="480"/><use href="#ghost" x="576"/><use href="#ghost" x="672"/><use href="#ghost" x="768"/><use href="#ghost" x="864"/><use href="#ghost" x="960"/><use href="#ghost" x="1056"/></g>
+  <g transform="translate(0,216)"><use href="#frame-row"/><use href="#witch" x="0"/><use href="#witch" x="96"/><use href="#witch" x="192"/><use href="#witch" x="288"/><use href="#witch" x="384"/><use href="#witch" x="480"/><use href="#witch" x="576"/><use href="#witch" x="672"/><use href="#witch" x="768"/><use href="#witch" x="864"/><use href="#witch" x="960"/><use href="#witch" x="1056"/></g>
+  <g transform="translate(0,288)"><use href="#frame-row"/><use href="#valentine" x="0"/><use href="#valentine" x="96"/><use href="#valentine" x="192"/><use href="#valentine" x="288"/><use href="#valentine" x="384"/><use href="#valentine" x="480"/><use href="#valentine" x="576"/><use href="#valentine" x="672"/><use href="#valentine" x="768"/><use href="#valentine" x="864"/><use href="#valentine" x="960"/><use href="#valentine" x="1056"/></g>
 </svg>
