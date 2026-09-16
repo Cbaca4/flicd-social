@@ -15,8 +15,8 @@ describe("companion state", () => {
 
   it("moves toward a target without leaving bounds", () => {
     const next = moveCompanionToward({ x: 10, y: 20 }, { x: 50, y: 40 }, 20);
-    expect(next.x).toBeCloseTo(28, 3);
-    expect(next.y).toBeCloseTo(30, 3);
+    expect(next.x).toBeCloseTo(27.8885, 3);
+    expect(next.y).toBeCloseTo(28.9443, 3);
   });
 
   it("generates a bounded target", () => {
