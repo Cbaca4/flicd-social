@@ -13,7 +13,7 @@ export async function sendCommentMedia(dumpId, { mediaType, mediaBlob, mediaMeta
 
   try {
     return await addComment(dumpId, {
-      text: "",
+      text: null,
       media_type: mediaType,
       media_url: null,
       media_path: mediaPath,
