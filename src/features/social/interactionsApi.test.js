@@ -62,7 +62,15 @@ describe("social interactions API", () => {
     const comment = await addComment("dump-1", "  hello  ");
 
     expect(comment.text).toBe("hello");
-    expect(query.insert).toHaveBeenCalledWith({ dump_id: "dump-1", user_id: "me", text: "hello" });
+    expect(query.insert).toHaveBeenCalledWith({
+      dump_id: "dump-1",
+      user_id: "me",
+      text: "hello",
+      media_type: "text",
+      media_url: null,
+      media_path: null,
+      media_metadata: null,
+    });
   });
 
   it("creates a GIF comment with media metadata", async () => {
@@ -81,14 +89,13 @@ describe("social interactions API", () => {
     });
     from.mockReturnValue(query);
 
-    const { addComment } = await import("./interactionsApi.js");
-    await addComment("dump-1", {
+    await import("./interactionsApi.js").then(({ addComment }) => addComment("dump-1", {
       text: "",
       media_type: "gif",
       media_url: "https://media.giphy.com/media/abc/giphy.gif",
       media_path: null,
       media_metadata: { provider: "giphy", id: "abc" },
-    });
+    }));
 
     expect(query.insert).toHaveBeenCalledWith({
       dump_id: "dump-1",
@@ -124,7 +131,17 @@ describe("social interactions API", () => {
     });
     const comments = chain({
       data: [
-        { id: "c1", dump_id: "dump-1", user_id: "friend", text: "hi", created_at: "2026-09-16T10:00:00Z" },
+        {
+          id: "c1",
+          dump_id: "dump-1",
+          user_id: "friend",
+          text: "hi",
+          media_type: "text",
+          media_url: null,
+          media_path: null,
+          media_metadata: null,
+          created_at: "2026-09-16T10:00:00Z",
+        },
       ],
       error: null,
     });
@@ -141,7 +158,22 @@ describe("social interactions API", () => {
     ]);
 
     expect(result).toEqual([
-      { id: "dump-1", likes: 2, liked: true, comments: [{ id: "c1", from: "friend_1", displayName: "Friend", text: "hi", created_at: "2026-09-16T10:00:00Z" }] },
+      {
+        id: "dump-1",
+        likes: 2,
+        liked: true,
+        comments: [{
+          id: "c1",
+          from: "friend_1",
+          displayName: "Friend",
+          text: "hi",
+          media_type: "text",
+          media_url: null,
+          media_path: null,
+          media_metadata: null,
+          created_at: "2026-09-16T10:00:00Z",
+        }],
+      },
       { id: "dump-2", likes: 1, liked: false, comments: [] },
     ]);
   });
