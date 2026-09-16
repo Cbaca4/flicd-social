@@ -17,14 +17,14 @@ const SPRITE_ROWS = {
   valentine: 4,
 };
 
-const PATROL_MIN_POSITION = 10;
-const PATROL_MAX_POSITION = 73;
+const PATROL_MIN_POSITION = 8;
+const PATROL_MAX_POSITION = 82;
 const PATROL_START_DELAY = 4500;
-const PATROL_MIN_PAUSE = 4000;
-const PATROL_MAX_PAUSE = 7000;
-const PATROL_MIN_TRAVEL = 16000;
-const PATROL_MAX_TRAVEL = 32000;
-const PATROL_MS_PER_PERCENT = 400;
+const PATROL_MIN_PAUSE = 2600;
+const PATROL_MAX_PAUSE = 4800;
+const PATROL_MIN_TRAVEL = 9000;
+const PATROL_MAX_TRAVEL = 18000;
+const PATROL_MS_PER_PERCENT = 220;
 const INITIAL_POSITION = 18;
 
 function getSeasonalReaction(seasonalEvent) {
@@ -36,13 +36,10 @@ function getRandomInt(min, max) {
 }
 
 function getNextPatrolPosition(currentPosition) {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const candidate = getRandomInt(
-      PATROL_MIN_POSITION,
-      PATROL_MAX_POSITION,
-    );
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const candidate = getRandomInt(PATROL_MIN_POSITION, PATROL_MAX_POSITION);
 
-    if (Math.abs(candidate - currentPosition) >= 15) {
+    if (Math.abs(candidate - currentPosition) >= 18) {
       return candidate;
     }
   }
@@ -69,7 +66,8 @@ function PixelCapybara({ costume }) {
       data-testid="capybara-pixel-sprite"
       data-sprite-style="retro-16bit"
       data-leg-detail="visible"
-      data-walk-frames="6"
+      data-walk-frames="10"
+      data-sprite-sheet="1152x360"
       style={{
         "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
       }}
@@ -96,15 +94,30 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   React.useEffect(() => {
     setSettings(loadCompanionSettings(userId));
+    patrolPositionRef.current = INITIAL_POSITION;
+    setPatrol({
+      position: INITIAL_POSITION,
+      direction: 1,
+      motion: "idle",
+      travelDuration: 0,
+    });
   }, [userId]);
 
   React.useEffect(() => {
     const handleSettingsChange = (event) => {
-      if (event?.detail) {
-        setSettings(event.detail);
-      } else {
-        setSettings(loadCompanionSettings(userId));
+      const nextSettings = event?.detail
+        ? event.detail
+        : loadCompanionSettings(userId);
+
+      if (nextSettings.animation === "sit") {
+        setPatrol((current) => ({
+          ...current,
+          motion: "idle",
+          travelDuration: 0,
+        }));
       }
+
+      setSettings(nextSettings);
     };
 
     window.addEventListener("flicd:companion-settings", handleSettingsChange);
@@ -178,7 +191,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
     if (!reaction) return undefined;
 
     const timer = window.setTimeout(() => setReaction(""), 1200);
-
     return () => window.clearTimeout(timer);
   }, [reaction]);
 
@@ -202,6 +214,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
       <div
         className={walkerClassName}
         data-motion-state={isWalking ? patrol.motion : undefined}
+        data-movement="continuous"
         data-walk-speed={isWalking ? "slow" : undefined}
         style={{
           "--companion-position": `${patrol.position}%`,
@@ -241,7 +254,9 @@ export default function Companion({ userId, seasonalEvent = null }) {
         <span className="companion-path" aria-hidden="true" />
       )}
 
-      {isSitting && <span className="companion-rest-marker" aria-hidden="true" />}
+      {isSitting && (
+        <span className="companion-rest-marker" aria-hidden="true" />
+      )}
     </div>
   );
 }
