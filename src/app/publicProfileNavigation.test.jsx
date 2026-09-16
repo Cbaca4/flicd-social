@@ -106,7 +106,8 @@ describe("FlicdApp public profile navigation", () => {
   it("opens the selected user as a public profile and returns home on back", async () => {
     render(<FlicdApp />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Maren" }));
+    const openMarenButton = await screen.findByRole("button", { name: "Open Maren" });
+    fireEvent.click(openMarenButton);
 
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
