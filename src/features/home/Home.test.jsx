@@ -4,7 +4,7 @@ import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import Home from "./Home.jsx";
+import Home, { Viewer } from "./Home.jsx";
 
 vi.mock("../seasonal/SeasonalOverlay.jsx", () => ({
   default: () => null,
@@ -71,5 +71,67 @@ describe("Home feed states", () => {
     );
 
     expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
+  });
+});
+
+describe("Post viewer", () => {
+  const post = {
+    id: "post-1",
+    author: "baco",
+    mood: "late night",
+    mode: "dump",
+    postedMinutesAgo: 20,
+    liked: false,
+    likes: 4,
+    comments: [{ id: "comment-1", from: "mia", text: "love this" }],
+    items: [{ id: "item-1", note: "one moment" }],
+  };
+
+  it("keeps actions and comments in separate viewer sections", () => {
+    const onLike = vi.fn();
+    const onComment = vi.fn();
+    const onKeep = vi.fn();
+
+    const { container } = render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={onLike}
+        onComment={onComment}
+        onKeep={onKeep}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    const actions = container.querySelector(".post-actions");
+    const conversation = container.querySelector(".post-conversation");
+    const composer = container.querySelector(".comment-composer");
+
+    expect(actions).toBeInTheDocument();
+    expect(conversation).toBeInTheDocument();
+    expect(conversation?.querySelector(".comment-composer")).toBe(composer);
+    expect(screen.getByText("love this")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Add a comment")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Like" }));
+    expect(onLike).toHaveBeenCalledWith("post-1");
+  });
+
+  it("disables only the like action while a like request is pending", () => {
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+        likePending
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Like" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Keep" })).toBeEnabled();
+    expect(screen.getByPlaceholderText("Add a comment")).toBeEnabled();
   });
 });
