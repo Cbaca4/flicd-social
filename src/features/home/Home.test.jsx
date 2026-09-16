@@ -238,4 +238,28 @@ describe("Post viewer", () => {
     expect(screen.getByRole("button", { name: "Send voice comment" })).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Add a comment")).not.toBeInTheDocument();
   });
+
+  it("sends the recorded blob as an audio comment payload", async () => {
+    const onComment = vi.fn();
+
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={onComment}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop voice recording" }));
+    fireEvent.click(screen.getByRole("button", { name: "Send voice comment" }));
+
+    expect(onComment).toHaveBeenCalledWith("post-1", {
+      media_type: "audio",
+      media_blob: voiceBlob,
+    });
+  });
 });
