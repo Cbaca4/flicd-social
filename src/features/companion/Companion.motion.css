@@ -1,6 +1,1 @@
-/* Autonomous position changes are coordinated by Companion.jsx. */
-@media (prefers-reduced-motion: reduce) {
-  .companion-walker {
-    transition-duration: 0ms !important;
-  }
-}
+/* Autonomous companion movement is coordinated by Companion.jsx and Companion.css. */
