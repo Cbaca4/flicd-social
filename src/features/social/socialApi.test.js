@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-const getUser = vi.fn();
-const from = vi.fn();
+const getUser = vi.hoisted(() => vi.fn());
+const from = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/supabase", () => ({
   supabase: { auth: { getUser }, from },
@@ -22,6 +22,7 @@ function chain(result) {
     update: vi.fn(() => api),
     upsert: vi.fn(() => api),
     delete: vi.fn(() => api),
+    then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   return api;
 }
