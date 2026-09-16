@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Pin,
   LayoutGrid,
+  Pencil,
 } from "lucide-react";
 import { getPinnedBoards } from "./boardPinning.js";
 
@@ -124,6 +125,7 @@ export default function Profile({
   onSwitchSpaces,
   theme,
   onCustomize,
+  onEditProfile,
   boards = [],
   onOpenBoards,
   onCustomizeBoards,
@@ -166,14 +168,26 @@ export default function Profile({
                 </h1>
               </div>
 
-              <button
-                type="button"
-                className="btn icon-btn"
-                onClick={onCustomize}
-                aria-label="Customize profile"
-              >
-                <Settings size={18} />
-              </button>
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={onEditProfile}
+                  aria-label="Edit Profile"
+                >
+                  <Pencil size={15} />
+                  Edit Profile
+                </button>
+
+                <button
+                  type="button"
+                  className="btn icon-btn"
+                  onClick={onCustomize}
+                  aria-label="Customize profile"
+                >
+                  <Settings size={18} />
+                </button>
+              </div>
             </div>
 
             <p
