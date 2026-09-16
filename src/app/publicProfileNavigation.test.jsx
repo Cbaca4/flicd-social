@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import React from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
 const { authMock, apiMock, profileFromMock } = vi.hoisted(() => ({
   authMock: {
@@ -86,6 +86,8 @@ import FlicdApp from "./FlicdApp.jsx";
 
 describe("FlicdApp public profile navigation", () => {
   beforeEach(() => {
+    cleanup();
+    vi.clearAllMocks();
     authMock.getSession.mockResolvedValue({ data: { session: { user: { id: "me" } } } });
     authMock.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
     authMock.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
@@ -112,9 +114,11 @@ describe("FlicdApp public profile navigation", () => {
     });
   });
 
+  afterEach(() => cleanup());
+
   it("uses the social feed API instead of the unrestricted dump loader", async () => {
     render(<FlicdApp />);
-    expect(apiMock.getFeedDumps).toHaveBeenCalled();
+    await waitFor(() => expect(apiMock.getFeedDumps).toHaveBeenCalled());
   });
 
   it("opens the selected user as a public profile and returns home on back", async () => {
