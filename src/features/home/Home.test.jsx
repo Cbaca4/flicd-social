@@ -2,8 +2,8 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Home, { Viewer } from "./Home.jsx";
 
 vi.mock("../seasonal/SeasonalOverlay.jsx", () => ({
@@ -15,6 +15,10 @@ vi.mock("./UserSearch.jsx", () => ({
 vi.mock("../profile/PublicProfile.jsx", () => ({
   default: () => null,
 }));
+
+afterEach(() => {
+  cleanup();
+});
 
 describe("Home feed states", () => {
   const activeSpace = {
