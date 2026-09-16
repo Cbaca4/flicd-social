@@ -4,14 +4,16 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 
-const { signOut } = vi.hoisted(() => ({
+const { signOut, getUser } = vi.hoisted(() => ({
   signOut: vi.fn().mockResolvedValue({ error: null }),
+  getUser: vi.fn().mockResolvedValue({ data: { user: { id: "test-user" } } }),
 }));
 
 vi.mock("../../lib/supabase", () => ({
   supabase: {
     auth: {
       signOut,
+      getUser,
     },
   },
 }));
