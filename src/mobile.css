@@ -1,0 +1,32 @@
+html, body, #root { min-height: 100%; }
+body { overflow-x: hidden; }
+
+@media (max-width: 620px) {
+  .flicd-app { width: 100%; min-height: 100dvh; padding: 0; }
+  .app-frame { width: 100%; min-height: 100dvh; }
+  .app-content { width: 100%; min-height: 100dvh; overflow: hidden; }
+  .screen { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+  .topbar { gap: 12px; align-items: flex-start; }
+  .topbar > * { min-width: 0; }
+  .topbar .title { overflow-wrap: anywhere; }
+  .row { min-width: 0; }
+  .row > * { min-width: 0; }
+  .card { min-width: 0; max-width: 100%; box-sizing: border-box; }
+  .btn { max-width: 100%; white-space: normal; }
+  .input, textarea, select { max-width: 100%; box-sizing: border-box; }
+
+  .bottom-dock {
+    position: fixed !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    transform: translateX(-50%) !important;
+    width: min(calc(100vw - 20px), 620px) !important;
+    box-sizing: border-box;
+    z-index: 1000;
+  }
+
+  .onboarding-shell { min-height: 100dvh; padding: 20px 14px; box-sizing: border-box; }
+  .onboarding-card { width: 100%; max-width: 680px; box-sizing: border-box; }
+  .onboarding-card .row { flex-wrap: wrap; }
+}
