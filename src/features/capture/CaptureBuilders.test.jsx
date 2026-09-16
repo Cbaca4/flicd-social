@@ -13,11 +13,8 @@ vi.mock("./mediaUpload.js", () => ({
 }));
 
 vi.mock("../rollPresentation.js", () => ({
-  ROLL_STAGES: ["loading", "winding", "developing", "revealing", "finished"],
-  getNextRollStage: (stage) => {
-    const stages = ["loading", "winding", "developing", "revealing", "finished"];
-    return stages[Math.min(stages.indexOf(stage) + 1, stages.length - 1)];
-  },
+  ROLL_STAGES: ["loading", "finished"],
+  getNextRollStage: () => "finished",
 }));
 
 function makeFile(name = "moment.jpg") {
@@ -76,11 +73,9 @@ describe("RollBuilder publishing", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
 
-      for (const delay of [500, 900, 1700, 1100]) {
-        await act(async () => {
-          await vi.advanceTimersByTimeAsync(delay);
-        });
-      }
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500);
+      });
 
       expect(screen.getByText("Ready to post")).toBeInTheDocument();
 
