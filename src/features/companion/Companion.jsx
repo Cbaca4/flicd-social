@@ -1,6 +1,5 @@
 import React from "react";
 import "./Companion.css";
-import "./Companion.motion.css";
 import { loadCompanionSettings } from "./companionStorage.js";
 import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
 
@@ -27,8 +26,8 @@ const SPRITE_ROWS = {
 
 const PATROL_MIN_POSITION = 10;
 const PATROL_MAX_POSITION = 73;
-const TALK_MIN_POSITION = 18;
-const TALK_MAX_POSITION = 65;
+const TALK_MIN_POSITION = 24;
+const TALK_MAX_POSITION = 58;
 const PATROL_START_DELAY = 4500;
 const PATROL_MIN_PAUSE = 4000;
 const PATROL_MAX_PAUSE = 7000;
@@ -85,6 +84,8 @@ function PixelCapybara({ costume }) {
       className="capybara-pixel-sprite"
       data-testid="capybara-pixel-sprite"
       data-walk-animation="step-and-bob"
+      data-walk-frames="8"
+      data-sprite-frame="96x72"
       style={{
         "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
       }}
@@ -244,6 +245,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
         className={walkerClassName}
         data-motion-state={isWalking ? patrol.motion : undefined}
         data-talk-contained={isTalking ? "true" : undefined}
+        data-bubble-contained={isTalking ? "true" : undefined}
         data-walk-speed={isWalking ? "slow" : undefined}
         style={{
           "--companion-position": `${displayPosition}%`,
@@ -251,18 +253,6 @@ export default function Companion({ userId, seasonalEvent = null }) {
           "--capy-facing": patrol.direction,
         }}
       >
-        {isTalking && settings.bubbles && (
-          <span className="companion-talk" aria-live="polite">
-            {TALK_LINES[talkLineIndex]}
-          </span>
-        )}
-
-        {reaction && settings.reactions && (
-          <span className="companion-reaction" aria-live="polite">
-            {reaction}
-          </span>
-        )}
-
         <button
           type="button"
           className="companion-character"
@@ -284,6 +274,26 @@ export default function Companion({ userId, seasonalEvent = null }) {
           </span>
         )}
       </div>
+
+      {isTalking && settings.bubbles && (
+        <span
+          className="companion-talk"
+          aria-live="polite"
+          style={{ "--companion-bubble-position": `${displayPosition}%` }}
+        >
+          {TALK_LINES[talkLineIndex]}
+        </span>
+      )}
+
+      {reaction && settings.reactions && (
+        <span
+          className="companion-reaction"
+          aria-live="polite"
+          style={{ "--companion-bubble-position": `${displayPosition}%` }}
+        >
+          {reaction}
+        </span>
+      )}
 
       {isWalking && (
         <span className="companion-path" aria-hidden="true" />
