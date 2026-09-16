@@ -355,7 +355,7 @@ export default function FlicdApp() {
 
   return (
     <>
-      <AppShell screen={navigationScreen} onNavigate={(key) => setScreen(key)} onCapture={() => setScreen("create-choose")} unread={requests.length}>
+      <AppShell userId={session.user.id} screen={navigationScreen} onNavigate={(key) => setScreen(key)} onCapture={() => setScreen("create-choose")} unread={requests.length}>
         <div style={{ height: "100%" }}>{content}</div>
       </AppShell>
 
