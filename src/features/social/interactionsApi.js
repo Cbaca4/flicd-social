@@ -51,10 +51,19 @@ export async function hydrateDumpInteractions(dumps) {
   if (likesResult.error) throw likesResult.error;
   if (commentsResult.error) throw commentsResult.error;
 
+  const commenterIds = Array.from(new Set((commentsResult.data || []).map((comment) => comment.user_id).filter(Boolean)));
+  let profiles = [];
+  if (commenterIds.length) {
+    const { data, error } = await supabase.from("profiles").select("id,username,display_name").in("id", commenterIds);
+    if (error) throw error;
+    profiles = data || [];
+  }
+
   const likesByDump = new Map();
   const likedByDump = new Set();
   const commentsByDump = new Map();
   const currentUserId = await getCurrentUserId();
+  const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
 
   for (const like of likesResult.data || []) {
     likesByDump.set(like.dump_id, (likesByDump.get(like.dump_id) || 0) + 1);
@@ -63,9 +72,11 @@ export async function hydrateDumpInteractions(dumps) {
 
   for (const comment of commentsResult.data || []) {
     const list = commentsByDump.get(comment.dump_id) || [];
+    const profile = profilesById.get(comment.user_id);
     list.push({
       id: comment.id,
-      from: comment.user_id,
+      from: profile?.username || comment.user_id,
+      displayName: profile?.display_name || "",
       text: comment.text,
       created_at: comment.created_at,
     });
