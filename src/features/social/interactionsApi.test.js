@@ -65,6 +65,42 @@ describe("social interactions API", () => {
     expect(query.insert).toHaveBeenCalledWith({ dump_id: "dump-1", user_id: "me", text: "hello" });
   });
 
+  it("creates a GIF comment with media metadata", async () => {
+    const query = chain({
+      data: {
+        id: "comment-gif",
+        dump_id: "dump-1",
+        user_id: "me",
+        text: null,
+        media_type: "gif",
+        media_url: "https://media.giphy.com/media/abc/giphy.gif",
+        media_path: null,
+        media_metadata: { provider: "giphy", id: "abc" },
+      },
+      error: null,
+    });
+    from.mockReturnValue(query);
+
+    const { addComment } = await import("./interactionsApi.js");
+    await addComment("dump-1", {
+      text: "",
+      media_type: "gif",
+      media_url: "https://media.giphy.com/media/abc/giphy.gif",
+      media_path: null,
+      media_metadata: { provider: "giphy", id: "abc" },
+    });
+
+    expect(query.insert).toHaveBeenCalledWith({
+      dump_id: "dump-1",
+      user_id: "me",
+      text: null,
+      media_type: "gif",
+      media_url: "https://media.giphy.com/media/abc/giphy.gif",
+      media_path: null,
+      media_metadata: { provider: "giphy", id: "abc" },
+    });
+  });
+
   it("rejects empty comments", async () => {
     const { addComment } = await import("./interactionsApi.js");
 
