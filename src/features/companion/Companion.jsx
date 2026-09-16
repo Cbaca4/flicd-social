@@ -49,6 +49,7 @@ export default function Companion({ userId, enabled = true, seasonalEvent = null
   );
   const [position, setPosition] = React.useState({ x: initialState.x, y: initialState.y });
   const [mode, setMode] = React.useState(initialState.mode);
+  const [hydratedUserId, setHydratedUserId] = React.useState(userId);
   const [reacting, setReacting] = React.useState(false);
   const [dragging, setDragging] = React.useState(false);
   const [reducedMotion, setReducedMotion] = React.useState(false);
@@ -61,11 +62,13 @@ export default function Companion({ userId, enabled = true, seasonalEvent = null
     const stored = loadCompanionState(userId);
     setPosition({ x: stored.x, y: stored.y });
     setMode(stored.mode);
+    setHydratedUserId(userId);
   }, [userId]);
 
   React.useEffect(() => {
+    if (hydratedUserId !== userId) return;
     saveCompanionState(userId, { ...position, mode });
-  }, [userId, position.x, position.y, mode]);
+  }, [userId, hydratedUserId, position.x, position.y, mode]);
 
   React.useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
@@ -77,14 +80,20 @@ export default function Companion({ userId, enabled = true, seasonalEvent = null
   }, []);
 
   React.useEffect(() => {
-    if (!enabled || mode !== COMPANION_MODES.ACTIVE || reducedMotion || dragging) return undefined;
+    if (
+      !enabled
+      || hydratedUserId !== userId
+      || mode !== COMPANION_MODES.ACTIVE
+      || reducedMotion
+      || dragging
+    ) return undefined;
 
     const timer = window.setTimeout(() => {
       setPosition((current) => getRandomCompanionTarget(current));
     }, MOVE_DELAY_MIN + Math.random() * MOVE_DELAY_RANGE);
 
     return () => window.clearTimeout(timer);
-  }, [enabled, mode, reducedMotion, dragging, position.x, position.y]);
+  }, [enabled, userId, hydratedUserId, mode, reducedMotion, dragging, position.x, position.y]);
 
   React.useEffect(() => () => {
     if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
