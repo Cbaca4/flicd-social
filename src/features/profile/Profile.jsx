@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut } from "lucide-react";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 
@@ -22,6 +22,19 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
     </button>
   );
 
+  const placeholderRow = (Icon, title, description) => (
+    <div className="card" aria-disabled="true" style={{ width: "100%", opacity: 0.82 }}>
+      <div className="row">
+        <Icon size={18} />
+        <div style={{ flex: 1 }}>
+          <strong>{title}</strong>
+          <p className="subtitle" style={{ marginTop: 3 }}>{description}</p>
+        </div>
+        <span className="tag">Coming soon</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="screen">
       <div className="topbar">
@@ -34,10 +47,23 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
       </div>
 
       <div className="stack" style={{ maxWidth: 760 }}>
+        <div className="eyebrow" style={{ marginTop: 4 }}>Profile</div>
         {row(Pencil, "Edit Profile", "Change your username, name, bio, and profile details.", onEditProfile)}
         {row(Palette, "Profile Studio", "Customize your profile's look, sections, and theme.", onCustomize)}
         {row(LayoutGrid, "Boards", "Manage your saved Boards and pinned profile Boards.", onBoards)}
         {row(Users, "Spaces", "Switch between your Flic'd spaces and identities.", onSpaces)}
+
+        <div className="eyebrow" style={{ marginTop: 12 }}>Account</div>
+        {placeholderRow(UserRoundCog, "Account & Security", "Email, password, active sessions, and account management.")}
+        {placeholderRow(ShieldCheck, "Privacy & Safety", "Visibility, blocking, interaction controls, and safety settings.")}
+        {placeholderRow(Bell, "Notifications", "Choose which likes, comments, messages, follows, and requests you receive.")}
+        {placeholderRow(SlidersHorizontal, "Content Preferences", "Manage muted words, feed preferences, and content controls.")}
+        {placeholderRow(Settings, "Appearance", "App-wide theme, accessibility, and display preferences.")}
+        {placeholderRow(Database, "Data & Storage", "Downloads, cached media, storage usage, and data controls.")}
+
+        <div className="eyebrow" style={{ marginTop: 12 }}>Support & About</div>
+        {placeholderRow(HelpCircle, "Help & Support", "FAQ, report a problem, and ways to get help with Flic'd.")}
+        {placeholderRow(Info, "About Flic'd", "App version, Terms, Privacy Policy, and third-party licenses.")}
 
         <div className="card" style={{ marginTop: 4 }}>
           <div className="eyebrow">Account</div>
