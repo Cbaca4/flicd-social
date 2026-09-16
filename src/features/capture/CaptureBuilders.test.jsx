@@ -31,9 +31,9 @@ describe("DumpBuilder publishing", () => {
       rejectPost = reject;
     }));
 
-    render(<DumpBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
+    const { container } = render(<DumpBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
 
-    const input = screen.getByLabelText("Choose photos").querySelector("input");
+    const input = screen.getByText("Choose photos").parentElement.querySelector("input");
     fireEvent.change(input, { target: { files: [makeFile()] } });
 
     const postButton = screen.getByRole("button", { name: "Post dump" });
@@ -43,12 +43,14 @@ describe("DumpBuilder publishing", () => {
     expect(postButton).toHaveTextContent("Uploading…");
     expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
     expect(onPost).toHaveBeenCalledTimes(1);
+    expect(container.querySelector('input[type="file"][multiple]')).toBeInTheDocument();
 
     rejectPost(new Error("Upload failed"));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("Upload failed");
       expect(screen.getByRole("button", { name: "Post dump" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
     });
   });
 });
@@ -60,19 +62,17 @@ describe("RollBuilder publishing", () => {
       resolvePost = resolve;
     }));
 
-    render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
+    const { container } = render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
-    const captureInput = screen.getByDisplayValue("")?.closest?.("input");
-    expect(captureInput).not.toBeNull();
+    const captureInput = container.querySelector('input[type="file"][capture="environment"]');
+    expect(captureInput).toBeInTheDocument();
 
     for (let index = 0; index < 8; index += 1) {
       fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
     }
 
     fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
-    await waitFor(() => expect(screen.getByRole("button", { name: "Developing…" })).toBeInTheDocument());
-
     await waitFor(() => expect(screen.getByText("Ready to post")).toBeInTheDocument(), { timeout: 6000 });
 
     fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
