@@ -84,6 +84,10 @@
 }
 
 .capybara-pixel-sprite {
+  --costume-accent: transparent;
+  --costume-dark: transparent;
+  --costume-light: transparent;
+  position: relative;
   display: block;
   width: 96px;
   height: 72px;
@@ -92,6 +96,194 @@
   background-repeat: no-repeat;
   background-size: 1152px 360px;
   background-position: 0 calc(var(--sprite-row, 0) * -72px);
+  overflow: visible;
+}
+
+/* Costume overlays stay inside the capybara's same 96x72 frame. */
+.capybara-pixel-sprite::before,
+.capybara-pixel-sprite::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.companion-costume-hero::before {
+  left: 12px;
+  top: 30px;
+  width: 20px;
+  height: 28px;
+  background: linear-gradient(90deg, #4f69ff 0 55%, #f5f5ff 55% 75%, #d83a4b 75% 100%);
+  clip-path: polygon(0 0, 100% 12%, 76% 100%, 38% 78%, 0 100%);
+}
+
+.companion-costume-hero::after {
+  left: 53px;
+  top: 23px;
+  width: 16px;
+  height: 5px;
+  background: #f2d85f;
+  box-shadow: 3px 7px 0 #e0bb31;
+}
+
+.companion-costume-speedster::before {
+  left: 49px;
+  top: 18px;
+  width: 19px;
+  height: 7px;
+  background: #e85b43;
+  transform: skewX(-20deg);
+  box-shadow: -6px 7px 0 #f4cf4e;
+}
+
+.companion-costume-speedster::after {
+  left: 19px;
+  top: 50px;
+  width: 58px;
+  height: 8px;
+  background: linear-gradient(90deg, transparent, #ed4747 35%, #f5cd4a 65%, transparent);
+  opacity: 0.85;
+}
+
+.companion-costume-cosmic::before {
+  left: 14px;
+  top: 28px;
+  width: 48px;
+  height: 28px;
+  background: linear-gradient(90deg, #5142a8, #2562c7 55%, #19a7d8);
+  clip-path: polygon(0 10%, 22% 0, 100% 8%, 83% 100%, 15% 88%);
+  opacity: 0.9;
+}
+
+.companion-costume-cosmic::after {
+  left: 58px;
+  top: 18px;
+  width: 5px;
+  height: 5px;
+  background: #fff6a6;
+  box-shadow: 9px 8px 0 #ffffff, 1px 16px 0 #ffdc67;
+}
+
+.companion-costume-pumpkin-king::before,
+.companion-costume-vampire::before,
+.companion-costume-reaper::before,
+.companion-costume-elf::before,
+.companion-costume-gingerbread::before,
+.companion-costume-reindeer::before,
+.companion-costume-cupid::before,
+.companion-costume-love-letter::before {
+  top: 17px;
+  left: 50px;
+}
+
+.companion-costume-pumpkin-king::before {
+  width: 22px;
+  height: 8px;
+  background: #ef8f27;
+  box-shadow: 3px -4px 0 #ef8f27, 8px -7px 0 #ef8f27;
+}
+
+.companion-costume-pumpkin-king::after {
+  left: 57px;
+  top: 28px;
+  width: 12px;
+  height: 5px;
+  background: #f4c84f;
+  box-shadow: -5px 8px 0 #8b43a9;
+}
+
+.companion-costume-vampire::before {
+  width: 20px;
+  height: 7px;
+  background: #24202a;
+  box-shadow: 5px 6px 0 #7d314d;
+}
+
+.companion-costume-vampire::after {
+  left: 71px;
+  top: 45px;
+  width: 4px;
+  height: 8px;
+  background: #f1f1f1;
+  box-shadow: 7px 0 0 #f1f1f1;
+}
+
+.companion-costume-reaper::before {
+  width: 23px;
+  height: 8px;
+  background: #2b2631;
+  box-shadow: 4px 6px 0 #6e6175, -4px 12px 0 #2b2631;
+}
+
+.companion-costume-elf::before {
+  width: 21px;
+  height: 10px;
+  background: #49a66a;
+  clip-path: polygon(0 100%, 28% 0, 100% 40%, 58% 100%);
+  box-shadow: 4px 7px 0 #d84c4c;
+}
+
+.companion-costume-gingerbread::before {
+  left: 28px;
+  top: 45px;
+  width: 33px;
+  height: 8px;
+  background: #d39b5f;
+  box-shadow: 6px 5px 0 #fff3d4, 18px 5px 0 #fff3d4;
+}
+
+.companion-costume-reindeer::before {
+  width: 20px;
+  height: 7px;
+  background: #7a4a35;
+  transform: rotate(-12deg);
+  box-shadow: -6px 4px 0 #7a4a35, 11px 4px 0 #7a4a35;
+}
+
+.companion-costume-reindeer::after {
+  left: 75px;
+  top: 39px;
+  width: 6px;
+  height: 6px;
+  background: #d84747;
+}
+
+.companion-costume-cupid::before {
+  left: 26px;
+  top: 35px;
+  width: 34px;
+  height: 7px;
+  border: 3px solid #f08aae;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+
+.companion-costume-cupid::after {
+  left: 60px;
+  top: 18px;
+  width: 12px;
+  height: 7px;
+  background: #f08aae;
+  clip-path: polygon(0 50%, 100% 0, 80% 100%);
+}
+
+.companion-costume-love-letter::before {
+  left: 25px;
+  top: 43px;
+  width: 32px;
+  height: 20px;
+  background: #fff6f6;
+  border: 3px solid #e26483;
+}
+
+.companion-costume-love-letter::after {
+  left: 48px;
+  top: 51px;
+  width: 9px;
+  height: 9px;
+  background: #e26483;
+  transform: rotate(45deg);
 }
 
 .companion-walk.companion-motion-walking .capybara-pixel-sprite {
@@ -106,6 +298,32 @@
   animation: capySpriteSit 850ms step-end infinite;
 }
 
+.companion-season-halloween .companion-costume-none::after,
+.companion-season-halloween .companion-costume-hero::after,
+.companion-season-halloween .companion-costume-speedster::after,
+.companion-season-halloween .companion-costume-cosmic::after {
+  box-shadow: 9px 8px 0 #f28c28, 19px 1px 0 #8d4aa8;
+}
+
+.companion-season-christmas .companion-costume-none::before {
+  left: 48px;
+  top: 18px;
+  width: 22px;
+  height: 7px;
+  background: #f1f1f1;
+  box-shadow: 5px -5px 0 #cc414e, 10px -9px 0 #cc414e;
+}
+
+.companion-season-valentines .companion-costume-none::after {
+  left: 58px;
+  top: 21px;
+  width: 7px;
+  height: 7px;
+  background: #ee6d99;
+  transform: rotate(45deg);
+  box-shadow: 8px 3px 0 #f4a0bc;
+}
+
 .companion-rest-marker {
   position: absolute;
   left: 50%;
@@ -117,6 +335,7 @@
   background: rgba(255, 255, 255, 0.08);
 }
 
+/* Reactions intentionally have no visual container: only the emoji/phrase floats. */
 .companion-reaction {
   --reaction-inset: 24px;
   position: absolute;
@@ -127,10 +346,18 @@
   );
   bottom: 62px;
   z-index: 4;
-  padding: 3px 5px;
-  font-size: 15px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
   pointer-events: none;
-  animation: companionReaction 1.2s ease both;
+  animation: companionReaction 1.6s ease both;
 }
 
 .companion-settings {
@@ -214,6 +441,7 @@
 }
 
 .companion-preview-sprite {
+  position: relative;
   width: 58px;
   height: 44px;
   display: block;
@@ -224,6 +452,21 @@
   background-position: 0 calc(var(--sprite-row, 0) * -43.5px);
   transform: none;
   transform-origin: center;
+}
+
+.companion-exclusive-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.companion-exclusive-note .subtitle {
+  display: block;
+  margin-top: 3px;
 }
 
 .settings-section-label {
@@ -260,13 +503,13 @@
     opacity: 0;
     transform: translate(-50%, 6px) scale(0.7);
   }
-  20% {
+  18% {
     opacity: 1;
     transform: translate(-50%, -1px) scale(1.08);
   }
   100% {
     opacity: 0;
-    transform: translate(-50%, -15px) scale(1);
+    transform: translate(-50%, -18px) scale(1);
   }
 }
 
