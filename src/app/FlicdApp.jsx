@@ -32,6 +32,12 @@ import {
   removeDumpImages,
   uploadDumpImages,
 } from "../features/capture/mediaUpload.js";
+import {
+  addComment,
+  hydrateDumpInteractions,
+  likeDump,
+  unlikeDump,
+} from "../features/social/interactionsApi.js";
 
 import Messages from "../features/messages/Messages.jsx";
 import Profile from "../features/profile/Profile.jsx";
@@ -49,62 +55,6 @@ const seedSpaces = [
   { id: "main", handle: "you", label: "Main", followers: 128, following: 94 },
   { id: "gym", handle: "gym_log", label: "Gym", followers: 42, following: 12 },
   { id: "music", handle: "the.setlist", label: "Music", followers: 301, following: 58 },
-];
-
-const seedDumps = [
-  {
-    id: 1,
-    channel: "main",
-    author: "maren_",
-    mood: "golden hour",
-    mode: "24h",
-    postedMinutesAgo: 45,
-    likes: 12,
-    liked: false,
-    items: [{ note: "rooftop, 7pm" }, { note: "the light though" }, { note: "" }],
-    comments: [{ id: "c1", from: "theo", text: "wait where is this" }],
-    context: "rooftop, 7pm",
-  },
-  {
-    id: 2,
-    channel: "main",
-    author: "theo.b",
-    mood: "chaotic",
-    mode: "24h",
-    postedMinutesAgo: 610,
-    likes: 34,
-    liked: true,
-    items: [{ note: "new espresso setup" }, { note: "" }],
-    comments: [],
-    context: "new espresso setup",
-  },
-  {
-    id: 3,
-    channel: "gym",
-    author: "cole_lifts",
-    mood: "gym log",
-    mode: "once",
-    postedMinutesAgo: 5,
-    likes: 3,
-    liked: false,
-    viewed: false,
-    items: Array.from({ length: 8 }, () => ({ note: "" })),
-    comments: [],
-    context: "8 frame roll",
-  },
-  {
-    id: 4,
-    channel: "music",
-    author: "junebug",
-    mood: "nostalgic",
-    mode: "24h",
-    postedMinutesAgo: 120,
-    likes: 58,
-    liked: false,
-    items: [{ note: "front row" }, { note: "setlist" }, { note: "encore" }],
-    comments: [{ id: "c2", from: "theo", text: "the encore was insane" }],
-    context: "front row",
-  },
 ];
 
 const seedRequests = [
@@ -186,7 +136,7 @@ export default function FlicdApp() {
           items: (dump.dump_items || []).sort((a, b) => a.position - b.position).map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
           context: dump.context || "",
         }));
-        setDumps(formattedDumps);
+        setDumps(await hydrateDumpInteractions(formattedDumps));
       } catch (error) {
         console.error("Failed to load social feed:", error);
         setDumps([]);
@@ -233,12 +183,35 @@ export default function FlicdApp() {
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
 
-  const toggleLike = (id) => {
-    setDumps((currentDumps) => currentDumps.map((post) => post.id === id ? { ...post, liked: !post.liked, likes: post.likes + (post.liked ? -1 : 1) } : post));
+  const toggleLike = async (id) => {
+    const post = dumps.find((dump) => dump.id === id);
+    if (!post) return;
+    const nextLiked = !post.liked;
+
+    setDumps((currentDumps) => currentDumps.map((item) => item.id === id ? { ...item, liked: nextLiked, likes: Math.max(0, item.likes + (nextLiked ? 1 : -1)) } : item));
+    try {
+      if (nextLiked) await likeDump(id);
+      else await unlikeDump(id);
+    } catch (error) {
+      setDumps((currentDumps) => currentDumps.map((item) => item.id === id ? { ...item, liked: post.liked, likes: post.likes } : item));
+      console.error("Failed to update like:", error);
+      onToast(error.message || "Could not update like");
+    }
   };
 
-  const comment = (id, text) => {
-    setDumps((currentDumps) => currentDumps.map((post) => post.id === id ? { ...post, comments: [...post.comments, { id: Date.now(), from: "you", text }] } : post));
+  const comment = async (id, text) => {
+    const cleanText = String(text || "").trim();
+    if (!cleanText) return;
+    try {
+      const savedComment = await addComment(id, cleanText);
+      setDumps((currentDumps) => currentDumps.map((post) => post.id === id ? {
+        ...post,
+        comments: [...post.comments, { id: savedComment.id, from: supabaseProfile?.username || "you", text: savedComment.text, created_at: savedComment.created_at }],
+      } : post));
+    } catch (error) {
+      console.error("Failed to add comment:", error);
+      onToast(error.message || "Could not add comment");
+    }
   };
 
   const keep = async (post, index) => {
