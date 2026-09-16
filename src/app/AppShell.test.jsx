@@ -2,7 +2,7 @@
 
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import AppShell from "./AppShell.jsx";
 
 vi.mock("../features/onboarding/OnboardingGate.jsx", () => ({
@@ -12,7 +12,10 @@ vi.mock("../features/onboarding/OnboardingGate.jsx", () => ({
   },
 }));
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  cleanup();
+  localStorage.clear();
+});
 
 describe("AppShell Companion integration", () => {
   it("mounts the capybara companion after onboarding is ready", async () => {
@@ -22,6 +25,6 @@ describe("AppShell Companion integration", () => {
       </AppShell>,
     );
 
-    expect(await screen.findByRole("button", { name: /capybara companion/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /capybara companion/i })).toBeInTheDocument();
   });
 });
