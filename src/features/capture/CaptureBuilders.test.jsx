@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { DumpBuilder, RollBuilder } from "./CaptureBuilders.jsx";
 
 vi.mock("./mediaUpload.js", () => ({
@@ -57,30 +57,40 @@ describe("DumpBuilder publishing", () => {
 
 describe("RollBuilder publishing", () => {
   it("locks the publishing controls while the roll is being posted", async () => {
-    let resolvePost;
-    const onPost = vi.fn(() => new Promise((resolve) => {
-      resolvePost = resolve;
-    }));
+    vi.useFakeTimers();
+    try {
+      let resolvePost;
+      const onPost = vi.fn(() => new Promise((resolve) => {
+        resolvePost = resolve;
+      }));
 
-    const { container } = render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
+      const { container } = render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
-    const captureInput = container.querySelector('input[type="file"][capture="environment"]');
-    expect(captureInput).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
+      const captureInput = container.querySelector('input[type="file"][capture="environment"]');
+      expect(captureInput).toBeInTheDocument();
 
-    for (let index = 0; index < 8; index += 1) {
-      fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
+      for (let index = 0; index < 8; index += 1) {
+        fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
+      }
+
+      fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(500 + 900 + 1700 + 1100);
+      });
+
+      await waitFor(() => expect(screen.getByText("Ready to post")).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
+
+      expect(screen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      expect(onPost).toHaveBeenCalledTimes(1);
+
+      resolvePost();
+    } finally {
+      vi.useRealTimers();
     }
-
-    fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
-    await waitFor(() => expect(screen.getByText("Ready to post")).toBeInTheDocument(), { timeout: 6000 });
-
-    fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
-
-    expect(screen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-    expect(onPost).toHaveBeenCalledTimes(1);
-
-    resolvePost();
   });
 });
