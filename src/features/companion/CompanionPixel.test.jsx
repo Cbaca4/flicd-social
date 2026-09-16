@@ -21,7 +21,7 @@ describe("Retro 16-bit companion redesign", () => {
 
     expect(sprite).toHaveAttribute("data-sprite-style", "retro-16bit");
     expect(sprite).toHaveAttribute("data-leg-detail", "visible");
-    expect(sprite).toHaveAttribute("data-walk-frames", "8");
+    expect(sprite).toHaveAttribute("data-walk-frames", "6");
   });
 
   it("renders an actual costume from the sprite sheet", () => {
