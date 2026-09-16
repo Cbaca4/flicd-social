@@ -3,7 +3,7 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 
-const { authMock, apiMock } = vi.hoisted(() => ({
+const { authMock, apiMock, profileFromMock } = vi.hoisted(() => ({
   authMock: {
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),
@@ -15,10 +15,14 @@ const { authMock, apiMock } = vi.hoisted(() => ({
     getBoardItems: vi.fn(),
     getOrCreateDefaultBoard: vi.fn(),
   },
+  profileFromMock: vi.fn(),
 }));
 
 vi.mock("../lib/supabase", () => ({
-  supabase: { auth: authMock },
+  supabase: {
+    auth: authMock,
+    from: profileFromMock,
+  },
 }));
 
 vi.mock("../features/capture/dumpApi.js", () => ({
@@ -80,6 +84,23 @@ describe("FlicdApp public profile navigation", () => {
     apiMock.getBoards.mockResolvedValue([]);
     apiMock.getBoardItems.mockResolvedValue([]);
     apiMock.getOrCreateDefaultBoard.mockResolvedValue({ id: "saved", name: "Saved" });
+    profileFromMock.mockReturnValue({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: async () => ({
+            data: {
+              id: "me",
+              username: "you",
+              display_name: "You",
+              bio: "",
+              avatar_url: "",
+              profile_theme: null,
+            },
+            error: null,
+          }),
+        }),
+      }),
+    });
   });
 
   it("opens the selected user as a public profile and returns home on back", async () => {
