@@ -26,7 +26,7 @@ import {
 
 import {
   createDump,
-  getDumps,
+  getFeedDumps,
 } from "../features/capture/dumpApi.js";
 import {
   removeDumpImages,
@@ -116,7 +116,7 @@ export default function FlicdApp() {
   const [screen, setScreen] = React.useState("home");
   const [spaces] = React.useState(seedSpaces);
   const [activeSpaceId, setActiveSpaceId] = React.useState("main");
-  const [dumps, setDumps] = React.useState(seedDumps);
+  const [dumps, setDumps] = React.useState([]);
   const [activePostId, setActivePostId] = React.useState(null);
   const [kept, setKept] = React.useState([]);
   const [boards, setBoards] = React.useState([]);
@@ -171,8 +171,7 @@ export default function FlicdApp() {
     async function loadDumps() {
       if (!session) return;
       try {
-        const savedDumps = await getDumps();
-        if (!savedDumps.length) return;
+        const savedDumps = await getFeedDumps();
         const formattedDumps = savedDumps.map((dump) => ({
           id: dump.id,
           channel: dump.space_id,
@@ -189,7 +188,8 @@ export default function FlicdApp() {
         }));
         setDumps(formattedDumps);
       } catch (error) {
-        console.error("Failed to load dumps:", error);
+        console.error("Failed to load social feed:", error);
+        setDumps([]);
       }
     }
     loadDumps();
