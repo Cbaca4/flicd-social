@@ -50,26 +50,29 @@ vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => <div>Cre
 vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => <div>Dump</div>, RollBuilder: () => <div>Roll</div> }));
 vi.mock("../app/AppShell.jsx", () => ({ default: ({ children }) => <div>{children}</div> }));
 vi.mock("../features/profile/Profile.jsx", () => ({ default: () => <div>Profile</div> }));
-vi.mock("../features/home/Home.jsx", () => ({
-  default: ({ onUserSelect }) => (
-    <button
-      type="button"
-      onClick={() => onUserSelect?.({
-        id: "profile-123",
-        username: "maren_",
-        display_name: "Maren",
-        bio: "moments + coffee",
-        avatar_url: "",
-        followers: 42,
-        following: 18,
-        profile_theme: null,
-      })}
-    >
-      Open Maren
-    </button>
+vi.mock("../features/home/UserSearch.jsx", () => ({
+  default: ({ onClose, onUserSelect }) => (
+    <div>
+      <button
+        type="button"
+        onClick={() => onUserSelect?.({
+          id: "profile-123",
+          username: "maren_",
+          display_name: "Maren",
+          bio: "moments + coffee",
+          avatar_url: "",
+          followers: 42,
+          following: 18,
+          profile_theme: null,
+        })}
+      >
+        Open Maren
+      </button>
+      <button type="button" onClick={onClose}>Close Search</button>
+    </div>
   ),
-  Viewer: () => <div>Viewer</div>,
 }));
+vi.mock("../features/seasonal/SeasonalOverlay.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/PublicProfile.jsx", () => ({
   default: ({ profile, onBack }) => (
     <div>
@@ -112,12 +115,12 @@ describe("FlicdApp public profile navigation", () => {
   it("opens the selected user as a public profile and returns home on back", async () => {
     render(<FlicdApp />);
 
-    const openMarenButton = await screen.findByRole("button", { name: "Open Maren" });
-    fireEvent.click(openMarenButton);
+    fireEvent.click(screen.getByRole("button", { name: "Search users" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Open Maren" }));
 
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByText("Home")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Search users" })).toBeTruthy();
   });
 });
