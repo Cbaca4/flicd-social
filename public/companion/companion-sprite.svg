@@ -1,38 +1,84 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1152" height="360" viewBox="0 0 1152 360">
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="360" viewBox="0 0 768 360">
   <defs>
-    <!-- Cute chunky 96x72 capy character. Eight dedicated walk frames keep the feet moving. -->
-    <g id="core">
-      <rect x="18" y="62" width="58" height="4" fill="#39251b" opacity=".24"/>
-      <rect x="22" y="13" width="10" height="9" fill="#68402b"/>
-      <rect x="23" y="11" width="7" height="4" fill="#915a39"/>
-      <rect x="64" y="13" width="10" height="9" fill="#68402b"/>
-      <rect x="66" y="11" width="7" height="4" fill="#915a39"/>
-      <rect x="14" y="22" width="61" height="34" fill="#8f5939"/>
-      <rect x="19" y="17" width="49" height="42" fill="#9e6642"/>
-      <rect x="25" y="13" width="34" height="46" fill="#9e6642"/>
-      <rect x="20" y="50" width="49" height="8" fill="#7e4b31"/>
-      <rect x="15" y="30" width="6" height="19" fill="#7e4b31"/>
-      <rect x="26" y="25" width="5" height="6" fill="#21150f"/>
-      <rect x="53" y="25" width="5" height="6" fill="#21150f"/>
-      <rect x="59" y="34" width="13" height="12" fill="#b6784e"/>
-      <rect x="67" y="35" width="7" height="5" fill="#21150f"/>
-      <rect x="62" y="43" width="8" height="3" fill="#6a3e29"/>
-      <rect x="29" y="19" width="16" height="4" fill="#c98b5d" opacity=".7"/>
+    <!-- Retro 16-bit side-profile capybara. Each frame is 96x72. -->
+    <g id="base">
+      <rect x="16" y="64" width="59" height="3" fill="#31231b" opacity=".22"/>
+      <rect x="17" y="29" width="44" height="27" fill="#8b5537"/>
+      <rect x="12" y="35" width="16" height="19" fill="#79462f"/>
+      <rect x="21" y="25" width="41" height="27" fill="#9f6844"/>
+      <rect x="30" y="20" width="29" height="25" fill="#a97049"/>
+      <rect x="51" y="25" width="23" height="24" fill="#a97049"/>
+      <rect x="65" y="35" width="14" height="13" fill="#b8794e"/>
+      <rect x="72" y="38" width="8" height="7" fill="#b8794e"/>
+      <rect x="77" y="39" width="5" height="4" fill="#1e1510"/>
+      <rect x="59" y="31" width="4" height="5" fill="#1e1510"/>
+      <rect x="53" y="18" width="8" height="7" fill="#6c402b"/>
+      <rect x="54" y="16" width="5" height="4" fill="#925b3b"/>
+      <rect x="34" y="24" width="13" height="4" fill="#c98d5e" opacity=".7"/>
+      <rect x="25" y="49" width="38" height="8" fill="#7b4930"/>
     </g>
 
-    <g id="walk0"><use href="#core"/><rect x="20" y="54" width="15" height="10" fill="#5f3826"/><rect x="55" y="54" width="15" height="10" fill="#5f3826"/><rect x="22" y="61" width="12" height="3" fill="#47291d"/><rect x="57" y="61" width="12" height="3" fill="#47291d"/></g>
-    <g id="walk1"><use href="#core" transform="translate(0,1)"/><rect x="15" y="57" width="15" height="8" fill="#5f3826"/><rect x="58" y="53" width="15" height="12" fill="#5f3826"/><rect x="17" y="63" width="11" height="3" fill="#47291d"/><rect x="61" y="62" width="11" height="3" fill="#47291d"/></g>
-    <g id="walk2"><use href="#core" transform="translate(0,2)"/><rect x="20" y="59" width="15" height="7" fill="#5f3826"/><rect x="55" y="55" width="15" height="11" fill="#5f3826"/><rect x="22" y="64" width="11" height="2" fill="#47291d"/><rect x="57" y="64" width="11" height="2" fill="#47291d"/></g>
-    <g id="walk3"><use href="#core" transform="translate(0,1)"/><rect x="26" y="58" width="13" height="8" fill="#5f3826"/><rect x="52" y="58" width="13" height="8" fill="#5f3826"/><rect x="28" y="64" width="9" height="2" fill="#47291d"/><rect x="54" y="64" width="9" height="2" fill="#47291d"/></g>
-    <g id="walk4"><use href="#core"/><rect x="24" y="54" width="12" height="10" fill="#5f3826"/><rect x="58" y="54" width="12" height="10" fill="#5f3826"/><rect x="26" y="61" width="9" height="3" fill="#47291d"/><rect x="60" y="61" width="9" height="3" fill="#47291d"/></g>
-    <g id="walk5"><use href="#core" transform="translate(0,1)"/><rect x="27" y="53" width="14" height="12" fill="#5f3826"/><rect x="50" y="57" width="15" height="8" fill="#5f3826"/><rect x="29" y="62" width="10" height="3" fill="#47291d"/><rect x="52" y="63" width="11" height="2" fill="#47291d"/></g>
-    <g id="walk6"><use href="#core" transform="translate(0,2)"/><rect x="24" y="55" width="15" height="11" fill="#5f3826"/><rect x="55" y="59" width="15" height="7" fill="#5f3826"/><rect x="26" y="64" width="11" height="2" fill="#47291d"/><rect x="57" y="64" width="11" height="2" fill="#47291d"/></g>
-    <g id="walk7"><use href="#core" transform="translate(0,1)"/><rect x="17" y="55" width="15" height="10" fill="#5f3826"/><rect x="58" y="58" width="13" height="8" fill="#5f3826"/><rect x="19" y="63" width="11" height="3" fill="#47291d"/><rect x="60" y="64" width="9" height="2" fill="#47291d"/></g>
+    <g id="walk0">
+      <use href="#base"/>
+      <rect x="21" y="52" width="11" height="14" fill="#5e3825"/>
+      <rect x="56" y="51" width="11" height="15" fill="#5e3825"/>
+      <rect x="20" y="64" width="13" height="3" fill="#40261b"/>
+      <rect x="55" y="64" width="13" height="3" fill="#40261b"/>
+    </g>
 
-    <g id="sit0"><use href="#core" transform="translate(0,4)"/><rect x="26" y="55" width="42" height="10" fill="#603927"/><rect x="30" y="60" width="10" height="4" fill="#47291d"/><rect x="54" y="60" width="10" height="4" fill="#47291d"/></g>
-    <g id="sit1"><use href="#core" transform="translate(0,5)"/><rect x="24" y="55" width="46" height="11" fill="#603927"/><rect x="30" y="61" width="11" height="4" fill="#47291d"/><rect x="54" y="61" width="11" height="4" fill="#47291d"/></g>
-    <g id="talk0"><use href="#core"/><rect x="66" y="43" width="7" height="5" fill="#3a2117"/></g>
-    <g id="talk1"><use href="#core"/><rect x="65" y="44" width="9" height="3" fill="#3a2117"/></g>
+    <g id="walk1">
+      <use href="#base" transform="translate(0,1)"/>
+      <rect x="16" y="53" width="11" height="13" fill="#5e3825"/>
+      <rect x="59" y="50" width="11" height="16" fill="#5e3825"/>
+      <rect x="15" y="64" width="13" height="3" fill="#40261b"/>
+      <rect x="58" y="64" width="13" height="3" fill="#40261b"/>
+    </g>
+
+    <g id="walk2">
+      <use href="#base" transform="translate(0,2)"/>
+      <rect x="21" y="54" width="10" height="12" fill="#5e3825"/>
+      <rect x="59" y="55" width="12" height="11" fill="#5e3825"/>
+      <rect x="20" y="64" width="12" height="3" fill="#40261b"/>
+      <rect x="60" y="64" width="12" height="3" fill="#40261b"/>
+    </g>
+
+    <g id="walk3">
+      <use href="#base" transform="translate(0,1)"/>
+      <rect x="26" y="50" width="11" height="16" fill="#5e3825"/>
+      <rect x="52" y="53" width="11" height="13" fill="#5e3825"/>
+      <rect x="25" y="64" width="13" height="3" fill="#40261b"/>
+      <rect x="51" y="64" width="13" height="3" fill="#40261b"/>
+    </g>
+
+    <g id="walk4">
+      <use href="#base"/>
+      <rect x="26" y="53" width="11" height="13" fill="#5e3825"/>
+      <rect x="55" y="52" width="11" height="14" fill="#5e3825"/>
+      <rect x="25" y="64" width="13" height="3" fill="#40261b"/>
+      <rect x="54" y="64" width="13" height="3" fill="#40261b"/>
+    </g>
+
+    <g id="walk5">
+      <use href="#base" transform="translate(0,1)"/>
+      <rect x="19" y="51" width="11" height="15" fill="#5e3825"/>
+      <rect x="59" y="53" width="10" height="13" fill="#5e3825"/>
+      <rect x="18" y="64" width="13" height="3" fill="#40261b"/>
+      <rect x="58" y="64" width="12" height="3" fill="#40261b"/>
+    </g>
+
+    <g id="sit0">
+      <use href="#base" transform="translate(0,4)"/>
+      <rect x="22" y="52" width="43" height="14" fill="#613a27"/>
+      <rect x="18" y="63" width="15" height="4" fill="#40261b"/>
+      <rect x="53" y="63" width="15" height="4" fill="#40261b"/>
+    </g>
+
+    <g id="sit1">
+      <use href="#base" transform="translate(0,5)"/>
+      <rect x="20" y="52" width="47" height="14" fill="#613a27"/>
+      <rect x="16" y="63" width="17" height="4" fill="#40261b"/>
+      <rect x="52" y="63" width="17" height="4" fill="#40261b"/>
+    </g>
 
     <g id="frame-row">
       <use href="#walk0" x="0"/>
@@ -41,56 +87,50 @@
       <use href="#walk3" x="288"/>
       <use href="#walk4" x="384"/>
       <use href="#walk5" x="480"/>
-      <use href="#walk6" x="576"/>
-      <use href="#walk7" x="672"/>
-      <use href="#sit0" x="768"/>
-      <use href="#sit1" x="864"/>
-      <use href="#talk0" x="960"/>
-      <use href="#talk1" x="1056"/>
+      <use href="#sit0" x="576"/>
+      <use href="#sit1" x="672"/>
     </g>
 
     <g id="santa">
-      <rect x="18" y="9" width="42" height="6" fill="#c83f46"/>
-      <rect x="24" y="4" width="28" height="7" fill="#c83f46"/>
-      <rect x="31" y="0" width="15" height="6" fill="#c83f46"/>
-      <rect x="18" y="14" width="43" height="5" fill="#f2e9df"/>
-      <rect x="43" y="0" width="7" height="7" fill="#f2e9df"/>
-      <rect x="22" y="42" width="40" height="16" fill="#c83f46"/>
-      <rect x="40" y="42" width="5" height="16" fill="#f2e9df"/>
-      <rect x="21" y="55" width="44" height="4" fill="#f2e9df"/>
+      <rect x="44" y="13" width="27" height="6" fill="#c83f46"/>
+      <rect x="50" y="7" width="21" height="7" fill="#c83f46"/>
+      <rect x="58" y="3" width="12" height="5" fill="#c83f46"/>
+      <rect x="46" y="17" width="27" height="4" fill="#f2e9df"/>
+      <rect x="64" y="2" width="6" height="6" fill="#f2e9df"/>
+      <rect x="26" y="40" width="40" height="12" fill="#c83f46"/>
+      <rect x="52" y="40" width="4" height="12" fill="#f2e9df"/>
+      <rect x="24" y="50" width="44" height="4" fill="#f2e9df"/>
     </g>
 
     <g id="ghost">
-      <rect x="9" y="17" width="70" height="41" fill="#e8edf7"/>
-      <rect x="15" y="12" width="58" height="44" fill="#eef1f8"/>
-      <rect x="21" y="16" width="8" height="8" fill="#303541"/>
-      <rect x="49" y="16" width="8" height="8" fill="#303541"/>
-      <rect x="31" y="31" width="28" height="5" fill="#cbd1dd"/>
-      <rect x="12" y="52" width="12" height="6" fill="#eef1f8"/>
-      <rect x="28" y="49" width="13" height="9" fill="#eef1f8"/>
-      <rect x="46" y="51" width="12" height="7" fill="#eef1f8"/>
-      <rect x="63" y="49" width="13" height="9" fill="#eef1f8"/>
-      <rect x="10" y="56" width="68" height="4" fill="#8a93a5"/>
+      <rect x="10" y="24" width="70" height="34" fill="#e8edf7"/>
+      <rect x="16" y="18" width="57" height="39" fill="#eef1f8"/>
+      <rect x="49" y="27" width="7" height="8" fill="#303541"/>
+      <rect x="15" y="54" width="13" height="5" fill="#eef1f8"/>
+      <rect x="34" y="52" width="15" height="7" fill="#eef1f8"/>
+      <rect x="55" y="53" width="13" height="6" fill="#eef1f8"/>
+      <rect x="72" y="52" width="8" height="7" fill="#eef1f8"/>
+      <rect x="11" y="57" width="69" height="3" fill="#8a93a5"/>
     </g>
 
     <g id="witch">
-      <rect x="20" y="14" width="42" height="6" fill="#53317a"/>
-      <rect x="29" y="7" width="25" height="10" fill="#53317a"/>
-      <rect x="37" y="0" width="11" height="9" fill="#53317a"/>
-      <rect x="18" y="19" width="47" height="4" fill="#df9b43"/>
-      <rect x="24" y="40" width="37" height="17" fill="#53317a"/>
-      <rect x="30" y="49" width="25" height="9" fill="#6b4192"/>
-      <rect x="40" y="43" width="5" height="13" fill="#df9b43"/>
+      <rect x="46" y="13" width="28" height="6" fill="#53317a"/>
+      <rect x="53" y="6" width="20" height="9" fill="#53317a"/>
+      <rect x="60" y="0" width="10" height="8" fill="#53317a"/>
+      <rect x="45" y="19" width="31" height="4" fill="#df9b43"/>
+      <rect x="25" y="41" width="39" height="15" fill="#53317a"/>
+      <rect x="31" y="49" width="24" height="7" fill="#6b4192"/>
+      <rect x="51" y="43" width="5" height="12" fill="#df9b43"/>
     </g>
 
     <g id="valentine">
-      <rect x="31" y="40" width="9" height="7" fill="#e45c88"/>
-      <rect x="40" y="40" width="9" height="7" fill="#e45c88"/>
-      <rect x="35" y="47" width="10" height="7" fill="#e45c88"/>
-      <rect x="38" y="54" width="5" height="3" fill="#b63862"/>
-      <rect x="41" y="18" width="5" height="7" fill="#e45c88"/>
-      <rect x="34" y="18" width="7" height="5" fill="#e45c88"/>
-      <rect x="46" y="18" width="7" height="5" fill="#e45c88"/>
+      <rect x="41" y="40" width="8" height="6" fill="#e45c88"/>
+      <rect x="49" y="40" width="8" height="6" fill="#e45c88"/>
+      <rect x="45" y="46" width="9" height="7" fill="#e45c88"/>
+      <rect x="48" y="53" width="4" height="3" fill="#b63862"/>
+      <rect x="49" y="18" width="5" height="6" fill="#e45c88"/>
+      <rect x="42" y="19" width="7" height="4" fill="#e45c88"/>
+      <rect x="54" y="19" width="7" height="4" fill="#e45c88"/>
     </g>
   </defs>
 
@@ -100,27 +140,23 @@
     <use href="#frame-row"/>
     <use href="#santa" x="0"/><use href="#santa" x="96"/><use href="#santa" x="192"/><use href="#santa" x="288"/>
     <use href="#santa" x="384"/><use href="#santa" x="480"/><use href="#santa" x="576"/><use href="#santa" x="672"/>
-    <use href="#santa" x="768"/><use href="#santa" x="864"/><use href="#santa" x="960"/><use href="#santa" x="1056"/>
   </g>
 
   <g transform="translate(0,144)">
     <use href="#frame-row"/>
     <use href="#ghost" x="0"/><use href="#ghost" x="96"/><use href="#ghost" x="192"/><use href="#ghost" x="288"/>
     <use href="#ghost" x="384"/><use href="#ghost" x="480"/><use href="#ghost" x="576"/><use href="#ghost" x="672"/>
-    <use href="#ghost" x="768"/><use href="#ghost" x="864"/><use href="#ghost" x="960"/><use href="#ghost" x="1056"/>
   </g>
 
   <g transform="translate(0,216)">
     <use href="#frame-row"/>
     <use href="#witch" x="0"/><use href="#witch" x="96"/><use href="#witch" x="192"/><use href="#witch" x="288"/>
     <use href="#witch" x="384"/><use href="#witch" x="480"/><use href="#witch" x="576"/><use href="#witch" x="672"/>
-    <use href="#witch" x="768"/><use href="#witch" x="864"/><use href="#witch" x="960"/><use href="#witch" x="1056"/>
   </g>
 
   <g transform="translate(0,288)">
     <use href="#frame-row"/>
     <use href="#valentine" x="0"/><use href="#valentine" x="96"/><use href="#valentine" x="192"/><use href="#valentine" x="288"/>
     <use href="#valentine" x="384"/><use href="#valentine" x="480"/><use href="#valentine" x="576"/><use href="#valentine" x="672"/>
-    <use href="#valentine" x="768"/><use href="#valentine" x="864"/><use href="#valentine" x="960"/><use href="#valentine" x="1056"/>
   </g>
 </svg>
