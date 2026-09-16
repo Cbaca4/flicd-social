@@ -13,7 +13,9 @@ describe("voice comment recorder", () => {
       onstop: null,
       mimeType: "audio/webm",
     };
-    const MediaRecorder = vi.fn(() => recorder);
+    const MediaRecorder = vi.fn(function MockMediaRecorder() {
+      return recorder;
+    });
 
     const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
     await controller.start();
@@ -35,7 +37,9 @@ describe("voice comment recorder", () => {
       onstop: null,
       mimeType: "audio/webm",
     };
-    const MediaRecorder = vi.fn(() => recorder);
+    const MediaRecorder = vi.fn(function MockMediaRecorder() {
+      return recorder;
+    });
     const getUserMedia = vi.fn().mockResolvedValue(stream);
     const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
 
