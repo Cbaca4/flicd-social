@@ -3,7 +3,7 @@ import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-const { authMock, apiMock, profileFromMock } = vi.hoisted(() => ({
+const { authMock, apiMock, interactionMock, profileFromMock } = vi.hoisted(() => ({
   authMock: {
     getSession: vi.fn(),
     onAuthStateChange: vi.fn(),
@@ -14,6 +14,12 @@ const { authMock, apiMock, profileFromMock } = vi.hoisted(() => ({
     getBoards: vi.fn(),
     getBoardItems: vi.fn(),
     getOrCreateDefaultBoard: vi.fn(),
+  },
+  interactionMock: {
+    hydrateDumpInteractions: vi.fn(),
+    addComment: vi.fn(),
+    likeDump: vi.fn(),
+    unlikeDump: vi.fn(),
   },
   profileFromMock: vi.fn(),
 }));
@@ -29,6 +35,8 @@ vi.mock("../features/capture/dumpApi.js", () => ({
   createDump: vi.fn(),
   getFeedDumps: apiMock.getFeedDumps,
 }));
+
+vi.mock("../features/social/interactionsApi.js", () => interactionMock);
 
 vi.mock("../features/profile/boardApi.js", () => ({
   getBoards: apiMock.getBoards,
@@ -92,6 +100,10 @@ describe("FlicdApp public profile navigation", () => {
     authMock.onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } });
     authMock.getUser.mockResolvedValue({ data: { user: { id: "me" } } });
     apiMock.getFeedDumps.mockResolvedValue([]);
+    interactionMock.hydrateDumpInteractions.mockImplementation(async (dumps) => dumps);
+    interactionMock.addComment.mockResolvedValue({ id: "comment-1", text: "hello", created_at: "2026-09-16T10:00:00Z" });
+    interactionMock.likeDump.mockResolvedValue({ dump_id: "dump-1", user_id: "me" });
+    interactionMock.unlikeDump.mockResolvedValue(undefined);
     apiMock.getBoards.mockResolvedValue([]);
     apiMock.getBoardItems.mockResolvedValue([]);
     apiMock.getOrCreateDefaultBoard.mockResolvedValue({ id: "saved", name: "Saved" });
@@ -119,6 +131,7 @@ describe("FlicdApp public profile navigation", () => {
   it("uses the social feed API instead of the unrestricted dump loader", async () => {
     render(<FlicdApp />);
     await waitFor(() => expect(apiMock.getFeedDumps).toHaveBeenCalled());
+    expect(interactionMock.hydrateDumpInteractions).toHaveBeenCalled();
   });
 
   it("opens the selected user as a public profile and returns home on back", async () => {
