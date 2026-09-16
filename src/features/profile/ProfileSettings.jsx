@@ -2,29 +2,29 @@ import React from "react";
 import { ChevronRight, LogOut, Palette, Pencil, Settings, Users } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
+const SettingRow = ({ icon: Icon, title, description, onClick }) => (
+  <button
+    type="button"
+    className="card"
+    onClick={onClick}
+    style={{ width: "100%", textAlign: "left" }}
+  >
+    <div className="row">
+      <Icon size={18} />
+      <div style={{ flex: 1 }}>
+        <strong>{title}</strong>
+        <p className="subtitle" style={{ marginTop: 3 }}>{description}</p>
+      </div>
+      <ChevronRight size={18} className="muted" />
+    </div>
+  </button>
+);
+
 export default function ProfileSettings({ onBack, onEditProfile, onProfileStudio, onBoards, onSpaces }) {
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Failed to sign out:", error);
   };
-
-  const SettingRow = ({ icon: Icon, title, description, onClick }) => (
-    <button
-      type="button"
-      className="card"
-      onClick={onClick}
-      style={{ width: "100%", textAlign: "left" }}
-    >
-      <div className="row">
-        <Icon size={18} />
-        <div style={{ flex: 1 }}>
-          <strong>{title}</strong>
-          <p className="subtitle" style={{ marginTop: 3 }}>{description}</p>
-        </div>
-        <ChevronRight size={18} className="muted" />
-      </div>
-    </button>
-  );
 
   return (
     <div className="screen">
