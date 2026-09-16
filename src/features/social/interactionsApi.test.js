@@ -64,7 +64,13 @@ describe("social interactions API", () => {
     await expect(addComment("dump-1", "   ")).rejects.toThrow("Comment cannot be empty");
   });
 
-  it("hydrates feed interaction counts and current-user state", async () => {
+  it("rejects comments over the maximum length", async () => {
+    const { addComment } = await import("./interactionsApi.js");
+
+    await expect(addComment("dump-1", "x".repeat(501))).rejects.toThrow("500 characters or fewer");
+  });
+
+  it("hydrates feed interaction counts and current-user state with usernames", async () => {
     const likes = chain({
       data: [
         { dump_id: "dump-1", user_id: "me" },
@@ -79,7 +85,11 @@ describe("social interactions API", () => {
       ],
       error: null,
     });
-    from.mockImplementationOnce(() => likes).mockImplementationOnce(() => comments);
+    const profiles = chain({
+      data: [{ id: "friend", username: "friend_1", display_name: "Friend" }],
+      error: null,
+    });
+    from.mockImplementationOnce(() => likes).mockImplementationOnce(() => comments).mockImplementationOnce(() => profiles);
 
     const { hydrateDumpInteractions } = await import("./interactionsApi.js");
     const result = await hydrateDumpInteractions([
@@ -88,7 +98,7 @@ describe("social interactions API", () => {
     ]);
 
     expect(result).toEqual([
-      { id: "dump-1", likes: 2, liked: true, comments: [{ id: "c1", from: "friend", text: "hi", created_at: "2026-09-16T10:00:00Z" }] },
+      { id: "dump-1", likes: 2, liked: true, comments: [{ id: "c1", from: "friend_1", displayName: "Friend", text: "hi", created_at: "2026-09-16T10:00:00Z" }] },
       { id: "dump-2", likes: 1, liked: false, comments: [] },
     ]);
   });
