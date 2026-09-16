@@ -76,9 +76,11 @@ describe("RollBuilder publishing", () => {
 
       fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
 
-      await act(async () => {
-        await vi.runAllTimersAsync();
-      });
+      for (const delay of [500, 900, 1700, 1100]) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(delay);
+        });
+      }
 
       expect(screen.getByText("Ready to post")).toBeInTheDocument();
 
