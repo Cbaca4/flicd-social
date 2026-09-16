@@ -7,9 +7,12 @@ export async function likeDump(dumpId) {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("likes")
-    .upsert({ dump_id: dumpId, user_id: userId }, { onConflict: "dump_id,user_id" })
+    .upsert(
+      { dump_id: dumpId, user_id: userId },
+      { onConflict: "dump_id,user_id", ignoreDuplicates: true },
+    )
     .select("dump_id,user_id")
-    .single();
+    .maybeSingle();
   if (error) throw error;
   return data;
 }
