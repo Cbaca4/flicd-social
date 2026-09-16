@@ -50,20 +50,28 @@ vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => <div>Cre
 vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => <div>Dump</div>, RollBuilder: () => <div>Roll</div> }));
 vi.mock("../app/AppShell.jsx", () => ({ default: ({ children }) => <div>{children}</div> }));
 vi.mock("../features/profile/Profile.jsx", () => ({
-  default: ({ onPublicProfileSelect }) => (
-    <button type="button" onClick={() => onPublicProfileSelect?.({
-      id: "profile-123",
-      username: "maren_",
-      display_name: "Maren",
-      bio: "moments + coffee",
-      avatar_url: "",
-      followers: 42,
-      following: 18,
-      profile_theme: null,
-    })}>Open Maren</button>
-  ),
+  default: () => <div>Profile</div>,
 }));
-vi.mock("../features/home/Home.jsx", () => ({ default: () => <div>Home</div>, Viewer: () => <div>Viewer</div> }));
+vi.mock("../features/home/Home.jsx", () => ({
+  default: ({ onUserSelect }) => (
+    <button
+      type="button"
+      onClick={() => onUserSelect?.({
+        id: "profile-123",
+        username: "maren_",
+        display_name: "Maren",
+        bio: "moments + coffee",
+        avatar_url: "",
+        followers: 42,
+        following: 18,
+        profile_theme: null,
+      })}
+    >
+      Open Maren
+    </button>
+  ),
+  Viewer: () => <div>Viewer</div>,
+}));
 vi.mock("../features/profile/PublicProfile.jsx", () => ({
   default: ({ profile, onBack }) => (
     <div>
@@ -112,6 +120,6 @@ describe("FlicdApp public profile navigation", () => {
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByText("Home")).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Open Maren" })).toBeTruthy();
   });
 });
