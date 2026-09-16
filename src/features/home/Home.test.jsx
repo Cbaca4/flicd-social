@@ -18,11 +18,15 @@ vi.mock("../profile/PublicProfile.jsx", () => ({
 
 let recorderState = "idle";
 let recorderListener = null;
+const voiceBlob = new Blob(["voice"], { type: "audio/webm" });
 const startRecording = vi.fn(async () => {
   recorderState = "recording";
   recorderListener?.(recorderState);
 });
-const stopRecording = vi.fn();
+const stopRecording = vi.fn(() => {
+  recorderState = "review";
+  recorderListener?.(recorderState);
+});
 
 vi.mock("../social/voiceCommentRecorder.js", () => ({
   createVoiceCommentRecorder: () => ({
@@ -30,7 +34,7 @@ vi.mock("../social/voiceCommentRecorder.js", () => ({
     stop: stopRecording,
     cancel: vi.fn(),
     getState: () => recorderState,
-    getBlob: () => null,
+    getBlob: () => voiceBlob,
     subscribe: (listener) => {
       recorderListener = listener;
       return () => {
@@ -212,5 +216,26 @@ describe("Post viewer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
 
     expect(await screen.findByRole("button", { name: "Stop voice recording" })).toBeInTheDocument();
+  });
+
+  it("shows voice review controls after recording stops", async () => {
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Stop voice recording" }));
+
+    expect(await screen.findByLabelText("Voice comment preview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel voice comment" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send voice comment" })).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Add a comment")).not.toBeInTheDocument();
   });
 });
