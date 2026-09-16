@@ -9,6 +9,7 @@ import Companion from "./Companion.jsx";
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.restoreAllMocks();
   cleanup();
   localStorage.clear();
 });
@@ -33,6 +34,7 @@ describe("Companion", () => {
 
   it("reacts when tapped", async () => {
     const user = userEvent.setup();
+    vi.spyOn(Math, "random").mockReturnValue(0);
 
     render(<Companion userId="u1" />);
 
