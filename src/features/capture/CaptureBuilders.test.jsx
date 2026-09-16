@@ -2,7 +2,8 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { act, describe, expect, fireEvent, it, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { DumpBuilder, RollBuilder } from "./CaptureBuilders.jsx";
 
 vi.mock("./mediaUpload.js", () => ({
@@ -76,7 +77,7 @@ describe("RollBuilder publishing", () => {
       fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(500 + 900 + 1700 + 1100);
+        await vi.runAllTimersAsync();
       });
 
       expect(screen.getByText("Ready to post")).toBeInTheDocument();
