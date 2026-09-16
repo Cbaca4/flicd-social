@@ -25,8 +25,49 @@ const SPRITE_ROWS = {
   valentine: 4,
 };
 
+const PATROL_MIN_POSITION = 5;
+const PATROL_MAX_POSITION = 78;
+const PATROL_START_DELAY = 3000;
+const PATROL_MIN_PAUSE = 2400;
+const PATROL_MAX_PAUSE = 4800;
+const PATROL_MIN_TRAVEL = 11000;
+const PATROL_MAX_TRAVEL = 24000;
+const PATROL_MS_PER_PERCENT = 300;
+const INITIAL_POSITION = 8;
+
 function getSeasonalReaction(seasonalEvent) {
   return REACTION_ICONS[seasonalEvent?.interaction?.target] || "✨";
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getNextPatrolPosition(currentPosition) {
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const candidate = getRandomInt(
+      PATROL_MIN_POSITION,
+      PATROL_MAX_POSITION,
+    );
+
+    if (Math.abs(candidate - currentPosition) >= 15) {
+      return candidate;
+    }
+  }
+
+  return currentPosition < (PATROL_MIN_POSITION + PATROL_MAX_POSITION) / 2
+    ? PATROL_MAX_POSITION
+    : PATROL_MIN_POSITION;
+}
+
+function getPatrolTravelDuration(distance) {
+  return Math.min(
+    PATROL_MAX_TRAVEL,
+    Math.max(
+      PATROL_MIN_TRAVEL,
+      Math.round(distance * PATROL_MS_PER_PERCENT),
+    ),
+  );
 }
 
 function PixelCapybara({ costume }) {
@@ -48,6 +89,17 @@ export default function Companion({ userId, seasonalEvent = null }) {
   );
   const [reaction, setReaction] = React.useState("");
   const [talkLineIndex, setTalkLineIndex] = React.useState(0);
+  const [patrol, setPatrol] = React.useState({
+    position: INITIAL_POSITION,
+    direction: 1,
+    motion: "idle",
+    travelDuration: 0,
+  });
+  const patrolPositionRef = React.useRef(INITIAL_POSITION);
+
+  const isWalking = settings.animation === "walk";
+  const isSitting = settings.animation === "sit";
+  const isTalking = settings.animation === "talk";
 
   React.useEffect(() => {
     setSettings(loadCompanionSettings(userId));
@@ -93,6 +145,64 @@ export default function Companion({ userId, seasonalEvent = null }) {
   }, [settings.enabled, settings.animation, settings.bubbles]);
 
   React.useEffect(() => {
+    if (!settings.enabled || !isWalking) {
+      setPatrol((current) => ({
+        ...current,
+        motion: "idle",
+        travelDuration: 0,
+      }));
+      return undefined;
+    }
+
+    let cancelled = false;
+    let pauseTimer;
+    let travelTimer;
+
+    const clearTimers = () => {
+      if (pauseTimer) window.clearTimeout(pauseTimer);
+      if (travelTimer) window.clearTimeout(travelTimer);
+    };
+
+    const scheduleNextLeg = (delay) => {
+      pauseTimer = window.setTimeout(() => {
+        if (cancelled) return;
+
+        const currentPosition = patrolPositionRef.current;
+        const nextPosition = getNextPatrolPosition(currentPosition);
+        const distance = Math.abs(nextPosition - currentPosition);
+        const travelDuration = getPatrolTravelDuration(distance);
+
+        patrolPositionRef.current = nextPosition;
+        setPatrol({
+          position: nextPosition,
+          direction: nextPosition >= currentPosition ? 1 : -1,
+          motion: "walking",
+          travelDuration,
+        });
+
+        travelTimer = window.setTimeout(() => {
+          if (cancelled) return;
+
+          setPatrol((current) => ({
+            ...current,
+            motion: "idle",
+            travelDuration: 0,
+          }));
+
+          scheduleNextLeg(getRandomInt(PATROL_MIN_PAUSE, PATROL_MAX_PAUSE));
+        }, travelDuration);
+      }, delay);
+    };
+
+    scheduleNextLeg(PATROL_START_DELAY);
+
+    return () => {
+      cancelled = true;
+      clearTimers();
+    };
+  }, [isWalking, settings.enabled]);
+
+  React.useEffect(() => {
     if (!reaction) return undefined;
 
     const timer = window.setTimeout(() => setReaction(""), 1200);
@@ -102,10 +212,14 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   if (!settings.enabled) return null;
 
-  const isWalking = settings.animation === "walk";
-  const isSitting = settings.animation === "sit";
-  const isTalking = settings.animation === "talk";
   const seasonalReaction = getSeasonalReaction(seasonalEvent);
+  const walkerClassName = [
+    "companion-walker",
+    `companion-${settings.animation}`,
+    isWalking ? `companion-motion-${patrol.motion}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div
@@ -114,8 +228,14 @@ export default function Companion({ userId, seasonalEvent = null }) {
       aria-label="Companion area"
     >
       <div
-        className={`companion-walker companion-${settings.animation}`}
+        className={walkerClassName}
+        data-motion-state={isWalking ? patrol.motion : undefined}
         data-walk-speed={isWalking ? "slow" : undefined}
+        style={{
+          "--companion-position": `${patrol.position}%`,
+          "--companion-travel-duration": `${patrol.travelDuration}ms`,
+          "--capy-facing": patrol.direction,
+        }}
       >
         {isTalking && settings.bubbles && (
           <span className="companion-talk" aria-live="polite">
@@ -143,16 +263,16 @@ export default function Companion({ userId, seasonalEvent = null }) {
         >
           <PixelCapybara costume={settings.costume} />
         </button>
+
+        {!isSitting && !isTalking && (
+          <span className="companion-nameplate" aria-hidden="true">
+            {settings.name}
+          </span>
+        )}
       </div>
 
       {isWalking && (
         <span className="companion-path" aria-hidden="true" />
-      )}
-
-      {!isSitting && !isTalking && (
-        <span className="companion-nameplate" aria-hidden="true">
-          {settings.name}
-        </span>
       )}
     </div>
   );
