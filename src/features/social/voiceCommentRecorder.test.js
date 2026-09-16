@@ -51,6 +51,31 @@ describe("voice comment recorder", () => {
     expect(trackStop).toHaveBeenCalled();
   });
 
+  it("notifies subscribers when review is ready", async () => {
+    const { createVoiceCommentRecorder } = await import("./voiceCommentRecorder.js");
+    const stream = { getTracks: () => [{ stop: vi.fn() }] };
+    const recorder = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      ondataavailable: null,
+      onstop: null,
+      mimeType: "audio/webm",
+    };
+    function MediaRecorder() {
+      return recorder;
+    }
+    const getUserMedia = vi.fn().mockResolvedValue(stream);
+    const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
+    const listener = vi.fn();
+    controller.subscribe(listener);
+
+    await controller.start();
+    recorder.ondataavailable({ data: new Blob(["hello"], { type: "audio/webm" }) });
+    recorder.onstop();
+
+    expect(listener).toHaveBeenCalledWith("review");
+  });
+
   it("automatically stops recording at 30 seconds", async () => {
     vi.useFakeTimers();
     try {
