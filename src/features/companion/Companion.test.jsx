@@ -1,0 +1,39 @@
+import React from "react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import Companion from "./Companion.jsx";
+
+const christmas = {
+  id: "christmas",
+  label: "Christmas",
+  character: { hat: "santa", accessory: "scarf" },
+  interaction: { target: "snow", reaction: "playful" },
+};
+
+describe("Companion", () => {
+  it("renders a capybara companion", () => {
+    render(<Companion userId="u1" enabled seasonalEvent={null} />);
+    expect(screen.getByRole("button", { name: /capybara companion/i })).toBeInTheDocument();
+  });
+
+  it("reacts when tapped", async () => {
+    render(<Companion userId="u1" enabled seasonalEvent={null} />);
+    await userEvent.click(screen.getByRole("button", { name: /capybara companion/i }));
+    expect(screen.getByText("✨")).toBeInTheDocument();
+  });
+
+  it("shows seasonal capybara treatment from event data", () => {
+    render(<Companion userId="u1" enabled seasonalEvent={christmas} />);
+    expect(screen.getByLabelText(/Christmas companion/i)).toBeInTheDocument();
+    expect(screen.getByText("🎅")).toBeInTheDocument();
+    expect(screen.getByText("🧣")).toBeInTheDocument();
+  });
+
+  it("switches to quiet mode", async () => {
+    const onModeChange = vi.fn();
+    render(<Companion userId="u1" enabled seasonalEvent={null} onModeChange={onModeChange} />);
+    await userEvent.click(screen.getByRole("button", { name: /enable quiet mode/i }));
+    expect(onModeChange).toHaveBeenCalledWith("quiet");
+  });
+});
