@@ -45,13 +45,13 @@ export default function CompanionSettings({ value, onChange }) {
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="eyebrow">Coming Soon · Companion</div>
+          <div className="eyebrow">Companion</div>
           <h2 id="companion-settings-title" style={{ marginTop: 5 }}>
             Your little capybara
           </h2>
           <p className="subtitle" style={{ marginTop: 5 }}>
-            Keep him in his own little spot above the dock. Turn him off
-            anytime or customize his look and behavior here.
+            Keep him in his own little spot above the dock. Name him, choose
+            his outfit, or turn him off anytime.
           </p>
         </div>
       </div>
@@ -97,9 +97,7 @@ export default function CompanionSettings({ value, onChange }) {
           <input
             className="input"
             value={settings.name}
-            onChange={(event) =>
-              update({ name: event.target.value })
-            }
+            onChange={(event) => update({ name: event.target.value })}
             maxLength={24}
             aria-label="Companion name"
           />
@@ -110,9 +108,7 @@ export default function CompanionSettings({ value, onChange }) {
           <select
             className="input"
             value={settings.costume}
-            onChange={(event) =>
-              update({ costume: event.target.value })
-            }
+            onChange={(event) => update({ costume: event.target.value })}
             aria-label="Costume"
           >
             {COMPANION_COSTUMES.map((costume) => (
@@ -124,13 +120,11 @@ export default function CompanionSettings({ value, onChange }) {
         </label>
 
         <label className="setting-field">
-          <span className="eyebrow">Default animation</span>
+          <span className="eyebrow">Default behavior</span>
           <select
             className="input"
             value={settings.animation}
-            onChange={(event) =>
-              update({ animation: event.target.value })
-            }
+            onChange={(event) => update({ animation: event.target.value })}
             aria-label="Default animation"
           >
             {COMPANION_ANIMATIONS.map((animation) => (
@@ -141,40 +135,20 @@ export default function CompanionSettings({ value, onChange }) {
           </select>
         </label>
 
-        <div className="stack" style={{ gap: 8 }}>
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.bubbles}
-              onChange={(event) =>
-                update({ bubbles: event.target.checked })
-              }
-            />
+        <div className="check-row">
+          <input
+            type="checkbox"
+            checked={settings.reactions}
+            onChange={(event) => update({ reactions: event.target.checked })}
+            aria-label="Reactions"
+          />
 
-            <span>
-              <strong>Talk bubbles</strong>
-              <span className="subtitle">
-                Let him use the little speech bubbles we've built.
-              </span>
+          <span>
+            <strong>Reactions</strong>
+            <span className="subtitle">
+              Allow small seasonal reactions when he is tapped.
             </span>
-          </label>
-
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={settings.reactions}
-              onChange={(event) =>
-                update({ reactions: event.target.checked })
-              }
-            />
-
-            <span>
-              <strong>Reactions</strong>
-              <span className="subtitle">
-                Allow small approved reactions and seasonal animations.
-              </span>
-            </span>
-          </label>
+          </span>
         </div>
 
         <div className="companion-preview" aria-label="Companion preview">
@@ -188,10 +162,9 @@ export default function CompanionSettings({ value, onChange }) {
           />
 
           <div>
-            <strong>{settings.name}</strong>
+            <strong>{settings.name || "Unnamed"}</strong>
             <p className="subtitle" style={{ marginTop: 2 }}>
-              {settings.animation} mode ·{" "}
-              {settings.bubbles ? "bubbles on" : "bubbles off"}
+              {settings.animation} mode
             </p>
           </div>
 
