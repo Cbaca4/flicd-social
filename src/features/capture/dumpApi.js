@@ -1,21 +1,5 @@
 import { supabase } from "../../lib/supabase";
-
-async function getCurrentUserId() {
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error) {
-    throw error;
-  }
-
-  if (!user) {
-    throw new Error("You must be logged in to post.");
-  }
-
-  return user.id;
-}
+import { getCurrentUserId, getFollowingIds } from "../social/socialApi.js";
 
 export async function createDump({
   type = "dump",
@@ -59,7 +43,6 @@ export async function createDump({
       .insert(dumpItems);
 
     if (itemsError) {
-      // Clean up the parent dump if its items failed to save.
       await supabase.from("dumps").delete().eq("id", dump.id);
       throw itemsError;
     }
@@ -67,6 +50,42 @@ export async function createDump({
 
   return dump;
 }
+
+export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
+  const userId = await getCurrentUserId();
+  const following = await getFollowingIds();
+  const followedIds = Object.entries(following)
+    .filter(([, status]) => status === "accepted")
+    .map(([id]) => id);
+  const feedUserIds = [userId, ...followedIds];
+
+  let query = supabase
+    .from("dumps")
+    .select(`
+      *,
+      dump_items (
+        id,
+        position,
+        note,
+        image_path
+      )
+    `)
+    .in("user_id", feedUserIds)
+    .order("created_at", { ascending: false });
+
+  if (spaceId) {
+    query = query.eq("space_id", spaceId);
+  }
+
+  const { data, error } = await query.limit(Math.max(1, Math.min(limit, 100)));
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
 export async function getDumps() {
   const { data, error } = await supabase
     .from("dumps")
