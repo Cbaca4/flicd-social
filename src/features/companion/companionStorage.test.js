@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { beforeEach, describe, expect, it } from "vitest";
 import { loadCompanionState, saveCompanionState } from "./companionStorage.js";
 import { COMPANION_MODES } from "./companionState.js";
