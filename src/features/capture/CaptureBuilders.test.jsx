@@ -71,7 +71,9 @@ describe("RollBuilder publishing", () => {
         fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
       }
 
-      fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
+      });
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(500);
