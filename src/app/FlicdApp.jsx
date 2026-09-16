@@ -9,21 +9,27 @@ import {
   getBoards,
   getBoardItems,
   getOrCreateDefaultBoard,
+  createBoard,
   saveBoardItem,
 } from "../features/profile/boardApi.js";
 
 import Auth from "../features/auth/Auth.jsx";
 import AppShell from "./AppShell.jsx";
+
 import Home, { Viewer } from "../features/home/Home.jsx";
+
 import CreateChoose from "../features/capture/CreateChoose.jsx";
+
 import {
   DumpBuilder,
   RollBuilder,
 } from "../features/capture/CaptureBuilders.jsx";
+
 import {
   createDump,
   getDumps,
 } from "../features/capture/dumpApi.js";
+
 import Messages from "../features/messages/Messages.jsx";
 import Profile from "../features/profile/Profile.jsx";
 import ProfileStudio from "../features/profile/ProfileStudio.jsx";
@@ -178,6 +184,18 @@ export default function FlicdApp() {
   const [boards, setBoards] =
     React.useState([]);
 
+  const [pendingKeep, setPendingKeep] =
+    React.useState(null);
+
+  const [creatingKeepBoard, setCreatingKeepBoard] =
+    React.useState(false);
+
+  const [keepBoardName, setKeepBoardName] =
+    React.useState("");
+
+  const [savingKeep, setSavingKeep] =
+    React.useState(false);
+
   const [boardStudioOpen, setBoardStudioOpen] =
     React.useState(false);
 
@@ -192,9 +210,7 @@ export default function FlicdApp() {
 
   const [theme, setTheme] =
     React.useState(() =>
-      sanitizeProfileTheme(
-        DEFAULT_THEME
-      )
+      sanitizeProfileTheme(DEFAULT_THEME)
     );
 
   const [supabaseProfile, setSupabaseProfile] =
@@ -210,8 +226,7 @@ export default function FlicdApp() {
     async function getSession() {
       const {
         data: { session },
-      } =
-        await supabase.auth.getSession();
+      } = await supabase.auth.getSession();
 
       setSession(session);
     }
@@ -220,12 +235,11 @@ export default function FlicdApp() {
 
     const {
       data: { subscription },
-    } =
-      supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setSession(session);
-        }
-      );
+    } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+      }
+    );
 
     return () =>
       subscription.unsubscribe();
@@ -243,8 +257,7 @@ export default function FlicdApp() {
       setToast("");
     }, 1900);
 
-    return () =>
-      clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [toast]);
 
   /*
@@ -254,36 +267,26 @@ export default function FlicdApp() {
     async function loadProfile() {
       const {
         data: { user },
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
 
       if (!user) {
-        console.log(
-          "No user logged in"
-        );
+        console.log("No user logged in");
         return;
       }
 
-      const { data, error } =
-        await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .maybeSingle();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
 
       if (error) {
-        console.error(
-          "Profile error:",
-          error
-        );
+        console.error("Profile error:", error);
         return;
       }
 
       if (data) {
-        console.log(
-          "✅ Profile loaded:",
-          data
-        );
+        console.log("✅ Profile loaded:", data);
 
         setSupabaseProfile(data);
 
@@ -295,9 +298,7 @@ export default function FlicdApp() {
           );
         }
       } else {
-        console.log(
-          "No profile found yet."
-        );
+        console.log("No profile found yet.");
       }
     }
 
@@ -314,65 +315,45 @@ export default function FlicdApp() {
       }
 
       try {
-        const savedDumps =
-          await getDumps();
+        const savedDumps = await getDumps();
 
         if (!savedDumps.length) {
           return;
         }
 
-        const formattedDumps =
-          savedDumps.map(
-            (dump) => ({
-              id: dump.id,
-              channel:
-                dump.space_id,
-              author:
-                dump.user_id,
-              mood: dump.mood,
-              mode: dump.expiry,
-
-              postedMinutesAgo:
-                Math.floor(
-                  (Date.now() -
-                    new Date(
-                      dump.created_at
-                    ).getTime()) /
-                    60000
-                ),
-
-              likes: 0,
-              liked: false,
-              viewed: false,
-              comments: [],
-
-              items:
-                (dump.dump_items || [])
-                  .sort(
-                    (a, b) =>
-                      a.position -
-                      b.position
-                  )
-                  .map(
-                    (item) => ({
-                      note:
-                        item.note ||
-                        "",
-                      imagePath:
-                        item.image_path ||
-                        null,
-                    })
-                  ),
-
-              context:
-                dump.context ||
-                "",
-            })
-          );
-
-        setDumps(
-          formattedDumps
+        const formattedDumps = savedDumps.map(
+          (dump) => ({
+            id: dump.id,
+            channel: dump.space_id,
+            author: dump.user_id,
+            mood: dump.mood,
+            mode: dump.expiry,
+            postedMinutesAgo: Math.floor(
+              (Date.now() -
+                new Date(
+                  dump.created_at
+                ).getTime()) /
+                60000
+            ),
+            likes: 0,
+            liked: false,
+            viewed: false,
+            comments: [],
+            items: (dump.dump_items || [])
+              .sort(
+                (a, b) =>
+                  a.position - b.position
+              )
+              .map((item) => ({
+                note: item.note || "",
+                imagePath:
+                  item.image_path || null,
+              })),
+            context: dump.context || "",
+          })
         );
+
+        setDumps(formattedDumps);
       } catch (error) {
         console.error(
           "Failed to load dumps:",
@@ -397,27 +378,18 @@ export default function FlicdApp() {
       }
 
       try {
-        const savedItems =
-          await getBoardItems();
+        const savedItems = await getBoardItems();
 
         setKept(
-          savedItems.map(
-            (item) => ({
-              id: item.id,
-              boardId:
-                item.board_id,
-              dumpId:
-                item.dump_id,
-              author: "",
-              note:
-                item.note || "",
-              mood:
-                item.mood || "",
-              seed:
-                item.item_position ||
-                0,
-            })
-          )
+          savedItems.map((item) => ({
+            id: item.id,
+            boardId: item.board_id,
+            dumpId: item.dump_id,
+            author: "",
+            note: item.note || "",
+            mood: item.mood || "",
+            seed: item.item_position || 0,
+          }))
         );
       } catch (error) {
         console.error(
@@ -440,9 +412,7 @@ export default function FlicdApp() {
       }
 
       try {
-        const savedBoards =
-          await getBoards();
-
+        const savedBoards = await getBoards();
         setBoards(savedBoards);
       } catch (error) {
         console.error(
@@ -458,15 +428,13 @@ export default function FlicdApp() {
   const activeSpace =
     spaces.find(
       (space) =>
-        space.id ===
-        activeSpaceId
+        space.id === activeSpaceId
     ) || spaces[0];
 
   const activePost =
     dumps.find(
       (dump) =>
-        dump.id ===
-        activePostId
+        dump.id === activePostId
     );
 
   const onToast = (message) => {
@@ -478,15 +446,15 @@ export default function FlicdApp() {
    *
    * Each Board gets its current saved-item count.
    */
-  const profileBoards =
-    boards.map((board) => ({
+  const profileBoards = boards.map(
+    (board) => ({
       ...board,
       count: kept.filter(
         (item) =>
-          item.boardId ===
-          board.id
+          item.boardId === board.id
       ).length,
-    }));
+    })
+  );
 
   /*
    * Like / unlike a post.
@@ -499,8 +467,7 @@ export default function FlicdApp() {
             post.id === id
               ? {
                   ...post,
-                  liked:
-                    !post.liked,
+                  liked: !post.liked,
                   likes:
                     post.likes +
                     (post.liked
@@ -515,10 +482,7 @@ export default function FlicdApp() {
   /*
    * Add a comment to a post.
    */
-  const comment = (
-    id,
-    text
-  ) => {
+  const comment = (id, text) => {
     setDumps(
       (currentDumps) =>
         currentDumps.map(
@@ -529,8 +493,7 @@ export default function FlicdApp() {
                   comments: [
                     ...post.comments,
                     {
-                      id:
-                        Date.now(),
+                      id: Date.now(),
                       from: "you",
                       text,
                     },
@@ -542,77 +505,101 @@ export default function FlicdApp() {
   };
 
   /*
-   * Save a post item to the default Saved Board.
+   * Open the Board picker for a Keep action.
    *
-   * Users can later move the saved item
-   * into any other Board.
+   * The picker uses the same Boards already stored
+   * in Supabase and keeps Saved as the first/default choice.
    */
-  const keep = async (
-    post,
-    index
-  ) => {
+  const keep = async (post, index) => {
     try {
-      const board =
+      const savedBoard =
         await getOrCreateDefaultBoard();
 
-      const saved =
-        await saveBoardItem({
-          boardId:
-            board.id,
-          dumpId:
-            post.id,
-          itemPosition:
-            index,
-          note:
-            post.items[index]
-              ?.note || "",
-          mood:
-            post.mood || "",
-        });
+      setBoards((current) => {
+        const exists = current.some(
+          (board) =>
+            board.id === savedBoard.id
+        );
 
-      setKept(
-        (current) => {
-          const alreadySaved =
-            current.some(
-              (item) =>
-                item.id ===
-                saved.id
-            );
+        return exists
+          ? current
+          : [savedBoard, ...current];
+      });
 
-          if (alreadySaved) {
-            return current;
-          }
+      setPendingKeep({
+        post,
+        index,
+      });
 
-          return [
-            ...current,
-            {
-              id:
-                saved.id,
-              boardId:
-                saved.board_id,
-              dumpId:
-                saved.dump_id,
-              author:
-                post.author,
-              note:
-                saved.note ||
-                "",
-              mood:
-                saved.mood ||
-                "",
-              seed:
-                saved.item_position,
-            },
-          ];
-        }
-      );
-
-      setBoards(
-        await getBoards()
+      setCreatingKeepBoard(false);
+      setKeepBoardName("");
+    } catch (error) {
+      console.error(
+        "Failed to prepare Save to Board:",
+        error
       );
 
       onToast(
-        "Saved to Boards"
+        error.message ||
+          "Could not open Save to Board"
+      );
+    }
+  };
+
+  /*
+   * Save the selected post item directly to a Board.
+   */
+  const saveKeepToBoard = async (board) => {
+    if (!pendingKeep || savingKeep) {
+      return;
+    }
+
+    const { post, index } = pendingKeep;
+
+    try {
+      setSavingKeep(true);
+
+      const saved = await saveBoardItem({
+        boardId: board.id,
+        dumpId: post.id,
+        itemPosition: index,
+        note:
+          post.items[index]?.note || "",
+        mood: post.mood || "",
+      });
+
+      setKept((current) => {
+        const alreadySaved = current.some(
+          (item) =>
+            item.id === saved.id
+        );
+
+        if (alreadySaved) {
+          return current;
+        }
+
+        return [
+          ...current,
+          {
+            id: saved.id,
+            boardId: saved.board_id,
+            dumpId: saved.dump_id,
+            author: post.author,
+            note: saved.note || "",
+            mood: saved.mood || "",
+            seed: saved.item_position,
+          },
+        ];
+      });
+
+      setBoards(await getBoards());
+
+      setPendingKeep(null);
+      setCreatingKeepBoard(false);
+      setKeepBoardName("");
+
+      onToast(
+        `Saved to ${board.name}`
       );
     } catch (error) {
       console.error(
@@ -622,8 +609,91 @@ export default function FlicdApp() {
 
       onToast(
         error.message ||
-          "Failed to save to Boards"
+          "Failed to save to Board"
       );
+    } finally {
+      setSavingKeep(false);
+    }
+  };
+
+  /*
+   * Create a new Board from the Keep picker
+   * and immediately place the kept item inside it.
+   */
+  const createKeepBoard = async (event) => {
+    event.preventDefault();
+
+    const cleanName =
+      keepBoardName.trim();
+
+    if (
+      !cleanName ||
+      !pendingKeep ||
+      savingKeep
+    ) {
+      return;
+    }
+
+    try {
+      setSavingKeep(true);
+
+      const board = await createBoard({
+        name: cleanName,
+        description: "",
+        pinned: false,
+      });
+
+      setBoards((current) => [
+        ...current,
+        board,
+      ]);
+
+      const { post, index } =
+        pendingKeep;
+
+      const saved = await saveBoardItem({
+        boardId: board.id,
+        dumpId: post.id,
+        itemPosition: index,
+        note:
+          post.items[index]?.note || "",
+        mood: post.mood || "",
+      });
+
+      setKept((current) => [
+        ...current,
+        {
+          id: saved.id,
+          boardId: saved.board_id,
+          dumpId: saved.dump_id,
+          author: post.author,
+          note: saved.note || "",
+          mood: saved.mood || "",
+          seed: saved.item_position,
+        },
+      ]);
+
+      setBoards(await getBoards());
+
+      setPendingKeep(null);
+      setCreatingKeepBoard(false);
+      setKeepBoardName("");
+
+      onToast(
+        `Saved to ${board.name}`
+      );
+    } catch (error) {
+      console.error(
+        "Failed to create Board from Keep:",
+        error
+      );
+
+      onToast(
+        error.message ||
+          "Could not create Board"
+      );
+    } finally {
+      setSavingKeep(false);
     }
   };
 
@@ -649,135 +719,129 @@ export default function FlicdApp() {
   /*
    * Create and save a Dump.
    */
-  const postDump =
-    async ({
-      mood,
-      expiry,
-      channel,
-      items,
-    }) => {
-      try {
-        const savedDump =
-          await createDump({
-            type: "dump",
-            spaceId:
-              channel,
-            mood,
-            expiry,
-            context:
-              items[0]?.note ||
-              "new dump",
-            frameCount:
-              items.length,
-            items,
-          });
-
-        const newDump = {
-          id: savedDump.id,
-          channel,
-          author:
-            activeSpace.handle,
+  const postDump = async ({
+    mood,
+    expiry,
+    channel,
+    items,
+  }) => {
+    try {
+      const savedDump =
+        await createDump({
+          type: "dump",
+          spaceId: channel,
           mood,
-          mode: expiry,
-          postedMinutesAgo: 0,
-          likes: 0,
-          liked: false,
-          comments: [],
-          items,
+          expiry,
           context:
             items[0]?.note ||
             "new dump",
-        };
+          frameCount: items.length,
+          items,
+        });
 
-        setDumps(
-          (currentDumps) => [
-            newDump,
-            ...currentDumps,
-          ]
-        );
+      const newDump = {
+        id: savedDump.id,
+        channel,
+        author:
+          activeSpace.handle,
+        mood,
+        mode: expiry,
+        postedMinutesAgo: 0,
+        likes: 0,
+        liked: false,
+        comments: [],
+        items,
+        context:
+          items[0]?.note ||
+          "new dump",
+      };
 
-        setScreen("home");
-        onToast("Dump posted");
-      } catch (error) {
-        console.error(
-          "Failed to post dump:",
-          error
-        );
+      setDumps(
+        (currentDumps) => [
+          newDump,
+          ...currentDumps,
+        ]
+      );
 
-        onToast(
-          error.message ||
-            "Failed to post dump"
-        );
-      }
-    };
+      setScreen("home");
+      onToast("Dump posted");
+    } catch (error) {
+      console.error(
+        "Failed to post dump:",
+        error
+      );
+
+      onToast(
+        error.message ||
+          "Failed to post dump"
+      );
+    }
+  };
 
   /*
    * Create and save a Roll.
    */
-  const postRoll =
-    async ({
-      mood,
-      expiry,
-      channel,
-      frameCount,
-    }) => {
-      try {
-        const items =
-          Array.from(
-            { length: frameCount },
-            () => ({
-              note: "",
-            })
-          );
+  const postRoll = async ({
+    mood,
+    expiry,
+    channel,
+    frameCount,
+  }) => {
+    try {
+      const items = Array.from(
+        { length: frameCount },
+        () => ({
+          note: "",
+        })
+      );
 
-        const savedDump =
-          await createDump({
-            type: "roll",
-            spaceId:
-              channel,
-            mood,
-            expiry,
-            context: `${frameCount} frame roll`,
-            frameCount,
-            items,
-          });
-
-        const newRoll = {
-          id: savedDump.id,
-          channel,
-          author:
-            activeSpace.handle,
+      const savedDump =
+        await createDump({
+          type: "roll",
+          spaceId: channel,
           mood,
-          mode: expiry,
-          postedMinutesAgo: 0,
-          likes: 0,
-          liked: false,
-          comments: [],
-          items,
+          expiry,
           context: `${frameCount} frame roll`,
-        };
+          frameCount,
+          items,
+        });
 
-        setDumps(
-          (currentDumps) => [
-            newRoll,
-            ...currentDumps,
-          ]
-        );
+      const newRoll = {
+        id: savedDump.id,
+        channel,
+        author:
+          activeSpace.handle,
+        mood,
+        mode: expiry,
+        postedMinutesAgo: 0,
+        likes: 0,
+        liked: false,
+        comments: [],
+        items,
+        context: `${frameCount} frame roll`,
+      };
 
-        setScreen("home");
-        onToast("Roll posted");
-      } catch (error) {
-        console.error(
-          "Failed to post roll:",
-          error
-        );
+      setDumps(
+        (currentDumps) => [
+          newRoll,
+          ...currentDumps,
+        ]
+      );
 
-        onToast(
-          error.message ||
-            "Failed to post roll"
-        );
-      }
-    };
+      setScreen("home");
+      onToast("Roll posted");
+    } catch (error) {
+      console.error(
+        "Failed to post roll:",
+        error
+      );
+
+      onToast(
+        error.message ||
+          "Failed to post roll"
+      );
+    }
+  };
 
   /*
    * Build the profile object used by
@@ -829,9 +893,7 @@ export default function FlicdApp() {
         dumps={dumps}
         activeSpace={activeSpace}
         onOpen={(post) => {
-          setActivePostId(
-            post.id
-          );
+          setActivePostId(post.id);
           setScreen("viewer");
         }}
       />
@@ -841,9 +903,7 @@ export default function FlicdApp() {
   /*
    * DISCOVER
    */
-  else if (
-    screen === "discover"
-  ) {
+  else if (screen === "discover") {
     content = (
       <Discovery
         onToast={onToast}
@@ -854,9 +914,7 @@ export default function FlicdApp() {
   /*
    * MESSAGES
    */
-  else if (
-    screen === "messages"
-  ) {
+  else if (screen === "messages") {
     content = (
       <Messages
         requests={requests}
@@ -871,9 +929,7 @@ export default function FlicdApp() {
   /*
    * PROFILE
    */
-  else if (
-    screen === "profile"
-  ) {
+  else if (screen === "profile") {
     content = (
       <Profile
         profile={profile}
@@ -893,9 +949,7 @@ export default function FlicdApp() {
           setBoardStudioOpen(true)
         }
         onEditProfile={() =>
-          setScreen(
-            "edit-profile"
-          )
+          setScreen("edit-profile")
         }
       />
     );
@@ -904,9 +958,7 @@ export default function FlicdApp() {
   /*
    * BOARDS
    */
-  else if (
-    screen === "boards"
-  ) {
+  else if (screen === "boards") {
     content = (
       <Boards
         dumps={dumps}
@@ -922,9 +974,7 @@ export default function FlicdApp() {
   /*
    * EDIT PROFILE
    */
-  else if (
-    screen === "edit-profile"
-  ) {
+  else if (screen === "edit-profile") {
     content = (
       <EditProfile
         profile={profile}
@@ -956,15 +1006,11 @@ export default function FlicdApp() {
   /*
    * SPACE SWITCHER
    */
-  else if (
-    screen === "spaces"
-  ) {
+  else if (screen === "spaces") {
     content = (
       <SpaceSwitcher
         spaces={spaces}
-        activeSpaceId={
-          activeSpaceId
-        }
+        activeSpaceId={activeSpaceId}
         setActiveSpaceId={
           setActiveSpaceId
         }
@@ -978,9 +1024,7 @@ export default function FlicdApp() {
   /*
    * CREATE CHOOSE
    */
-  else if (
-    screen === "create-choose"
-  ) {
+  else if (screen === "create-choose") {
     content = (
       <CreateChoose
         onPick={(type) =>
@@ -1000,15 +1044,11 @@ export default function FlicdApp() {
   /*
    * CREATE DUMP
    */
-  else if (
-    screen === "create-dump"
-  ) {
+  else if (screen === "create-dump") {
     content = (
       <DumpBuilder
         spaces={spaces}
-        activeSpaceId={
-          activeSpaceId
-        }
+        activeSpaceId={activeSpaceId}
         onCancel={() =>
           setScreen("home")
         }
@@ -1020,15 +1060,11 @@ export default function FlicdApp() {
   /*
    * CREATE ROLL
    */
-  else if (
-    screen === "create-roll"
-  ) {
+  else if (screen === "create-roll") {
     content = (
       <RollBuilder
         spaces={spaces}
-        activeSpaceId={
-          activeSpaceId
-        }
+        activeSpaceId={activeSpaceId}
         onCancel={() =>
           setScreen("home")
         }
@@ -1050,9 +1086,7 @@ export default function FlicdApp() {
         onLike={toggleLike}
         onComment={comment}
         onKeep={keep}
-        onMarkViewed={
-          markViewed
-        }
+        onMarkViewed={markViewed}
       />
     ) : (
       <Home
@@ -1086,13 +1120,9 @@ export default function FlicdApp() {
           setScreen(key)
         }
         onCapture={() =>
-          setScreen(
-            "create-choose"
-          )
+          setScreen("create-choose")
         }
-        unread={
-          requests.length
-        }
+        unread={requests.length}
       >
         <div
           style={{
@@ -1102,6 +1132,307 @@ export default function FlicdApp() {
           {content}
         </div>
       </AppShell>
+
+      {/* KEEP → SAVE TO BOARD */}
+      {pendingKeep && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (
+              event.target ===
+                event.currentTarget &&
+              !savingKeep
+            ) {
+              setPendingKeep(null);
+              setCreatingKeepBoard(false);
+            }
+          }}
+        >
+          <div
+            className="modal"
+            style={{
+              width: "100%",
+              maxWidth: 520,
+              maxHeight: "85vh",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              className="row"
+              style={{
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "flex-start",
+              }}
+            >
+              <div>
+                <div className="eyebrow">
+                  Save to Board
+                </div>
+
+                <h2
+                  style={{
+                    marginTop: 4,
+                  }}
+                >
+                  Where should this go?
+                </h2>
+
+                <p
+                  className="subtitle"
+                  style={{
+                    marginTop: 5,
+                  }}
+                >
+                  Choose a Board for
+                  this saved moment.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn icon-btn"
+                onClick={() => {
+                  if (savingKeep) {
+                    return;
+                  }
+
+                  setPendingKeep(null);
+                  setCreatingKeepBoard(
+                    false
+                  );
+                }}
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            {!creatingKeepBoard ? (
+              <>
+                <div
+                  className="stack"
+                  style={{
+                    marginTop: 16,
+                  }}
+                >
+                  {boards.map((board) => {
+                    const count =
+                      kept.filter(
+                        (item) =>
+                          item.boardId ===
+                          board.id
+                      ).length;
+
+                    return (
+                      <button
+                        key={board.id}
+                        type="button"
+                        className="card"
+                        disabled={
+                          savingKeep
+                        }
+                        onClick={() =>
+                          saveKeepToBoard(
+                            board
+                          )
+                        }
+                        style={{
+                          width: "100%",
+                          textAlign:
+                            "left",
+                          cursor:
+                            savingKeep
+                              ? "wait"
+                              : "pointer",
+                          opacity:
+                            savingKeep
+                              ? 0.65
+                              : 1,
+                        }}
+                      >
+                        <div className="row">
+                          <div
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 14,
+                              flexShrink: 0,
+                              background:
+                                board
+                                  .style_config
+                                  ?.accent ||
+                                "rgba(255,255,255,.08)",
+                              border:
+                                "1px solid rgba(255,255,255,.12)",
+                            }}
+                          />
+
+                          <div
+                            style={{
+                              flex: 1,
+                              minWidth: 0,
+                            }}
+                          >
+                            <strong>
+                              {board.name}
+                            </strong>
+
+                            <p
+                              className="subtitle"
+                              style={{
+                                marginTop: 3,
+                              }}
+                            >
+                              {count}{" "}
+                              {count ===
+                              1
+                                ? "item"
+                                : "items"}
+
+                              {board.name ===
+                              "Saved"
+                                ? " · default"
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    className="card"
+                    disabled={savingKeep}
+                    onClick={() =>
+                      setCreatingKeepBoard(
+                        true
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      textAlign:
+                        "left",
+                      cursor:
+                        savingKeep
+                          ? "not-allowed"
+                          : "pointer",
+                      opacity:
+                        savingKeep
+                          ? 0.65
+                          : 1,
+                    }}
+                  >
+                    <strong>
+                      ＋ New Board
+                    </strong>
+
+                    <p
+                      className="subtitle"
+                      style={{
+                        marginTop: 3,
+                      }}
+                    >
+                      Create a Board and
+                      save this moment
+                      there.
+                    </p>
+                  </button>
+                </div>
+
+                <div
+                  className="row"
+                  style={{
+                    justifyContent:
+                      "flex-end",
+                    marginTop: 16,
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={savingKeep}
+                    onClick={() => {
+                      setPendingKeep(null);
+                      setCreatingKeepBoard(
+                        false
+                      );
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <form
+                onSubmit={
+                  createKeepBoard
+                }
+                className="stack"
+                style={{
+                  marginTop: 16,
+                }}
+              >
+                <label className="eyebrow">
+                  New Board name
+                </label>
+
+                <input
+                  className="input"
+                  value={keepBoardName}
+                  onChange={(event) =>
+                    setKeepBoardName(
+                      event.target.value
+                    )
+                  }
+                  placeholder="e.g. Gym, Memories, Trips"
+                  maxLength={60}
+                  autoFocus
+                  disabled={savingKeep}
+                />
+
+                <div
+                  className="row"
+                  style={{
+                    justifyContent:
+                      "flex-end",
+                    gap: 8,
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={savingKeep}
+                    onClick={() => {
+                      setCreatingKeepBoard(
+                        false
+                      );
+                      setKeepBoardName("");
+                    }}
+                  >
+                    Back
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={
+                      savingKeep ||
+                      !keepBoardName.trim()
+                    }
+                  >
+                    {savingKeep
+                      ? "Saving…"
+                      : "Create & Save"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* PROFILE STUDIO */}
       {studio && (
@@ -1116,7 +1447,6 @@ export default function FlicdApp() {
               }
               onSave={() => {
                 setStudio(false);
-
                 onToast(
                   "Profile saved"
                 );
@@ -1131,9 +1461,7 @@ export default function FlicdApp() {
         <BoardStudio
           boards={boards}
           onClose={() =>
-            setBoardStudioOpen(
-              false
-            )
+            setBoardStudioOpen(false)
           }
           onBoardSaved={(updated) => {
             setBoards(
@@ -1147,9 +1475,7 @@ export default function FlicdApp() {
                 )
             );
 
-            setBoardStudioOpen(
-              false
-            );
+            setBoardStudioOpen(false);
           }}
           onToast={onToast}
         />

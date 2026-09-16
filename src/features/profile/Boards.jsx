@@ -17,6 +17,11 @@ import {
   updateBoard,
 } from "./boardApi";
 import BoardStudio from "./BoardStudio";
+import {
+  canPinBoard,
+  countPinnedBoards,
+  MAX_PINNED_BOARDS,
+} from "./boardPinning";
 
 function boardStyle(board) {
   const style = board?.style_config || {};
@@ -605,6 +610,7 @@ export default function Boards({
   keptItems = [],
   onBack,
   onToast,
+  initialBoardId = null,
 }) {
   const [boards, setBoards] = React.useState([]);
   const [counts, setCounts] = React.useState({});
@@ -677,6 +683,20 @@ export default function Boards({
     refresh();
   }, [refresh]);
 
+  React.useEffect(() => {
+    if (!initialBoardId || activeBoard || !boards.length) {
+      return;
+    }
+
+    const target = boards.find(
+      (board) => board.id === initialBoardId
+    );
+
+    if (target) {
+      openBoard(target);
+    }
+  }, [boards, initialBoardId, activeBoard]);
+
   async function openBoard(board) {
     try {
       const items =
@@ -726,6 +746,11 @@ export default function Boards({
   }
 
   async function togglePin(board) {
+    if (!board.pinned && !canPinBoard(boards, board.id)) {
+      onToast?.(`You can pin up to ${MAX_PINNED_BOARDS} Boards to your profile.`);
+      return;
+    }
+
     try {
       const updated = await updateBoard(
         board.id,
@@ -990,6 +1015,13 @@ export default function Boards({
             >
               Keep moments organized your way.
             </p>
+            <div
+              className="tag"
+              style={{ marginTop: 8, display: "inline-flex" }}
+              aria-label={`${countPinnedBoards(boards)} of ${MAX_PINNED_BOARDS} Boards pinned`}
+            >
+              {countPinnedBoards(boards)} / {MAX_PINNED_BOARDS} pinned
+            </div>
           </div>
 
           <button

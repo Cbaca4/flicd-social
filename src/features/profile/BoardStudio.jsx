@@ -1,179 +1,225 @@
 import React from "react";
-
-import {
-  Check,
-  Image,
-  Pin,
-  RotateCcw,
-  Save,
-  X,
-} from "lucide-react";
-
+import { Palette, Pin, Save, X } from "lucide-react";
 import { updateBoard } from "./boardApi";
 
 const DEFAULT_STYLE = {
-  background: "#18181b",
-  accent: "#ffffff",
+  background: "#111111",
+  accent: "#ff72b6",
   border: "#ffffff",
   borderWidth: 1,
   radius: 24,
   cardStyle: "soft",
-  columns: 2,
+  columns: 3,
   showItemCount: true,
   showDescription: true,
-  coverUrl: "",
 };
 
-const PRESETS = {
-  midnight: {
-    background: "#111114",
-    accent: "#ffffff",
-    border: "#ffffff",
-    borderWidth: 1,
-    radius: 24,
-    cardStyle: "soft",
-    columns: 2,
-    showItemCount: true,
-    showDescription: true,
+const PRESETS = [
+  {
+    name: "Flic'd",
+    style: {
+      background: "#111111",
+      accent: "#ff72b6",
+      border: "#ffffff",
+      borderWidth: 1,
+      radius: 24,
+      cardStyle: "soft",
+      columns: 3,
+      showItemCount: true,
+      showDescription: true,
+    },
   },
-
-  bubblegum: {
-    background: "#24141f",
-    accent: "#ff8fc8",
-    border: "#ff8fc8",
-    borderWidth: 2,
-    radius: 30,
-    cardStyle: "soft",
-    columns: 2,
-    showItemCount: true,
-    showDescription: true,
+  {
+    name: "Midnight",
+    style: {
+      background: "#09090b",
+      accent: "#a78bfa",
+      border: "#3f3f46",
+      borderWidth: 1,
+      radius: 18,
+      cardStyle: "minimal",
+      columns: 3,
+      showItemCount: true,
+      showDescription: true,
+    },
   },
-
-  glass: {
-    background: "#15181c",
-    accent: "#9fcbff",
-    border: "#ffffff",
-    borderWidth: 1,
-    radius: 28,
-    cardStyle: "glass",
-    columns: 3,
-    showItemCount: true,
-    showDescription: false,
+  {
+    name: "Pastel",
+    style: {
+      background: "#201725",
+      accent: "#f9a8d4",
+      border: "#fbcfe8",
+      borderWidth: 2,
+      radius: 28,
+      cardStyle: "soft",
+      columns: 2,
+      showItemCount: true,
+      showDescription: true,
+    },
   },
-
-  polaroid: {
-    background: "#f0ede7",
-    accent: "#161616",
-    border: "#161616",
-    borderWidth: 2,
-    radius: 10,
-    cardStyle: "polaroid",
-    columns: 2,
-    showItemCount: false,
-    showDescription: true,
+  {
+    name: "Glass",
+    style: {
+      background: "#0f172a",
+      accent: "#67e8f9",
+      border: "#67e8f9",
+      borderWidth: 1,
+      radius: 30,
+      cardStyle: "glass",
+      columns: 3,
+      showItemCount: false,
+      showDescription: true,
+    },
   },
-};
+];
 
-function normalizeStyleConfig(config) {
+function normalizeStyle(style) {
   return {
     ...DEFAULT_STYLE,
-    ...(config || {}),
+    ...(style || {}),
   };
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}) {
+  return (
+    <label
+      style={{
+        display: "grid",
+        gap: 7,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+        }}
+      >
+        {label}
+      </span>
+
+      <div
+        className="row"
+        style={{ gap: 8 }}
+      >
+        <input
+          type="color"
+          value={value}
+          onChange={(event) =>
+            onChange(event.target.value)
+          }
+          style={{
+            width: 42,
+            height: 36,
+            padding: 2,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+          }}
+        />
+
+        <input
+          className="input"
+          value={value}
+          onChange={(event) =>
+            onChange(event.target.value)
+          }
+          style={{ flex: 1 }}
+        />
+      </div>
+    </label>
+  );
 }
 
 export default function BoardStudio({
   boards = [],
+  initialBoardId = null,
   onClose,
   onBoardSaved,
   onToast,
 }) {
+  const firstBoardId =
+    initialBoardId || boards[0]?.id || null;
+
   const [selectedBoardId, setSelectedBoardId] =
-    React.useState(
-      boards[0]?.id || ""
-    );
-
+    React.useState(firstBoardId);
   const [draft, setDraft] = React.useState(
-    () =>
-      normalizeStyleConfig(
-        boards[0]?.style_config
-      )
+    normalizeStyle(
+      boards.find(
+        (board) =>
+          board.id === firstBoardId
+      )?.style_config
+    )
   );
-
+  const [name, setName] = React.useState(
+    boards.find(
+      (board) =>
+        board.id === firstBoardId
+    )?.name || ""
+  );
+  const [description, setDescription] =
+    React.useState(
+      boards.find(
+        (board) =>
+          board.id === firstBoardId
+      )?.description || ""
+    );
+  const [coverUrl, setCoverUrl] =
+    React.useState(
+      boards.find(
+        (board) =>
+          board.id === firstBoardId
+      )?.cover_url || ""
+    );
   const [saving, setSaving] =
     React.useState(false);
 
-  const selectedBoard =
-    boards.find(
-      (board) =>
-        board.id === selectedBoardId
-    ) || null;
+  const selectedBoard = boards.find(
+    (board) =>
+      board.id === selectedBoardId
+  );
 
-  /*
-   * Load the selected Board's saved style.
-   */
   React.useEffect(() => {
-    if (!selectedBoard) {
-      setDraft(
-        normalizeStyleConfig({})
-      );
-      return;
-    }
+    if (!selectedBoard) return;
 
     setDraft(
-      normalizeStyleConfig(
+      normalizeStyle(
         selectedBoard.style_config
       )
     );
+    setName(selectedBoard.name || "");
+    setDescription(
+      selectedBoard.description || ""
+    );
+    setCoverUrl(
+      selectedBoard.cover_url || ""
+    );
   }, [selectedBoard]);
 
-  function updateStyle(
-    key,
-    value
-  ) {
+  function selectBoard(id) {
+    setSelectedBoardId(id);
+  }
+
+  function applyPreset(style) {
+    setDraft(normalizeStyle(style));
+  }
+
+  function setStyle(key, value) {
     setDraft((current) => ({
       ...current,
       [key]: value,
     }));
   }
 
-  function applyPreset(name) {
-    const preset =
-      PRESETS[name];
+  async function handleSave(event) {
+    event.preventDefault();
 
-    if (!preset) {
-      return;
-    }
-
-    setDraft((current) => ({
-      ...current,
-      ...preset,
-    }));
-
-    onToast?.(
-      `${name[0].toUpperCase()}${name.slice(
-        1
-      )} style applied`
-    );
-  }
-
-  function resetStyle() {
-    setDraft(
-      normalizeStyleConfig({})
-    );
-
-    onToast?.(
-      "Board style reset"
-    );
-  }
-
-  /*
-   * Save the selected Board's
-   * customization to Supabase.
-   */
-  async function handleSave() {
     if (!selectedBoard) {
       onToast?.(
-        "Choose a Board first."
+        "Create a Board before customizing it."
       );
       return;
     }
@@ -181,136 +227,31 @@ export default function BoardStudio({
     setSaving(true);
 
     try {
-      const updated =
-        await updateBoard(
-          selectedBoard.id,
-          {
-            coverUrl:
-              draft.coverUrl ||
-              "",
-
-            styleConfig: {
-              background:
-                draft.background,
-
-              accent:
-                draft.accent,
-
-              border:
-                draft.border,
-
-              borderWidth:
-                draft.borderWidth,
-
-              radius:
-                draft.radius,
-
-              cardStyle:
-                draft.cardStyle,
-
-              columns:
-                draft.columns,
-
-              showItemCount:
-                draft.showItemCount,
-
-              showDescription:
-                draft.showDescription,
-            },
-          }
-        );
-
-      onBoardSaved?.(
-        updated
+      const updated = await updateBoard(
+        selectedBoard.id,
+        {
+          name,
+          description,
+          coverUrl,
+          styleConfig: draft,
+        }
       );
 
-      onToast?.(
-        "Board customization saved"
-      );
+      onBoardSaved?.(updated);
+      onToast?.("Board customized");
+      onClose?.();
     } catch (error) {
       console.error(
-        "Failed to save Board customization:",
+        "Failed to customize Board:",
         error
       );
-
       onToast?.(
         error.message ||
-          "Could not save Board customization."
+          "Could not customize Board."
       );
     } finally {
       setSaving(false);
     }
-  }
-
-  /*
-   * No Boards yet.
-   */
-  if (!boards.length) {
-    return (
-      <div className="modal-backdrop">
-        <div
-          className="modal"
-          style={{
-            maxWidth: 560,
-            width: "100%",
-          }}
-        >
-          <div
-            className="row"
-            style={{
-              justifyContent:
-                "space-between",
-            }}
-          >
-            <div>
-              <div className="eyebrow">
-                Board Studio
-              </div>
-
-              <h2
-                style={{
-                  marginTop: 5,
-                }}
-              >
-                Customize your Boards
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              className="btn icon-btn"
-              onClick={onClose}
-              aria-label="Close Board Studio"
-            >
-              <X size={18} />
-            </button>
-          </div>
-
-          <div
-            className="card"
-            style={{
-              marginTop: 18,
-              padding: 24,
-              textAlign: "center",
-            }}
-          >
-            <p className="subtitle">
-              You don't have any Boards yet.
-            </p>
-
-            <p
-              className="subtitle"
-              style={{
-                marginTop: 5,
-              }}
-            >
-              Create a Board first, then come back
-              here to customize it.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -318,42 +259,31 @@ export default function BoardStudio({
       <div
         className="modal"
         style={{
+          maxWidth: 720,
           width: "100%",
-          maxWidth: 820,
           maxHeight: "90vh",
           overflowY: "auto",
         }}
       >
-        {/* HEADER */}
         <div
           className="row"
           style={{
-            justifyContent:
-              "space-between",
-            alignItems:
-              "flex-start",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
           }}
         >
           <div>
             <div className="eyebrow">
               Board Studio
             </div>
-
-            <h2
-              style={{
-                marginTop: 5,
-              }}
-            >
-              Customize your Boards
+            <h2 style={{ marginTop: 4 }}>
+              Make your Boards yours
             </h2>
-
             <p
               className="subtitle"
-              style={{
-                marginTop: 4,
-              }}
+              style={{ marginTop: 4 }}
             >
-              Give each Board its own look.
+              Colors, borders, covers, cards, and layout.
             </p>
           </div>
 
@@ -367,120 +297,202 @@ export default function BoardStudio({
           </button>
         </div>
 
-        {/* BOARD SELECTOR */}
-        <div
-          className="card"
-          style={{
-            marginTop: 18,
-          }}
-        >
-          <div className="eyebrow">
-            Board
-          </div>
-
-          <select
-            value={selectedBoardId}
-            onChange={(event) =>
-              setSelectedBoardId(
-                event.target.value
-              )
-            }
-            className="input"
+        {boards.length === 0 ? (
+          <div
+            className="card"
             style={{
-              width: "100%",
-              marginTop: 8,
+              marginTop: 18,
+              padding: 28,
+              textAlign: "center",
             }}
           >
-            {boards.map((board) => (
-              <option
-                key={board.id}
-                value={board.id}
-              >
-                {board.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {selectedBoard && (
-          <>
-            {/* QUICK STYLES */}
-            <div
-              className="card"
+            <strong>
+              Create a Board first
+            </strong>
+            <p
+              className="subtitle"
+              style={{ marginTop: 5 }}
+            >
+              Board Studio customizes individual Boards.
+            </p>
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSave}
+            style={{ marginTop: 18 }}
+          >
+            <label
               style={{
-                marginTop: 12,
+                display: "grid",
+                gap: 7,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Board
+              </span>
+
+              <select
+                className="input"
+                value={selectedBoardId || ""}
+                onChange={(event) =>
+                  selectBoard(event.target.value)
+                }
+              >
+                {boards.map((board) => (
+                  <option
+                    key={board.id}
+                    value={board.id}
+                  >
+                    {board.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div
+              className="grid grid-2"
+              style={{ marginTop: 14 }}
+            >
+              <label
+                style={{
+                  display: "grid",
+                  gap: 7,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Name
+                </span>
+                <input
+                  className="input"
+                  value={name}
+                  onChange={(event) =>
+                    setName(event.target.value)
+                  }
+                  maxLength={60}
+                />
+              </label>
+
+              <label
+                style={{
+                  display: "grid",
+                  gap: 7,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  Description
+                </span>
+                <input
+                  className="input"
+                  value={description}
+                  onChange={(event) =>
+                    setDescription(event.target.value)
+                  }
+                  maxLength={180}
+                />
+              </label>
+            </div>
+
+            <label
+              style={{
+                display: "grid",
+                gap: 7,
+                marginTop: 14,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Cover image URL
+              </span>
+              <input
+                className="input"
+                value={coverUrl}
+                onChange={(event) =>
+                  setCoverUrl(event.target.value)
+                }
+                placeholder="https://..."
+              />
+            </label>
+
+            {coverUrl && (
+              <div
+                className="board-cover"
+                style={{
+                  marginTop: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={coverUrl}
+                  alt="Board cover preview"
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                  onError={(event) => {
+                    event.currentTarget.style.display =
+                      "none";
+                  }}
+                />
+              </div>
+            )}
+
+            <div
+              style={{
+                marginTop: 18,
               }}
             >
               <div className="eyebrow">
-                Quick styles
+                Presets
               </div>
 
               <div
-                className="grid grid-2"
+                className="row"
                 style={{
-                  marginTop: 10,
+                  gap: 8,
+                  flexWrap: "wrap",
+                  marginTop: 8,
                 }}
               >
-                {Object.keys(
-                  PRESETS
-                ).map(
-                  (presetName) => (
-                    <button
-                      key={presetName}
-                      type="button"
-                      className="card"
-                      style={{
-                        textAlign:
-                          "left",
-                        padding: 12,
-                        cursor:
-                          "pointer",
-                      }}
-                      onClick={() =>
-                        applyPreset(
-                          presetName
-                        )
-                      }
-                    >
-                      <div
-                        style={{
-                          height: 54,
-                          borderRadius:
-                            PRESETS[
-                              presetName
-                            ]
-                              .radius,
-                          background:
-                            PRESETS[
-                              presetName
-                            ]
-                              .background,
-                          border: `${PRESETS[presetName].borderWidth}px solid ${PRESETS[presetName].border}`,
-                        }}
-                      />
-
-                      <strong
-                        style={{
-                          display:
-                            "block",
-                          marginTop: 8,
-                          textTransform:
-                            "capitalize",
-                        }}
-                      >
-                        {presetName}
-                      </strong>
-                    </button>
-                  )
-                )}
+                {PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    className="btn"
+                    onClick={() =>
+                      applyPreset(preset.style)
+                    }
+                  >
+                    <Palette size={14} />
+                    {preset.name}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* COLORS */}
             <div
               className="card"
               style={{
-                marginTop: 12,
+                marginTop: 16,
               }}
             >
               <div className="eyebrow">
@@ -489,409 +501,147 @@ export default function BoardStudio({
 
               <div
                 className="grid grid-2"
-                style={{
-                  marginTop: 10,
-                }}
+                style={{ marginTop: 12 }}
               >
-                {/* BACKGROUND */}
-                <label>
-                  <span className="subtitle">
-                    Background
-                  </span>
+                <ColorField
+                  label="Board background"
+                  value={draft.background}
+                  onChange={(value) =>
+                    setStyle("background", value)
+                  }
+                />
 
-                  <div
-                    className="row"
+                <ColorField
+                  label="Accent"
+                  value={draft.accent}
+                  onChange={(value) =>
+                    setStyle("accent", value)
+                  }
+                />
+
+                <ColorField
+                  label="Border color"
+                  value={draft.border}
+                  onChange={(value) =>
+                    setStyle("border", value)
+                  }
+                />
+              </div>
+            </div>
+
+            <div
+              className="card"
+              style={{ marginTop: 12 }}
+            >
+              <div className="eyebrow">
+                Borders & cards
+              </div>
+
+              <div
+                className="grid grid-2"
+                style={{ marginTop: 12 }}
+              >
+                <label>
+                  <span
                     style={{
-                      marginTop: 6,
-                      gap: 8,
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 700,
                     }}
                   >
-                    <input
-                      type="color"
-                      value={
-                        draft.background
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "background",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      style={{
-                        width: 48,
-                        height: 38,
-                        padding: 2,
-                        border: 0,
-                        background:
-                          "transparent",
-                        cursor:
-                          "pointer",
-                      }}
-                    />
-
-                    <input
-                      className="input"
-                      value={
-                        draft.background
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "background",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                    />
-                  </div>
-                </label>
-
-                {/* ACCENT */}
-                <label>
-                  <span className="subtitle">
-                    Accent
+                    Border width
                   </span>
-
-                  <div
-                    className="row"
-                    style={{
-                      marginTop: 6,
-                      gap: 8,
-                    }}
-                  >
-                    <input
-                      type="color"
-                      value={
-                        draft.accent
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "accent",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      style={{
-                        width: 48,
-                        height: 38,
-                        padding: 2,
-                        border: 0,
-                        background:
-                          "transparent",
-                        cursor:
-                          "pointer",
-                      }}
-                    />
-
-                    <input
-                      className="input"
-                      value={
-                        draft.accent
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "accent",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                    />
-                  </div>
-                </label>
-
-                {/* BORDER */}
-                <label>
-                  <span className="subtitle">
-                    Border
-                  </span>
-
-                  <div
-                    className="row"
-                    style={{
-                      marginTop: 6,
-                      gap: 8,
-                    }}
-                  >
-                    <input
-                      type="color"
-                      value={
-                        draft.border
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "border",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                      style={{
-                        width: 48,
-                        height: 38,
-                        padding: 2,
-                        border: 0,
-                        background:
-                          "transparent",
-                        cursor:
-                          "pointer",
-                      }}
-                    />
-
-                    <input
-                      className="input"
-                      value={
-                        draft.border
-                      }
-                      onChange={(
-                        event
-                      ) =>
-                        updateStyle(
-                          "border",
-                          event
-                            .target
-                            .value
-                        )
-                      }
-                    />
-                  </div>
-                </label>
-
-                {/* BORDER WIDTH */}
-                <label>
-                  <span className="subtitle">
-                    Border thickness
-                  </span>
-
                   <input
                     type="range"
                     min="0"
                     max="5"
                     step="1"
-                    value={
-                      draft.borderWidth
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateStyle(
+                    value={draft.borderWidth}
+                    onChange={(event) =>
+                      setStyle(
                         "borderWidth",
-                        Number(
-                          event.target.value
-                        )
+                        Number(event.target.value)
                       )
                     }
                     style={{
                       width: "100%",
-                      marginTop: 14,
+                      marginTop: 10,
                     }}
                   />
-
-                  <div className="subtitle">
+                  <small className="subtitle">
                     {draft.borderWidth}px
-                  </div>
+                  </small>
                 </label>
-              </div>
-            </div>
 
-            {/* SHAPE */}
-            <div
-              className="card"
-              style={{
-                marginTop: 12,
-              }}
-            >
-              <div className="eyebrow">
-                Shape & style
-              </div>
-
-              <div
-                style={{
-                  marginTop: 12,
-                }}
-              >
-                <div className="subtitle">
-                  Corner radius
-                </div>
-
-                <input
-                  type="range"
-                  min="0"
-                  max="40"
-                  step="1"
-                  value={
-                    draft.radius
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateStyle(
-                      "radius",
-                      Number(
-                        event.target.value
+                <label>
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Corner radius
+                  </span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="36"
+                    step="2"
+                    value={draft.radius}
+                    onChange={(event) =>
+                      setStyle(
+                        "radius",
+                        Number(event.target.value)
                       )
-                    )
-                  }
-                  style={{
-                    width: "100%",
-                    marginTop: 8,
-                  }}
-                />
-
-                <div className="subtitle">
-                  {draft.radius}px
-                </div>
-              </div>
-
-              <div
-                style={{
-                  marginTop: 16,
-                }}
-              >
-                <div className="subtitle">
-                  Card style
-                </div>
-
-                <div
-                  className="row"
-                  style={{
-                    gap: 8,
-                    marginTop: 8,
-                    flexWrap:
-                      "wrap",
-                  }}
-                >
-                  {[
-                    "soft",
-                    "glass",
-                    "polaroid",
-                    "minimal",
-                  ].map(
-                    (styleName) => (
-                      <button
-                        key={
-                          styleName
-                        }
-                        type="button"
-                        className={
-                          draft.cardStyle ===
-                          styleName
-                            ? "btn btn-primary"
-                            : "btn"
-                        }
-                        onClick={() =>
-                          updateStyle(
-                            "cardStyle",
-                            styleName
-                          )
-                        }
-                        style={{
-                          textTransform:
-                            "capitalize",
-                        }}
-                      >
-                        {styleName}
-                      </button>
-                    )
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* COVER */}
-            <div
-              className="card"
-              style={{
-                marginTop: 12,
-              }}
-            >
-              <div className="eyebrow">
-                Cover
+                    }
+                    style={{
+                      width: "100%",
+                      marginTop: 10,
+                    }}
+                  />
+                  <small className="subtitle">
+                    {draft.radius}px
+                  </small>
+                </label>
               </div>
 
               <div
                 className="row"
                 style={{
-                  gap: 10,
-                  marginTop: 8,
+                  gap: 8,
+                  marginTop: 14,
+                  flexWrap: "wrap",
                 }}
               >
-                <Image
-                  size={18}
-                  className="muted"
-                />
-
-                <input
-                  className="input"
-                  style={{
-                    flex: 1,
-                  }}
-                  placeholder="Paste a cover image URL"
-                  value={
-                    draft.coverUrl
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    updateStyle(
-                      "coverUrl",
-                      event.target
-                        .value
-                    )
-                  }
-                />
-              </div>
-
-              {draft.coverUrl && (
-                <div
-                  className="board-cover"
-                  style={{
-                    marginTop: 12,
-                    overflow:
-                      "hidden",
-                  }}
-                >
-                  <img
-                    src={
-                      draft.coverUrl
+                {[
+                  ["minimal", "Minimal"],
+                  ["soft", "Soft"],
+                  ["glass", "Glass"],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="btn"
+                    onClick={() =>
+                      setStyle("cardStyle", value)
                     }
-                    alt=""
                     style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit:
-                        "cover",
+                      borderColor:
+                        draft.cardStyle === value
+                          ? draft.accent
+                          : undefined,
                     }}
-                    onError={(
-                      event
-                    ) => {
-                      event.currentTarget.style.display =
-                        "none";
-                    }}
-                  />
-                </div>
-              )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* LAYOUT */}
             <div
               className="card"
-              style={{
-                marginTop: 12,
-              }}
+              style={{ marginTop: 12 }}
             >
               <div className="eyebrow">
                 Layout
@@ -899,34 +649,29 @@ export default function BoardStudio({
 
               <div
                 className="grid grid-2"
-                style={{
-                  marginTop: 12,
-                  gap: 14,
-                }}
+                style={{ marginTop: 12 }}
               >
                 <label>
-                  <span className="subtitle">
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
                     Columns
                   </span>
-
                   <select
                     className="input"
                     style={{
                       width: "100%",
-                      marginTop: 6,
+                      marginTop: 7,
                     }}
-                    value={
-                      draft.columns
-                    }
-                    onChange={(
-                      event
-                    ) =>
-                      updateStyle(
+                    value={draft.columns}
+                    onChange={(event) =>
+                      setStyle(
                         "columns",
-                        Number(
-                          event.target
-                            .value
-                        )
+                        Number(event.target.value)
                       )
                     }
                   >
@@ -943,334 +688,91 @@ export default function BoardStudio({
                 </label>
 
                 <div>
-                  <span className="subtitle">
-                    Details
+                  <span
+                    style={{
+                      display: "block",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Show details
                   </span>
 
-                  <button
-                    type="button"
-                    className="card"
+                  <label
+                    className="row"
                     style={{
-                      width: "100%",
-                      marginTop: 6,
-                      textAlign:
-                        "left",
-                      cursor:
-                        "pointer",
-                    }}
-                    onClick={() =>
-                      updateStyle(
-                        "showItemCount",
-                        !draft.showItemCount
-                      )
-                    }
-                  >
-                    <div className="row">
-                      <Check
-                        size={16}
-                        style={{
-                          opacity:
-                            draft.showItemCount
-                              ? 1
-                              : 0.2,
-                        }}
-                      />
-
-                      <span>
-                        Show item counts
-                      </span>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="card"
-                    style={{
-                      width: "100%",
-                      marginTop: 6,
-                      textAlign:
-                        "left",
-                      cursor:
-                        "pointer",
-                    }}
-                    onClick={() =>
-                      updateStyle(
-                        "showDescription",
-                        !draft.showDescription
-                      )
-                    }
-                  >
-                    <div className="row">
-                      <Check
-                        size={16}
-                        style={{
-                          opacity:
-                            draft.showDescription
-                              ? 1
-                              : 0.2,
-                        }}
-                      />
-
-                      <span>
-                        Show descriptions
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* PIN */}
-            <div
-              className="card"
-              style={{
-                marginTop: 12,
-              }}
-            >
-              <button
-                type="button"
-                style={{
-                  width: "100%",
-                  background:
-                    "transparent",
-                  border: 0,
-                  color: "inherit",
-                  textAlign:
-                    "left",
-                  padding: 0,
-                  cursor:
-                    "pointer",
-                }}
-                onClick={async () => {
-                  try {
-                    const updated =
-                      await updateBoard(
-                        selectedBoard.id,
-                        {
-                          pinned:
-                            !selectedBoard.pinned,
-                        }
-                      );
-
-                    onBoardSaved?.(
-                      updated
-                    );
-
-                    onToast?.(
-                      updated.pinned
-                        ? "Board pinned"
-                        : "Board unpinned"
-                    );
-                  } catch (error) {
-                    console.error(
-                      error
-                    );
-
-                    onToast?.(
-                      error.message ||
-                        "Could not update Board."
-                    );
-                  }
-                }}
-              >
-                <div className="row">
-                  <Pin
-                    size={18}
-                    style={{
-                      opacity:
-                        selectedBoard.pinned
-                          ? 1
-                          : 0.35,
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      flex: 1,
-                      marginLeft: 8,
+                      gap: 8,
+                      marginTop: 10,
                     }}
                   >
-                    <strong>
-                      {selectedBoard.pinned
-                        ? "Pinned to profile"
-                        : "Not pinned"}
-                    </strong>
-
-                    <p className="subtitle">
-                      {selectedBoard.pinned
-                        ? "This Board can appear in your profile preview."
-                        : "Pin this Board to show it on your profile."}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
-
-            {/* PREVIEW */}
-            <div
-              className="card"
-              style={{
-                marginTop: 12,
-                background:
-                  draft.background,
-                border: `${draft.borderWidth}px solid ${draft.border}`,
-                borderRadius:
-                  draft.radius,
-              }}
-            >
-              <div className="eyebrow">
-                Live preview
-              </div>
-
-              <div
-                style={{
-                  marginTop: 10,
-                  padding: 16,
-                  borderRadius:
-                    Math.max(
-                      0,
-                      draft.radius - 8
-                    ),
-                  background:
-                    draft.cardStyle ===
-                    "polaroid"
-                      ? "#ffffff"
-                      : draft.cardStyle ===
-                        "glass"
-                      ? "rgba(255,255,255,0.08)"
-                      : draft.cardStyle ===
-                        "minimal"
-                      ? "transparent"
-                      : "rgba(255,255,255,0.04)",
-                  border: `1px solid ${draft.border}`,
-                }}
-              >
-                {draft.coverUrl && (
-                  <div
-                    style={{
-                      height: 90,
-                      marginBottom: 12,
-                      borderRadius:
-                        Math.max(
-                          0,
-                          draft.radius - 10
-                        ),
-                      overflow:
-                        "hidden",
-                    }}
-                  >
-                    <img
-                      src={
-                        draft.coverUrl
-                      }
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit:
-                          "cover",
-                      }}
-                    />
-                  </div>
-                )}
-
-                <div
-                  className="row"
-                  style={{
-                    justifyContent:
-                      "space-between",
-                  }}
-                >
-                  <div>
-                    <strong
-                      style={{
-                        color:
-                          draft.accent,
-                      }}
-                    >
-                      {
-                        selectedBoard.name
-                      }
-                    </strong>
-
-                    {draft.showDescription &&
-                      selectedBoard.description && (
-                        <p
-                          className="subtitle"
-                          style={{
-                            marginTop: 4,
-                          }}
-                        >
-                          {
-                            selectedBoard.description
-                          }
-                        </p>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(
+                        draft.showItemCount
                       )}
-                  </div>
+                      onChange={(event) =>
+                        setStyle(
+                          "showItemCount",
+                          event.target.checked
+                        )
+                      }
+                    />
+                    Item counts
+                  </label>
 
-                  {draft.showItemCount && (
-                    <span className="tag">
-                      0 items
-                    </span>
-                  )}
+                  <label
+                    className="row"
+                    style={{
+                      gap: 8,
+                      marginTop: 8,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={Boolean(
+                        draft.showDescription
+                      )}
+                      onChange={(event) =>
+                        setStyle(
+                          "showDescription",
+                          event.target.checked
+                        )
+                      }
+                    />
+                    Descriptions
+                  </label>
                 </div>
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div
               className="row"
               style={{
-                justifyContent:
-                  "space-between",
-                marginTop: 18,
+                justifyContent: "flex-end",
                 gap: 8,
+                marginTop: 18,
               }}
             >
               <button
                 type="button"
                 className="btn"
-                onClick={
-                  resetStyle
-                }
+                onClick={onClose}
               >
-                <RotateCcw
-                  size={15}
-                />
-                Reset
+                Cancel
               </button>
 
-              <div
-                className="row"
-                style={{
-                  gap: 8,
-                }}
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
               >
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={onClose}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={saving}
-                  onClick={
-                    handleSave
-                  }
-                >
-                  <Save size={15} />
-
-                  {saving
-                    ? "Saving..."
-                    : "Save changes"}
-                </button>
-              </div>
+                <Save size={15} />
+                {saving
+                  ? "Saving..."
+                  : "Save changes"}
+              </button>
             </div>
-          </>
+          </form>
         )}
       </div>
     </div>
