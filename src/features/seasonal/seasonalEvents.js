@@ -2,8 +2,8 @@ export const SEASONAL_EVENTS = {
   christmas: {
     id: "christmas",
     label: "Christmas",
-    startMonth: 12,
-    startDay: 1,
+    startMonth: 11,
+    startDay: 25,
     endMonth: 12,
     endDay: 26,
     intensity: "full",
