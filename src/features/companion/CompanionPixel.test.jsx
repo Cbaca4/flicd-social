@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import Companion from "./Companion.jsx";
 import CompanionSettings from "./CompanionSettings.jsx";
 
@@ -87,7 +87,7 @@ describe("Pixel companion redesign", () => {
     }
   });
 
-  it("starts in an idle pause before autonomous walking begins", () => {
+  it("starts in an idle pause before autonomous walking begins", async () => {
     vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
@@ -97,14 +97,18 @@ describe("Pixel companion redesign", () => {
 
     expect(walker).toHaveAttribute("data-motion-state", "idle");
 
-    vi.advanceTimersByTime(2999);
+    await act(async () => {
+      vi.advanceTimersByTime(2999);
+    });
     expect(walker).toHaveAttribute("data-motion-state", "idle");
 
-    vi.advanceTimersByTime(1);
+    await act(async () => {
+      vi.advanceTimersByTime(1);
+    });
     expect(walker).toHaveAttribute("data-motion-state", "walking");
   });
 
-  it("uses a bounded position and deliberately slow travel duration", () => {
+  it("uses a bounded position and deliberately slow travel duration", async () => {
     vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
@@ -112,7 +116,9 @@ describe("Pixel companion redesign", () => {
       .getByTestId("companion-zone")
       .querySelector(".companion-walker");
 
-    vi.advanceTimersByTime(3000);
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
 
     const position = Number.parseFloat(
       walker.style.getPropertyValue("--companion-position"),
@@ -127,7 +133,7 @@ describe("Pixel companion redesign", () => {
     expect(duration).toBeGreaterThanOrEqual(11000);
   });
 
-  it("returns to an idle pause after each slow patrol leg", () => {
+  it("returns to an idle pause after each slow patrol leg", async () => {
     vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
@@ -135,14 +141,18 @@ describe("Pixel companion redesign", () => {
       .getByTestId("companion-zone")
       .querySelector(".companion-walker");
 
-    vi.advanceTimersByTime(3000);
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
 
     const duration = Number.parseInt(
       walker.style.getPropertyValue("--companion-travel-duration"),
       10,
     );
 
-    vi.advanceTimersByTime(duration);
+    await act(async () => {
+      vi.advanceTimersByTime(duration);
+    });
 
     expect(walker).toHaveAttribute("data-motion-state", "idle");
   });
