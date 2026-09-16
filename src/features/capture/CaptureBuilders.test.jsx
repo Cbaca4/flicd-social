@@ -2,7 +2,7 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DumpBuilder, RollBuilder } from "./CaptureBuilders.jsx";
 
@@ -62,9 +62,10 @@ describe("RollBuilder publishing", () => {
       }));
 
       const { container } = render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
+      const rollScreen = within(container);
 
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
+        fireEvent.click(rollScreen.getByRole("button", { name: "Start roll" }));
       });
 
       const captureInput = container.querySelector('input[type="file"][capture="environment"]');
@@ -76,24 +77,24 @@ describe("RollBuilder publishing", () => {
         });
       }
 
-      expect(screen.getByRole("button", { name: "Develop roll" })).toBeEnabled();
+      expect(rollScreen.getByRole("button", { name: "Develop roll" })).toBeEnabled();
 
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
+        fireEvent.click(rollScreen.getByRole("button", { name: "Develop roll" }));
       });
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(500);
       });
 
-      expect(screen.getByText("Ready to post")).toBeInTheDocument();
+      expect(rollScreen.getByText("Ready to post")).toBeInTheDocument();
 
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
+        fireEvent.click(rollScreen.getByRole("button", { name: "Post roll" }));
       });
 
-      expect(screen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      expect(rollScreen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
+      expect(rollScreen.getByRole("button", { name: "Cancel" })).toBeDisabled();
       expect(onPost).toHaveBeenCalledTimes(1);
 
       resolvePost();
