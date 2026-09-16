@@ -1,11 +1,85 @@
 html, body, #root { min-height: 100%; }
 body { overflow-x: hidden; }
 
+@media (max-width: 900px) {
+  .profile-heading,
+  .profile-title-row {
+    min-width: 0;
+  }
+
+  .profile-heading {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 14px;
+  }
+
+  .profile-identity {
+    min-width: 0;
+  }
+
+  .profile-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .profile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    flex: 0 1 auto;
+  }
+
+  .profile-bio {
+    margin-top: 10px;
+    color: var(--text);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-message,
+  .profile-status {
+    overflow-wrap: anywhere;
+  }
+
+  .studio,
+  .studio > *,
+  .studio .card,
+  .studio .input,
+  .studio textarea,
+  .studio select {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .studio {
+    align-items: start;
+  }
+
+  .studio > .card {
+    overflow: visible;
+  }
+}
+
 @media (max-width: 620px) {
   .flicd-app { width: 100%; min-height: 100dvh; padding: 0; }
   .app-frame { width: 100%; min-height: 100dvh; }
   .app-content { width: 100%; min-height: 100dvh; overflow: hidden; }
-  .screen { width: 100%; max-width: 100%; box-sizing: border-box; overflow-x: hidden; padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+  .screen {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: calc(150px + env(safe-area-inset-bottom));
+    padding-bottom: calc(150px + env(safe-area-inset-bottom));
+  }
   .topbar { gap: 12px; align-items: flex-start; }
   .topbar > * { min-width: 0; }
   .topbar .title { overflow-wrap: anywhere; }
@@ -14,6 +88,62 @@ body { overflow-x: hidden; }
   .card { min-width: 0; max-width: 100%; box-sizing: border-box; }
   .btn { max-width: 100%; white-space: normal; }
   .input, textarea, select { max-width: 100%; box-sizing: border-box; }
+
+  .profile-hero {
+    padding: 18px;
+  }
+
+  .profile-heading {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .profile-heading > .avatar {
+    margin-bottom: 2px;
+  }
+
+  .profile-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .profile-actions {
+    width: auto;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .profile-actions .btn:first-child {
+    flex: 0 1 auto;
+  }
+
+  .profile-actions .icon-btn {
+    flex: 0 0 42px;
+  }
+
+  .profile-bio {
+    margin-top: 12px;
+    font-size: 14px;
+  }
+
+  .profile-layout {
+    min-width: 0;
+  }
+
+  .studio {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .studio .wrap {
+    min-width: 0;
+  }
+
+  .studio .wrap .btn {
+    flex: 1 1 160px;
+  }
 
   .bottom-dock {
     position: fixed !important;
