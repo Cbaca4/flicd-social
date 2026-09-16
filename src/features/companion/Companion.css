@@ -17,10 +17,10 @@
 
 .companion-zone {
   position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: calc(90px + env(safe-area-inset-bottom));
-  height: 82px;
+  left: 14px;
+  right: 14px;
+  bottom: calc(91px + env(safe-area-inset-bottom));
+  height: 88px;
   z-index: 45;
   overflow: hidden;
   contain: layout paint;
@@ -29,33 +29,34 @@
 
 .companion-path {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  bottom: 7px;
-  height: 2px;
+  left: 5%;
+  right: 5%;
+  bottom: 1px;
+  height: 3px;
   border-radius: 99px;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.16),
     transparent
   );
+  box-shadow: 0 0 7px rgba(255, 255, 255, 0.06);
 }
 
 .companion-walker {
   --companion-width: 96px;
   position: absolute;
-  bottom: 2px;
+  bottom: 1px;
   left: clamp(
-    4%,
+    2%,
     var(--companion-position, 18%),
-    calc(100% - var(--companion-width) - 4%)
+    calc(100% - var(--companion-width) - 2%)
   );
   width: var(--companion-width);
-  height: 76px;
+  height: 78px;
   display: grid;
   place-items: end center;
-  filter: drop-shadow(0 8px 13px rgba(0, 0, 0, 0.28));
+  filter: drop-shadow(0 8px 13px rgba(0, 0, 0, 0.26));
   pointer-events: none;
   transition: left var(--companion-travel-duration, 0ms) linear;
   will-change: left;
@@ -64,7 +65,7 @@
 .companion-character {
   position: relative;
   width: var(--companion-width);
-  height: 76px;
+  height: 78px;
   border: 0;
   padding: 0;
   background: transparent;
@@ -74,7 +75,6 @@
   cursor: pointer;
   transform: scaleX(var(--capy-facing, 1)) scale(var(--companion-scale, 1));
   transform-origin: center bottom;
-  transition: transform 120ms steps(1, end);
 }
 
 .companion-character:focus-visible {
@@ -90,30 +90,28 @@
   image-rendering: pixelated;
   background-image: url("/companion/companion-sprite.svg");
   background-repeat: no-repeat;
-  background-size: 768px 360px;
+  background-size: 1152px 360px;
   background-position: 0 calc(var(--sprite-row, 0) * -72px);
 }
 
 .companion-walk.companion-motion-walking .capybara-pixel-sprite {
-  animation:
-    capySpriteWalk 0.96s steps(6, start) infinite,
-    capyWalkBob 0.96s ease-in-out infinite;
+  animation: capySpriteWalk 800ms step-end infinite;
 }
 
 .companion-walk.companion-motion-idle .capybara-pixel-sprite {
-  animation: capyIdle 2.4s ease-in-out infinite;
+  animation: capyIdle 2.2s ease-in-out infinite;
 }
 
 .companion-sit .capybara-pixel-sprite {
-  animation: capySpriteSit 1.15s steps(2, start) infinite;
+  animation: capySpriteSit 850ms step-end infinite;
 }
 
 .companion-rest-marker {
   position: absolute;
   left: 50%;
-  bottom: 5px;
-  width: 46px;
-  height: 5px;
+  bottom: 2px;
+  width: 54px;
+  height: 3px;
   transform: translateX(-50%);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.08);
@@ -127,7 +125,7 @@
     var(--companion-bubble-position, 50%),
     calc(100% - var(--reaction-inset))
   );
-  bottom: 55px;
+  bottom: 62px;
   z-index: 4;
   padding: 3px 5px;
   font-size: 15px;
@@ -217,14 +215,14 @@
 
 .companion-preview-sprite {
   width: 58px;
-  height: 50px;
+  height: 44px;
   display: block;
   image-rendering: pixelated;
   background-image: url("/companion/companion-sprite.svg");
   background-repeat: no-repeat;
-  background-size: 533px 250px;
-  background-position: 0 calc(var(--sprite-row, 0) * -50px);
-  transform: scale(0.82);
+  background-size: 697px 218px;
+  background-position: 0 calc(var(--sprite-row, 0) * -43.5px);
+  transform: none;
   transform-origin: center;
 }
 
@@ -234,21 +232,16 @@
 
 @keyframes capySpriteWalk {
   0% { background-position-x: 0; }
-  16.666% { background-position-x: -96px; }
-  33.333% { background-position-x: -192px; }
-  50% { background-position-x: -288px; }
-  66.666% { background-position-x: -384px; }
-  83.333% { background-position-x: -480px; }
-  100% { background-position-x: -576px; }
-}
-
-@keyframes capyWalkBob {
-  0%, 100% { transform: translateY(0); }
-  16.666% { transform: translateY(1px); }
-  33.333% { transform: translateY(0); }
-  50% { transform: translateY(2px); }
-  66.666% { transform: translateY(0); }
-  83.333% { transform: translateY(1px); }
+  10% { background-position-x: -96px; }
+  20% { background-position-x: -192px; }
+  30% { background-position-x: -288px; }
+  40% { background-position-x: -384px; }
+  50% { background-position-x: -480px; }
+  60% { background-position-x: -576px; }
+  70% { background-position-x: -672px; }
+  80% { background-position-x: -768px; }
+  90% { background-position-x: -864px; }
+  100% { background-position-x: 0; }
 }
 
 @keyframes capyIdle {
@@ -257,8 +250,9 @@
 }
 
 @keyframes capySpriteSit {
-  from { background-position-x: -576px; }
-  to { background-position-x: -768px; }
+  0% { background-position-x: -960px; }
+  50% { background-position-x: -1056px; }
+  100% { background-position-x: -960px; }
 }
 
 @keyframes companionReaction {
@@ -283,7 +277,7 @@
     left: 12px;
     right: 12px;
     bottom: calc(78px + env(safe-area-inset-bottom));
-    height: 76px;
+    height: 84px;
   }
 }
 
@@ -295,23 +289,18 @@
   }
 
   .companion-zone {
-    height: 72px;
+    height: 78px;
     bottom: calc(72px + env(safe-area-inset-bottom));
   }
 
   .companion-walker {
-    --companion-width: 82px;
-    height: 68px;
+    --companion-width: 86px;
+    height: 74px;
   }
 
   .companion-character {
-    height: 68px;
-    --companion-scale: 0.9;
-  }
-
-  .capybara-pixel-sprite {
-    transform: scale(0.854);
-    transform-origin: center bottom;
+    height: 74px;
+    --companion-scale: 0.88;
   }
 
   .companion-reaction {
