@@ -63,13 +63,20 @@ describe("RollBuilder publishing", () => {
 
       const { container } = render(<RollBuilder activeSpaceId="main" onCancel={() => {}} onPost={onPost} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Start roll" }));
+      });
+
       const captureInput = container.querySelector('input[type="file"][capture="environment"]');
       expect(captureInput).toBeInTheDocument();
 
       for (let index = 0; index < 8; index += 1) {
-        fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
+        await act(async () => {
+          fireEvent.change(captureInput, { target: { files: [makeFile(`frame-${index + 1}.jpg`)] } });
+        });
       }
+
+      expect(screen.getByText("8/8")).toBeInTheDocument();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
@@ -81,7 +88,9 @@ describe("RollBuilder publishing", () => {
 
       expect(screen.getByText("Ready to post")).toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
+      });
 
       expect(screen.getByRole("button", { name: "Uploading…" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
