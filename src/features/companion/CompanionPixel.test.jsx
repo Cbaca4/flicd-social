@@ -195,7 +195,7 @@ describe("Retro 16-bit companion redesign", () => {
     expect(walker).not.toHaveClass("companion-motion-walking");
   });
 
-  it("responds with a reaction or short phrase and does not render a reaction box", async () => {
+  it("responds with a reaction or short phrase and uses a containerless live status", async () => {
     vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
@@ -209,9 +209,7 @@ describe("Retro 16-bit companion redesign", () => {
       name: /Companion reaction:/i,
     });
 
-    expect(reaction).not.toHaveStyle({
-      background: expect.anything(),
-    });
+    expect(reaction).toHaveClass("companion-reaction");
     expect(reaction.textContent.length).toBeGreaterThan(0);
 
     await act(async () => {
@@ -245,9 +243,9 @@ describe("Retro 16-bit companion redesign", () => {
       name: /Companion reaction:/i,
     });
 
-    expect(["🎃", "👻", "🦇", "🍬", "spooky!", "trick or treat!", "boo!"]).toContain(
-      reaction.textContent,
-    );
+    expect(
+      ["🎃", "👻", "🦇", "🍬", "spooky!", "trick or treat!", "boo!"],
+    ).toContain(reaction.textContent);
   });
 
   it("does not render the removed talk feature", () => {
