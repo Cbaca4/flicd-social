@@ -69,7 +69,7 @@ function PixelCapybara({ costume }) {
       data-testid="capybara-pixel-sprite"
       data-sprite-style="retro-16bit"
       data-leg-detail="visible"
-      data-walk-frames="8"
+      data-walk-frames="6"
       style={{
         "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
       }}
