@@ -66,7 +66,16 @@ export function loadCompanionSettings(userId) {
       return normalizeCompanionSettings();
     }
 
-    return normalizeCompanionSettings(JSON.parse(stored));
+    const normalized = normalizeCompanionSettings(JSON.parse(stored));
+    const serialized = JSON.stringify(normalized);
+
+    // When a seasonal exclusive expires, immediately scrub it from storage so
+    // it cannot remain equipped or reappear after the holiday window closes.
+    if (serialized !== stored) {
+      localStorage.setItem(getSettingsKey(userId), serialized);
+    }
+
+    return normalized;
   } catch {
     return normalizeCompanionSettings();
   }
@@ -75,8 +84,10 @@ export function loadCompanionSettings(userId) {
 export function saveCompanionSettings(userId, settings) {
   if (!userId || typeof localStorage === "undefined") return;
 
+  const normalized = normalizeCompanionSettings(settings);
+
   localStorage.setItem(
     getSettingsKey(userId),
-    JSON.stringify(normalizeCompanionSettings(settings)),
+    JSON.stringify(normalized),
   );
 }
