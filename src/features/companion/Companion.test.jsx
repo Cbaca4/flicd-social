@@ -60,7 +60,7 @@ describe("Companion", () => {
       }),
     ).toBeInTheDocument();
 
-    expect(screen.getByText("🎅")).toBeInTheDocument();
+    expect(screen.getByTestId("capybara-pixel-sprite")).toHaveStyle({ "--sprite-row": "1" });
   });
 
   it("shows talk bubbles in talk mode", () => {

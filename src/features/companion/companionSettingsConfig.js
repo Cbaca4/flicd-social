@@ -1,8 +1,9 @@
 export const COMPANION_COSTUMES = Object.freeze([
-  { value: "none", label: "Everyday", emoji: "🦫" },
-  { value: "santa", label: "Santa", emoji: "🎅" },
-  { value: "witch", label: "Witch", emoji: "🧙" },
-  { value: "heart", label: "Sweetheart", emoji: "💗" },
+  { value: "none", label: "Everyday" },
+  { value: "santa", label: "Santa" },
+  { value: "ghost", label: "Ghost" },
+  { value: "witch", label: "Witch" },
+  { value: "valentine", label: "Valentine" },
 ]);
 
 export const COMPANION_ANIMATIONS = Object.freeze([

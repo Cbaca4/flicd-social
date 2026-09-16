@@ -6,6 +6,14 @@ import {
   normalizeCompanionSettings,
 } from "./companionSettingsConfig.js";
 
+const SPRITE_ROWS = {
+  none: 0,
+  santa: 1,
+  ghost: 2,
+  witch: 3,
+  valentine: 4,
+};
+
 export default function CompanionSettings({ value, onChange }) {
   const settings = normalizeCompanionSettings(value);
 
@@ -38,11 +46,9 @@ export default function CompanionSettings({ value, onChange }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="eyebrow">Coming Soon · Companion</div>
-
           <h2 id="companion-settings-title" style={{ marginTop: 5 }}>
             Your little capybara
           </h2>
-
           <p className="subtitle" style={{ marginTop: 5 }}>
             Keep him in his own little spot above the dock. Turn him off
             anytime or customize his look and behavior here.
@@ -53,7 +59,6 @@ export default function CompanionSettings({ value, onChange }) {
       <label className="setting-toggle-row">
         <span>
           <strong>Show Companion</strong>
-
           <span
             className="subtitle"
             style={{ display: "block", marginTop: 3 }}
@@ -89,7 +94,6 @@ export default function CompanionSettings({ value, onChange }) {
 
         <label className="setting-field">
           <span className="eyebrow">Name</span>
-
           <input
             className="input"
             value={settings.name}
@@ -103,7 +107,6 @@ export default function CompanionSettings({ value, onChange }) {
 
         <label className="setting-field">
           <span className="eyebrow">Costume</span>
-
           <select
             className="input"
             value={settings.costume}
@@ -114,7 +117,7 @@ export default function CompanionSettings({ value, onChange }) {
           >
             {COMPANION_COSTUMES.map((costume) => (
               <option key={costume.value} value={costume.value}>
-                {costume.emoji} {costume.label}
+                {costume.label}
               </option>
             ))}
           </select>
@@ -122,7 +125,6 @@ export default function CompanionSettings({ value, onChange }) {
 
         <label className="setting-field">
           <span className="eyebrow">Default animation</span>
-
           <select
             className="input"
             value={settings.animation}
@@ -176,15 +178,17 @@ export default function CompanionSettings({ value, onChange }) {
         </div>
 
         <div className="companion-preview" aria-label="Companion preview">
-          <div className="companion-preview-cap">
-            {COMPANION_COSTUMES.find(
-              (item) => item.value === settings.costume,
-            )?.emoji || "🦫"}
-          </div>
+          <span
+            className="companion-preview-sprite"
+            data-testid="companion-preview-sprite"
+            style={{
+              "--sprite-row": SPRITE_ROWS[settings.costume] ?? 0,
+            }}
+            aria-hidden="true"
+          />
 
           <div>
             <strong>{settings.name}</strong>
-
             <p className="subtitle" style={{ marginTop: 2 }}>
               {settings.animation} mode ·{" "}
               {settings.bubbles ? "bubbles on" : "bubbles off"}

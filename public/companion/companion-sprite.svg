@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="768" height="360" viewBox="0 0 768 360">
+  <defs>
+    <!-- Base pixel capy: 96x72 frame -->
+    <g id="base">
+      <!-- shadow -->
+      <rect x="20" y="62" width="56" height="4" fill="#3a2418" opacity=".22"/>
+
+      <!-- ears -->
+      <rect x="22" y="13" width="10" height="9" fill="#68402b"/>
+      <rect x="23" y="11" width="7" height="4" fill="#915a39"/>
+      <rect x="64" y="13" width="10" height="9" fill="#68402b"/>
+      <rect x="66" y="11" width="7" height="4" fill="#915a39"/>
+
+      <!-- body -->
+      <rect x="14" y="22" width="61" height="34" fill="#8f5939"/>
+      <rect x="19" y="17" width="49" height="42" fill="#9e6642"/>
+      <rect x="25" y="13" width="34" height="46" fill="#9e6642"/>
+
+      <!-- back shading -->
+      <rect x="20" y="50" width="49" height="8" fill="#7e4b31"/>
+      <rect x="15" y="30" width="6" height="19" fill="#7e4b31"/>
+
+      <!-- face -->
+      <rect x="26" y="25" width="5" height="6" fill="#21150f"/>
+      <rect x="53" y="25" width="5" height="6" fill="#21150f"/>
+      <rect x="59" y="34" width="13" height="12" fill="#b6784e"/>
+      <rect x="67" y="35" width="7" height="5" fill="#21150f"/>
+      <rect x="62" y="43" width="8" height="3" fill="#6a3e29"/>
+
+      <!-- feet -->
+      <rect x="20" y="54" width="15" height="10" fill="#5f3826"/>
+      <rect x="55" y="54" width="15" height="10" fill="#5f3826"/>
+      <rect x="22" y="61" width="12" height="4" fill="#47291d"/>
+      <rect x="57" y="61" width="12" height="4" fill="#47291d"/>
+
+      <!-- highlight -->
+      <rect x="29" y="19" width="16" height="4" fill="#c98b5d" opacity=".7"/>
+    </g>
+
+    <!-- walk frame leg variations -->
+    <g id="walk0"><use href="#base"/></g>
+
+    <g id="walk1">
+      <use href="#base"/>
+      <rect x="17" y="58" width="11" height="6" fill="#5f3826"/>
+      <rect x="62" y="56" width="11" height="6" fill="#5f3826"/>
+    </g>
+
+    <g id="walk2">
+      <use href="#base"/>
+      <rect x="23" y="57" width="11" height="7" fill="#5f3826"/>
+      <rect x="57" y="57" width="11" height="7" fill="#5f3826"/>
+    </g>
+
+    <g id="walk3">
+      <use href="#base"/>
+      <rect x="18" y="56" width="11" height="7" fill="#5f3826"/>
+      <rect x="61" y="59" width="11" height="5" fill="#5f3826"/>
+    </g>
+
+    <g id="sit0">
+      <use href="#base" transform="translate(0,4)"/>
+      <rect x="27" y="56" width="39" height="9" fill="#603927"/>
+    </g>
+
+    <g id="sit1">
+      <use href="#base" transform="translate(0,5)"/>
+      <rect x="25" y="56" width="43" height="10" fill="#603927"/>
+    </g>
+
+    <g id="talk0">
+      <use href="#base"/>
+      <rect x="67" y="43" width="5" height="5" fill="#3a2117"/>
+    </g>
+
+    <g id="talk1">
+      <use href="#base"/>
+      <rect x="65" y="44" width="8" height="2" fill="#3a2117"/>
+    </g>
+
+    <!-- costume overlays -->
+    <g id="santa">
+      <!-- hat -->
+      <rect x="19" y="9" width="39" height="6" fill="#c83f46"/>
+      <rect x="25" y="4" width="27" height="7" fill="#c83f46"/>
+      <rect x="31" y="0" width="15" height="6" fill="#c83f46"/>
+      <rect x="18" y="14" width="43" height="5" fill="#f2e9df"/>
+      <rect x="43" y="0" width="7" height="7" fill="#f2e9df"/>
+
+      <!-- coat -->
+      <rect x="23" y="42" width="38" height="16" fill="#c83f46"/>
+      <rect x="40" y="42" width="5" height="16" fill="#f2e9df"/>
+      <rect x="21" y="55" width="43" height="4" fill="#f2e9df"/>
+    </g>
+
+    <g id="ghost">
+      <rect x="9" y="17" width="70" height="41" fill="#e8edf7"/>
+      <rect x="15" y="12" width="58" height="44" fill="#eef1f8"/>
+      <rect x="21" y="16" width="8" height="8" fill="#303541"/>
+      <rect x="49" y="16" width="8" height="8" fill="#303541"/>
+      <rect x="31" y="31" width="28" height="5" fill="#cbd1dd"/>
+      <rect x="12" y="52" width="12" height="6" fill="#eef1f8"/>
+      <rect x="28" y="49" width="13" height="9" fill="#eef1f8"/>
+      <rect x="46" y="51" width="12" height="7" fill="#eef1f8"/>
+      <rect x="63" y="49" width="13" height="9" fill="#eef1f8"/>
+      <rect x="10" y="56" width="68" height="4" fill="#8a93a5"/>
+    </g>
+
+    <g id="witch">
+      <!-- hat -->
+      <rect x="20" y="14" width="42" height="6" fill="#53317a"/>
+      <rect x="29" y="7" width="25" height="10" fill="#53317a"/>
+      <rect x="37" y="0" width="11" height="9" fill="#53317a"/>
+      <rect x="18" y="19" width="47" height="4" fill="#df9b43"/>
+      <!-- robe -->
+      <rect x="24" y="40" width="37" height="17" fill="#53317a"/>
+      <rect x="30" y="49" width="25" height="9" fill="#6b4192"/>
+      <rect x="40" y="43" width="5" height="13" fill="#df9b43"/>
+    </g>
+
+    <g id="valentine">
+      <!-- little heart chest piece -->
+      <rect x="31" y="40" width="9" height="7" fill="#e45c88"/>
+      <rect x="40" y="40" width="9" height="7" fill="#e45c88"/>
+      <rect x="35" y="47" width="10" height="7" fill="#e45c88"/>
+      <rect x="38" y="54" width="5" height="3" fill="#b63862"/>
+      <!-- tiny bow -->
+      <rect x="41" y="18" width="5" height="7" fill="#e45c88"/>
+      <rect x="34" y="18" width="7" height="5" fill="#e45c88"/>
+      <rect x="46" y="18" width="7" height="5" fill="#e45c88"/>
+    </g>
+
+    <!-- every frame, every outfit -->
+    <g id="frame-row">
+      <use href="#walk0" x="0"/>
+      <use href="#walk1" x="96"/>
+      <use href="#walk2" x="192"/>
+      <use href="#walk3" x="288"/>
+      <use href="#sit0" x="384"/>
+      <use href="#sit1" x="480"/>
+      <use href="#talk0" x="576"/>
+      <use href="#talk1" x="672"/>
+    </g>
+  </defs>
+
+  <!-- everyday -->
+  <g transform="translate(0,0)"><use href="#frame-row"/></g>
+
+  <!-- santa -->
+  <g transform="translate(0,72)">
+    <use href="#frame-row"/>
+    <g transform="translate(0,0)"><use href="#santa"/></g>
+    <g transform="translate(96,0)"><use href="#santa"/></g>
+    <g transform="translate(192,0)"><use href="#santa"/></g>
+    <g transform="translate(288,0)"><use href="#santa"/></g>
+    <g transform="translate(384,0)"><use href="#santa"/></g>
+    <g transform="translate(480,0)"><use href="#santa"/></g>
+    <g transform="translate(576,0)"><use href="#santa"/></g>
+    <g transform="translate(672,0)"><use href="#santa"/></g>
+  </g>
+
+  <!-- ghost -->
+  <g transform="translate(0,144)">
+    <use href="#frame-row"/>
+    <g transform="translate(0,0)"><use href="#ghost"/></g>
+    <g transform="translate(96,0)"><use href="#ghost"/></g>
+    <g transform="translate(192,0)"><use href="#ghost"/></g>
+    <g transform="translate(288,0)"><use href="#ghost"/></g>
+    <g transform="translate(384,0)"><use href="#ghost"/></g>
+    <g transform="translate(480,0)"><use href="#ghost"/></g>
+    <g transform="translate(576,0)"><use href="#ghost"/></g>
+    <g transform="translate(672,0)"><use href="#ghost"/></g>
+  </g>
+
+  <!-- witch -->
+  <g transform="translate(0,216)">
+    <use href="#frame-row"/>
+    <g transform="translate(0,0)"><use href="#witch"/></g>
+    <g transform="translate(96,0)"><use href="#witch"/></g>
+    <g transform="translate(192,0)"><use href="#witch"/></g>
+    <g transform="translate(288,0)"><use href="#witch"/></g>
+    <g transform="translate(384,0)"><use href="#witch"/></g>
+    <g transform="translate(480,0)"><use href="#witch"/></g>
+    <g transform="translate(576,0)"><use href="#witch"/></g>
+    <g transform="translate(672,0)"><use href="#witch"/></g>
+  </g>
+
+  <!-- valentine -->
+  <g transform="translate(0,288)">
+    <use href="#frame-row"/>
+    <g transform="translate(0,0)"><use href="#valentine"/></g>
+    <g transform="translate(96,0)"><use href="#valentine"/></g>
+    <g transform="translate(192,0)"><use href="#valentine"/></g>
+    <g transform="translate(288,0)"><use href="#valentine"/></g>
+    <g transform="translate(384,0)"><use href="#valentine"/></g>
+    <g transform="translate(480,0)"><use href="#valentine"/></g>
+    <g transform="translate(576,0)"><use href="#valentine"/></g>
+    <g transform="translate(672,0)"><use href="#valentine"/></g>
+  </g>
+</svg>

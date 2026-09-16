@@ -1,8 +1,8 @@
 import React from "react";
 import "./Companion.css";
 import "./Companion.motion.css";
-import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
 import { loadCompanionSettings } from "./companionStorage.js";
+import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
 
 const TALK_LINES = [
   "just vibin' 🦫",
@@ -11,31 +11,41 @@ const TALK_LINES = [
   "look at us go",
 ];
 
-const COSTUME_ICONS = Object.fromEntries(COMPANION_COSTUMES.map((item) => [item.value, item.emoji]));
-const REACTION_ICONS = { snow: "❄️", candy: "🍬", heart: "💗" };
+const REACTION_ICONS = {
+  snow: "❄️",
+  candy: "🍬",
+  heart: "💗",
+};
+
+const SPRITE_ROWS = {
+  none: 0,
+  santa: 1,
+  ghost: 2,
+  witch: 3,
+  valentine: 4,
+};
 
 function getSeasonalReaction(seasonalEvent) {
   return REACTION_ICONS[seasonalEvent?.interaction?.target] || "✨";
 }
 
-function Capybara({ costume }) {
-  const costumeIcon = COSTUME_ICONS[costume] || "🦫";
+function PixelCapybara({ costume }) {
   return (
-    <span className="capybara-body" aria-hidden="true">
-      {costume !== "none" && <span className="capybara-costume" aria-hidden="true">{costumeIcon}</span>}
-      <span className="capybara-ear capybara-ear-left" />
-      <span className="capybara-ear capybara-ear-right" />
-      <span className="capybara-eye capybara-eye-left" />
-      <span className="capybara-eye capybara-eye-right" />
-      <span className="capybara-snout"><span className="capybara-nose" /></span>
-      <span className="capybara-foot capybara-foot-left" />
-      <span className="capybara-foot capybara-foot-right" />
-    </span>
+    <span
+      className="capybara-pixel-sprite"
+      data-testid="capybara-pixel-sprite"
+      style={{
+        "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
+      }}
+      aria-hidden="true"
+    />
   );
 }
 
 export default function Companion({ userId, seasonalEvent = null }) {
-  const [settings, setSettings] = React.useState(() => loadCompanionSettings(userId));
+  const [settings, setSettings] = React.useState(() =>
+    loadCompanionSettings(userId),
+  );
   const [reaction, setReaction] = React.useState("");
   const [talkLineIndex, setTalkLineIndex] = React.useState(0);
 
@@ -45,22 +55,48 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   React.useEffect(() => {
     const handleSettingsChange = (event) => {
-      if (event?.detail) setSettings(event.detail);
-      else setSettings(loadCompanionSettings(userId));
+      if (event?.detail) {
+        setSettings(event.detail);
+      } else {
+        setSettings(loadCompanionSettings(userId));
+      }
     };
-    window.addEventListener("flicd:companion-settings", handleSettingsChange);
-    return () => window.removeEventListener("flicd:companion-settings", handleSettingsChange);
+
+    window.addEventListener(
+      "flicd:companion-settings",
+      handleSettingsChange,
+    );
+
+    return () =>
+      window.removeEventListener(
+        "flicd:companion-settings",
+        handleSettingsChange,
+      );
   }, [userId]);
 
   React.useEffect(() => {
-    if (!settings.enabled || settings.animation !== "talk" || !settings.bubbles) return undefined;
-    const timer = window.setInterval(() => setTalkLineIndex((current) => (current + 1) % TALK_LINES.length), 4200);
+    if (
+      !settings.enabled ||
+      settings.animation !== "talk" ||
+      !settings.bubbles
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setTalkLineIndex(
+        (current) => (current + 1) % TALK_LINES.length,
+      );
+    }, 4200);
+
     return () => window.clearInterval(timer);
   }, [settings.enabled, settings.animation, settings.bubbles]);
 
   React.useEffect(() => {
     if (!reaction) return undefined;
+
     const timer = window.setTimeout(() => setReaction(""), 1200);
+
     return () => window.clearTimeout(timer);
   }, [reaction]);
 
@@ -72,25 +108,54 @@ export default function Companion({ userId, seasonalEvent = null }) {
   const seasonalReaction = getSeasonalReaction(seasonalEvent);
 
   return (
-    <div className="companion-zone" data-testid="companion-zone" aria-label="Companion area">
-      <div className={`companion-walker companion-${settings.animation}`}>
+    <div
+      className="companion-zone"
+      data-testid="companion-zone"
+      aria-label="Companion area"
+    >
+      <div
+        className={`companion-walker companion-${settings.animation}`}
+        data-walk-speed={isWalking ? "slow" : undefined}
+      >
         {isTalking && settings.bubbles && (
-          <span className="companion-talk" aria-live="polite">{TALK_LINES[talkLineIndex]}</span>
+          <span className="companion-talk" aria-live="polite">
+            {TALK_LINES[talkLineIndex]}
+          </span>
         )}
-        {reaction && settings.reactions && <span className="companion-reaction" aria-live="polite">{reaction}</span>}
+
+        {reaction && settings.reactions && (
+          <span className="companion-reaction" aria-live="polite">
+            {reaction}
+          </span>
+        )}
+
         <button
           type="button"
           className="companion-character"
           aria-label={`${settings.name} the capybara companion`}
           onClick={() => {
-            if (settings.reactions) setReaction(seasonalEvent ? seasonalReaction : "✨");
+            if (settings.reactions) {
+              setReaction(
+                seasonalEvent ? seasonalReaction : "✨",
+              );
+            }
           }}
         >
-          <Capybara costume={settings.costume} />
+          <PixelCapybara costume={settings.costume} />
         </button>
       </div>
-      {isWalking && <span className="companion-path" aria-hidden="true" />}
-      {!isSitting && !isTalking && <span className="companion-nameplate" aria-hidden="true">{settings.name}</span>}
+
+      {isWalking && (
+        <span className="companion-path" aria-hidden="true" />
+      )}
+
+      {!isSitting && !isTalking && (
+        <span className="companion-nameplate" aria-hidden="true">
+          {settings.name}
+        </span>
+      )}
     </div>
   );
 }
+
+export { COMPANION_COSTUMES };
