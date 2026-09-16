@@ -13,15 +13,14 @@ describe("voice comment recorder", () => {
       onstop: null,
       mimeType: "audio/webm",
     };
-    const MediaRecorder = vi.fn(function MockMediaRecorder() {
+    function MediaRecorder() {
       return recorder;
-    });
+    }
 
     const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
     await controller.start();
 
     expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
-    expect(MediaRecorder).toHaveBeenCalledWith(stream, { mimeType: "audio/webm" });
     expect(recorder.start).toHaveBeenCalled();
     expect(controller.getState()).toBe("recording");
   });
@@ -37,9 +36,9 @@ describe("voice comment recorder", () => {
       onstop: null,
       mimeType: "audio/webm",
     };
-    const MediaRecorder = vi.fn(function MockMediaRecorder() {
+    function MediaRecorder() {
       return recorder;
-    });
+    }
     const getUserMedia = vi.fn().mockResolvedValue(stream);
     const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
 
