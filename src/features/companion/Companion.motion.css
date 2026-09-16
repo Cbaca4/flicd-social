@@ -1,0 +1,20 @@
+.companion-walk {
+  animation: companionWalkAcross 13s linear infinite alternate;
+}
+
+@keyframes companionWalkAcross {
+  0% { left: 0; }
+  100% { left: calc(100% - 96px); }
+}
+
+@media (max-width: 620px) {
+  .companion-walk { animation-duration: 11s; }
+  @keyframes companionWalkAcross {
+    0% { left: 0; }
+    100% { left: calc(100% - 82px); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .companion-walk { animation: none; left: 50%; transform: translateX(-50%); }
+}

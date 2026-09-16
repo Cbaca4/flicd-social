@@ -1,5 +1,6 @@
 import React from "react";
 import "./Companion.css";
+import "./Companion.motion.css";
 import { COMPANION_COSTUMES } from "./CompanionSettings.jsx";
 import { loadCompanionSettings } from "./companionStorage.js";
 
@@ -74,9 +75,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
     <div className="companion-zone" data-testid="companion-zone" aria-label="Companion area">
       <div className={`companion-walker companion-${settings.animation}`}>
         {isTalking && settings.bubbles && (
-          <span className="companion-talk" aria-live="polite">
-            {TALK_LINES[talkLineIndex]}
-          </span>
+          <span className="companion-talk" aria-live="polite">{TALK_LINES[talkLineIndex]}</span>
         )}
         {reaction && settings.reactions && <span className="companion-reaction" aria-live="polite">{reaction}</span>}
         <button
