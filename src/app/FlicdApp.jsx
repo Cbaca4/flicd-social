@@ -199,6 +199,9 @@ export default function FlicdApp() {
   const [boardStudioOpen, setBoardStudioOpen] =
     React.useState(false);
 
+  const [openBoardId, setOpenBoardId] =
+    React.useState(null);
+
   const [requests, setRequests] =
     React.useState(seedRequests);
 
@@ -219,9 +222,6 @@ export default function FlicdApp() {
   const [toast, setToast] =
     React.useState("");
 
-  /*
-   * Get the current Supabase session.
-   */
   React.useEffect(() => {
     async function getSession() {
       const {
@@ -245,9 +245,6 @@ export default function FlicdApp() {
       subscription.unsubscribe();
   }, []);
 
-  /*
-   * Clear temporary toast messages.
-   */
   React.useEffect(() => {
     if (!toast) {
       return;
@@ -260,9 +257,6 @@ export default function FlicdApp() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  /*
-   * Load the user's profile from Supabase.
-   */
   React.useEffect(() => {
     async function loadProfile() {
       const {
@@ -305,9 +299,6 @@ export default function FlicdApp() {
     loadProfile();
   }, [session]);
 
-  /*
-   * Load saved dumps and rolls from Supabase.
-   */
   React.useEffect(() => {
     async function loadDumps() {
       if (!session) {
@@ -365,12 +356,6 @@ export default function FlicdApp() {
     loadDumps();
   }, [session]);
 
-  /*
-   * Load saved Board items from Supabase.
-   *
-   * boardId is intentionally preserved so
-   * Profile can calculate per-Board counts.
-   */
   React.useEffect(() => {
     async function loadBoardItems() {
       if (!session) {
@@ -381,15 +366,17 @@ export default function FlicdApp() {
         const savedItems = await getBoardItems();
 
         setKept(
-          savedItems.map((item) => ({
-            id: item.id,
-            boardId: item.board_id,
-            dumpId: item.dump_id,
-            author: "",
-            note: item.note || "",
-            mood: item.mood || "",
-            seed: item.item_position || 0,
-          }))
+          savedItems.map(
+            (item) => ({
+              id: item.id,
+              boardId: item.board_id,
+              dumpId: item.dump_id,
+              author: "",
+              note: item.note || "",
+              mood: item.mood || "",
+              seed: item.item_position || 0,
+            })
+          )
         );
       } catch (error) {
         console.error(
@@ -402,9 +389,6 @@ export default function FlicdApp() {
     loadBoardItems();
   }, [session]);
 
-  /*
-   * Load the user's Boards from Supabase.
-   */
   React.useEffect(() => {
     async function loadBoards() {
       if (!session) {
@@ -441,11 +425,6 @@ export default function FlicdApp() {
     setToast(message);
   };
 
-  /*
-   * Boards shown on Profile.
-   *
-   * Each Board gets its current saved-item count.
-   */
   const profileBoards = boards.map(
     (board) => ({
       ...board,
@@ -456,9 +435,6 @@ export default function FlicdApp() {
     })
   );
 
-  /*
-   * Like / unlike a post.
-   */
   const toggleLike = (id) => {
     setDumps(
       (currentDumps) =>
@@ -479,9 +455,6 @@ export default function FlicdApp() {
     );
   };
 
-  /*
-   * Add a comment to a post.
-   */
   const comment = (id, text) => {
     setDumps(
       (currentDumps) =>
@@ -504,12 +477,6 @@ export default function FlicdApp() {
     );
   };
 
-  /*
-   * Open the Board picker for a Keep action.
-   *
-   * The picker uses the same Boards already stored
-   * in Supabase and keeps Saved as the first/default choice.
-   */
   const keep = async (post, index) => {
     try {
       const savedBoard =
@@ -546,9 +513,6 @@ export default function FlicdApp() {
     }
   };
 
-  /*
-   * Save the selected post item directly to a Board.
-   */
   const saveKeepToBoard = async (board) => {
     if (!pendingKeep || savingKeep) {
       return;
@@ -616,10 +580,6 @@ export default function FlicdApp() {
     }
   };
 
-  /*
-   * Create a new Board from the Keep picker
-   * and immediately place the kept item inside it.
-   */
   const createKeepBoard = async (event) => {
     event.preventDefault();
 
@@ -690,35 +650,13 @@ export default function FlicdApp() {
 
       onToast(
         error.message ||
-          "Could not create Board"
+          "Failed to create Board"
       );
     } finally {
       setSavingKeep(false);
     }
   };
 
-  /*
-   * Mark a once-only post as viewed.
-   */
-  const markViewed = (id) => {
-    setDumps(
-      (currentDumps) =>
-        currentDumps.map(
-          (post) =>
-            post.id === id &&
-            post.mode === "once"
-              ? {
-                  ...post,
-                  viewed: true,
-                }
-              : post
-        )
-    );
-  };
-
-  /*
-   * Create and save a Dump.
-   */
   const postDump = async ({
     mood,
     expiry,
@@ -735,7 +673,8 @@ export default function FlicdApp() {
           context:
             items[0]?.note ||
             "new dump",
-          frameCount: items.length,
+          frameCount:
+            items.length,
           items,
         });
 
@@ -778,9 +717,6 @@ export default function FlicdApp() {
     }
   };
 
-  /*
-   * Create and save a Roll.
-   */
   const postRoll = async ({
     mood,
     expiry,
@@ -843,37 +779,25 @@ export default function FlicdApp() {
     }
   };
 
-  /*
-   * Build the profile object used by
-   * Profile, EditProfile, and ProfileStudio.
-   */
   const profile = {
     handle:
       supabaseProfile?.username ||
       activeSpace.handle,
-
     displayName:
       supabaseProfile?.display_name ||
       "",
-
     bio:
       supabaseProfile?.bio ||
       "",
-
     avatarUrl:
       supabaseProfile?.avatar_url ||
       "",
-
     followers:
       activeSpace.followers,
-
     following:
       activeSpace.following,
   };
 
-  /*
-   * Require authentication.
-   */
   if (!session) {
     return (
       <Auth
@@ -884,9 +808,6 @@ export default function FlicdApp() {
 
   let content;
 
-  /*
-   * HOME
-   */
   if (screen === "home") {
     content = (
       <Home
@@ -898,23 +819,13 @@ export default function FlicdApp() {
         }}
       />
     );
-  }
-
-  /*
-   * DISCOVER
-   */
-  else if (screen === "discover") {
+  } else if (screen === "discover") {
     content = (
       <Discovery
         onToast={onToast}
       />
     );
-  }
-
-  /*
-   * MESSAGES
-   */
-  else if (screen === "messages") {
+  } else if (screen === "messages") {
     content = (
       <Messages
         requests={requests}
@@ -924,12 +835,7 @@ export default function FlicdApp() {
         onToast={onToast}
       />
     );
-  }
-
-  /*
-   * PROFILE
-   */
-  else if (screen === "profile") {
+  } else if (screen === "profile") {
     content = (
       <Profile
         profile={profile}
@@ -948,33 +854,29 @@ export default function FlicdApp() {
         onCustomizeBoards={() =>
           setBoardStudioOpen(true)
         }
-        onEditProfile={() =>
-          setScreen("edit-profile")
-        }
+        onOpenBoard={(board) => {
+          setOpenBoardId(board.id);
+          setScreen("boards");
+        }}
+        onEditProfile={() => {
+          setScreen("edit-profile");
+        }}
       />
     );
-  }
-
-  /*
-   * BOARDS
-   */
-  else if (screen === "boards") {
+  } else if (screen === "boards") {
     content = (
       <Boards
         dumps={dumps}
         keptItems={kept}
-        onBack={() =>
-          setScreen("profile")
-        }
+        initialBoardId={openBoardId}
+        onBack={() => {
+          setOpenBoardId(null);
+          setScreen("profile");
+        }}
         onToast={onToast}
       />
     );
-  }
-
-  /*
-   * EDIT PROFILE
-   */
-  else if (screen === "edit-profile") {
+  } else if (screen === "edit-profile") {
     content = (
       <EditProfile
         profile={profile}
@@ -1001,12 +903,7 @@ export default function FlicdApp() {
         onToast={onToast}
       />
     );
-  }
-
-  /*
-   * SPACE SWITCHER
-   */
-  else if (screen === "spaces") {
+  } else if (screen === "spaces") {
     content = (
       <SpaceSwitcher
         spaces={spaces}
@@ -1019,12 +916,7 @@ export default function FlicdApp() {
         }
       />
     );
-  }
-
-  /*
-   * CREATE CHOOSE
-   */
-  else if (screen === "create-choose") {
+  } else if (screen === "create-choose") {
     content = (
       <CreateChoose
         onPick={(type) =>
@@ -1039,12 +931,7 @@ export default function FlicdApp() {
         }
       />
     );
-  }
-
-  /*
-   * CREATE DUMP
-   */
-  else if (screen === "create-dump") {
+  } else if (screen === "create-dump") {
     content = (
       <DumpBuilder
         spaces={spaces}
@@ -1055,12 +942,7 @@ export default function FlicdApp() {
         onPost={postDump}
       />
     );
-  }
-
-  /*
-   * CREATE ROLL
-   */
-  else if (screen === "create-roll") {
+  } else if (screen === "create-roll") {
     content = (
       <RollBuilder
         spaces={spaces}
@@ -1071,12 +953,7 @@ export default function FlicdApp() {
         onPost={postRoll}
       />
     );
-  }
-
-  /*
-   * VIEWER
-   */
-  else {
+  } else {
     content = activePost ? (
       <Viewer
         post={activePost}
@@ -1097,10 +974,6 @@ export default function FlicdApp() {
     );
   }
 
-  /*
-   * Keep the main navigation on Home
-   * while viewing/creating content.
-   */
   const navigationScreen =
     screen === "viewer"
       ? "home"
@@ -1133,7 +1006,6 @@ export default function FlicdApp() {
         </div>
       </AppShell>
 
-      {/* KEEP → SAVE TO BOARD */}
       {pendingKeep && (
         <div
           className="modal-backdrop"
@@ -1255,8 +1127,8 @@ export default function FlicdApp() {
                         <div className="row">
                           <div
                             style={{
-                              width: 44,
-                              height: 44,
+                              width: 42,
+                              height: 42,
                               borderRadius: 14,
                               flexShrink: 0,
                               background:
@@ -1290,7 +1162,6 @@ export default function FlicdApp() {
                               1
                                 ? "item"
                                 : "items"}
-
                               {board.name ===
                               "Saved"
                                 ? " · default"
@@ -1305,7 +1176,9 @@ export default function FlicdApp() {
                   <button
                     type="button"
                     className="card"
-                    disabled={savingKeep}
+                    disabled={
+                      savingKeep
+                    }
                     onClick={() =>
                       setCreatingKeepBoard(
                         true
@@ -1353,7 +1226,9 @@ export default function FlicdApp() {
                   <button
                     type="button"
                     className="btn"
-                    disabled={savingKeep}
+                    disabled={
+                      savingKeep
+                    }
                     onClick={() => {
                       setPendingKeep(null);
                       setCreatingKeepBoard(
@@ -1390,7 +1265,6 @@ export default function FlicdApp() {
                   placeholder="e.g. Gym, Memories, Trips"
                   maxLength={60}
                   autoFocus
-                  disabled={savingKeep}
                 />
 
                 <div
@@ -1404,7 +1278,9 @@ export default function FlicdApp() {
                   <button
                     type="button"
                     className="btn"
-                    disabled={savingKeep}
+                    disabled={
+                      savingKeep
+                    }
                     onClick={() => {
                       setCreatingKeepBoard(
                         false
@@ -1434,29 +1310,6 @@ export default function FlicdApp() {
         </div>
       )}
 
-      {/* PROFILE STUDIO */}
-      {studio && (
-        <div className="modal-backdrop">
-          <div className="modal">
-            <ProfileStudio
-              theme={theme}
-              setTheme={setTheme}
-              profile={profile}
-              onClose={() =>
-                setStudio(false)
-              }
-              onSave={() => {
-                setStudio(false);
-                onToast(
-                  "Profile saved"
-                );
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* BOARD STUDIO */}
       {boardStudioOpen && (
         <BoardStudio
           boards={boards}
@@ -1466,12 +1319,11 @@ export default function FlicdApp() {
           onBoardSaved={(updated) => {
             setBoards(
               (current) =>
-                current.map(
-                  (board) =>
-                    board.id ===
-                    updated.id
-                      ? updated
-                      : board
+                current.map((board) =>
+                  board.id ===
+                  updated.id
+                    ? updated
+                    : board
                 )
             );
 
@@ -1481,7 +1333,23 @@ export default function FlicdApp() {
         />
       )}
 
-      {/* TOAST */}
+      {studio && (
+        <ProfileStudio
+          theme={theme}
+          onClose={() =>
+            setStudio(false)
+          }
+          onChangeTheme={setTheme}
+          onSaved={(updatedTheme) => {
+            setTheme(updatedTheme);
+            setStudio(false);
+            onToast(
+              "Profile saved"
+            );
+          }}
+        />
+      )}
+
       {toast && (
         <div className="toast">
           {toast}
