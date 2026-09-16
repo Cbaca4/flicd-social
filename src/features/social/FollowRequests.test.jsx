@@ -5,9 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import FollowRequests from "./FollowRequests.jsx";
 
-const getPendingFollowRequests = vi.fn();
-const approveFollowRequest = vi.fn();
-const declineFollowRequest = vi.fn();
+const { getPendingFollowRequests, approveFollowRequest, declineFollowRequest } = vi.hoisted(() => ({
+  getPendingFollowRequests: vi.fn(),
+  approveFollowRequest: vi.fn(),
+  declineFollowRequest: vi.fn(),
+}));
 
 vi.mock("./socialApi.js", () => ({
   getPendingFollowRequests,
