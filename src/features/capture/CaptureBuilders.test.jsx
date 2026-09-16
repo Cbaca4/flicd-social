@@ -76,7 +76,7 @@ describe("RollBuilder publishing", () => {
         });
       }
 
-      expect(screen.getByText("8/8")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Develop roll" })).toBeEnabled();
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Develop roll" }));
