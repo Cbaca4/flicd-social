@@ -3,6 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { DumpBuilder, RollBuilder } from "./CaptureBuilders.jsx";
 
 vi.mock("./mediaUpload.js", () => ({
@@ -79,7 +80,7 @@ describe("RollBuilder publishing", () => {
         await vi.advanceTimersByTimeAsync(500 + 900 + 1700 + 1100);
       });
 
-      await waitFor(() => expect(screen.getByText("Ready to post")).toBeInTheDocument());
+      expect(screen.getByText("Ready to post")).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole("button", { name: "Post roll" }));
 
@@ -88,6 +89,7 @@ describe("RollBuilder publishing", () => {
       expect(onPost).toHaveBeenCalledTimes(1);
 
       resolvePost();
+      await act(async () => {});
     } finally {
       vi.useRealTimers();
     }
