@@ -13,18 +13,15 @@ afterEach(() => {
   localStorage.clear();
 });
 
-describe("Pixel companion redesign", () => {
-  it("renders a chunky pixel-art sprite from the sprite sheet", () => {
+describe("Retro 16-bit companion redesign", () => {
+  it("renders a retro 16-bit capybara sprite with distinct visible legs", () => {
     render(<Companion userId="pixel-test" />);
 
-    const character = screen.getByRole("button", {
-      name: /Buddy the capybara companion/i,
-    });
+    const sprite = screen.getByTestId("capybara-pixel-sprite");
 
-    expect(character).toHaveClass("companion-character");
-    expect(
-      character.querySelector(".capybara-pixel-sprite"),
-    ).toBeInTheDocument();
+    expect(sprite).toHaveAttribute("data-sprite-style", "retro-16bit");
+    expect(sprite).toHaveAttribute("data-leg-detail", "visible");
+    expect(sprite).toHaveAttribute("data-walk-frames", "8");
   });
 
   it("renders an actual costume from the sprite sheet", () => {
@@ -35,20 +32,13 @@ describe("Pixel companion redesign", () => {
         name: "Buddy",
         costume: "santa",
         animation: "walk",
-        bubbles: true,
         reactions: true,
       }),
     );
 
     render(<Companion userId="pixel-test" />);
 
-    const sprite = screen
-      .getByRole("button", {
-        name: /Buddy the capybara companion/i,
-      })
-      .querySelector(".capybara-pixel-sprite");
-
-    expect(sprite).toHaveStyle({
+    expect(screen.getByTestId("capybara-pixel-sprite")).toHaveStyle({
       "--sprite-row": "1",
     });
   });
@@ -68,20 +58,13 @@ describe("Pixel companion redesign", () => {
           name: "Buddy",
           costume,
           animation: "walk",
-          bubbles: true,
           reactions: true,
         }),
       );
 
       render(<Companion userId="pixel-test" />);
 
-      expect(
-        screen
-          .getByRole("button", {
-            name: /Buddy the capybara companion/i,
-          })
-          .querySelector(".capybara-pixel-sprite"),
-      ).toHaveStyle({
+      expect(screen.getByTestId("capybara-pixel-sprite")).toHaveStyle({
         "--sprite-row": row,
       });
     }
@@ -157,53 +140,13 @@ describe("Pixel companion redesign", () => {
     expect(walker).toHaveAttribute("data-motion-state", "idle");
   });
 
-  it("uses an eight-frame step-and-bob walk cycle instead of a slide-only motion", () => {
+  it("does not render the removed talk feature", () => {
     render(<Companion userId="pixel-test" />);
 
-    const sprite = screen
-      .getByTestId("companion-zone")
-      .querySelector(".capybara-pixel-sprite");
-
-    expect(sprite).toHaveAttribute("data-walk-animation", "step-and-bob");
-    expect(sprite).toHaveAttribute("data-walk-frames", "8");
-    expect(sprite).toHaveAttribute("data-sprite-frame", "96x72");
-  });
-
-  it("keeps talk mode away from the edges so its bubble stays contained", async () => {
-    vi.useFakeTimers();
-    render(<Companion userId="pixel-test" />);
-
-    await act(async () => {
-      vi.advanceTimersByTime(4500);
-    });
-
-    window.dispatchEvent(
-      new CustomEvent("flicd:companion-settings", {
-        detail: {
-          enabled: true,
-          name: "Buddy",
-          costume: "none",
-          animation: "talk",
-          bubbles: true,
-          reactions: true,
-        },
-      }),
-    );
-
-    const walker = screen
-      .getByTestId("companion-zone")
-      .querySelector(".companion-walker");
-
-    await act(async () => {});
-
-    const position = Number.parseFloat(
-      walker.style.getPropertyValue("--companion-position"),
-    );
-
-    expect(walker).toHaveAttribute("data-talk-contained", "true");
-    expect(walker).toHaveAttribute("data-bubble-contained", "true");
-    expect(position).toBeGreaterThanOrEqual(24);
-    expect(position).toBeLessThanOrEqual(58);
+    expect(screen.queryByText("just vibin' 🦫")).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("companion-zone").querySelector(".companion-talk"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps the companion inside its dedicated zone", () => {
@@ -223,7 +166,6 @@ describe("Pixel companion redesign", () => {
           name: "Buddy",
           costume: "ghost",
           animation: "walk",
-          bubbles: true,
           reactions: true,
         }}
         onChange={() => {}}
