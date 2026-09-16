@@ -1,10 +1,10 @@
-export const COMPANION_COSTUMES = Object.freeze([
-  { value: "none", label: "Everyday" },
-  { value: "santa", label: "Santa" },
-  { value: "ghost", label: "Ghost" },
-  { value: "witch", label: "Witch" },
-  { value: "valentine", label: "Valentine" },
-]);
+import { getActiveSeasonalEvent } from "../seasonal/seasonalEvents.js";
+import {
+  COMPANION_PRESET_COSTUMES,
+  getAvailableCompanionCostumes,
+} from "./companionCostumes.js";
+
+export const COMPANION_COSTUMES = COMPANION_PRESET_COSTUMES;
 
 export const COMPANION_ANIMATIONS = Object.freeze([
   { value: "walk", label: "Walk" },
@@ -21,7 +21,10 @@ const DEFAULT_VALUE = Object.freeze({
 
 export function normalizeCompanionSettings(value = {}) {
   const animationValues = COMPANION_ANIMATIONS.map((item) => item.value);
-  const costumeValues = COMPANION_COSTUMES.map((item) => item.value);
+  const activeSeason = getActiveSeasonalEvent();
+  const costumeValues = getAvailableCompanionCostumes(activeSeason?.id).map(
+    (item) => item.value,
+  );
   const rawName = value.name;
 
   return {
