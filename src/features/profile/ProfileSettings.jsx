@@ -1,6 +1,8 @@
 import React from "react";
 import { ChevronRight, LogOut, Palette, Pencil, Settings, Users } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import CompanionSettings, { normalizeCompanionSettings } from "../companion/CompanionSettings.jsx";
+import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
 
 const SettingRow = ({ icon: Icon, title, description, onClick }) => (
   <button
@@ -20,7 +22,15 @@ const SettingRow = ({ icon: Icon, title, description, onClick }) => (
   </button>
 );
 
-export default function ProfileSettings({ onBack, onEditProfile, onProfileStudio, onBoards, onSpaces }) {
+export default function ProfileSettings({ onBack, onEditProfile, onProfileStudio, onBoards, onSpaces, userId }) {
+  const [companionSettings, setCompanionSettings] = React.useState(() => loadCompanionSettings(userId));
+
+  const updateCompanionSettings = (nextSettings) => {
+    const normalized = normalizeCompanionSettings(nextSettings);
+    setCompanionSettings(normalized);
+    saveCompanionSettings(userId, normalized);
+  };
+
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Failed to sign out:", error);
@@ -62,6 +72,13 @@ export default function ProfileSettings({ onBack, onEditProfile, onProfileStudio
           description="Switch between your Flic'd spaces and identities."
           onClick={onSpaces}
         />
+
+        <div className="settings-section-label">
+          <div className="eyebrow">Coming Soon · Features</div>
+          <p className="subtitle" style={{ marginTop: 4 }}>Little extras that make Flic'd feel like yours.</p>
+        </div>
+
+        <CompanionSettings value={companionSettings} onChange={updateCompanionSettings} />
 
         <div className="card" style={{ marginTop: 4 }}>
           <div className="eyebrow">Account</div>

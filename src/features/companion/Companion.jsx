@@ -1,194 +1,96 @@
 import React from "react";
-import {
-  COMPANION_MODES,
-  DEFAULT_COMPANION_STATE,
-  clampCompanionPosition,
-  getRandomCompanionTarget,
-} from "./companionState.js";
-import { loadCompanionState, saveCompanionState } from "./companionStorage.js";
+import "./Companion.css";
+import "./Companion.motion.css";
+import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
+import { loadCompanionSettings } from "./companionStorage.js";
 
-const HAT_ICONS = {
-  santa: "🎅",
-  witch: "🧙",
-  heart: "💗",
-};
+const TALK_LINES = [
+  "just vibin' 🦫",
+  "hey, what's up?",
+  "tiny break?",
+  "look at us go",
+];
 
-const ACCESSORY_ICONS = {
-  scarf: "🧣",
-  candy: "🍬",
-  envelope: "💌",
-};
-
-const REACTION_ICONS = {
-  snow: "❄️",
-  candy: "🍬",
-  heart: "💗",
-};
-
-const DRAG_THRESHOLD = 6;
-const REACTION_DURATION = 900;
-const MOVE_DELAY_MIN = 2800;
-const MOVE_DELAY_RANGE = 2800;
-
-function getPointerPosition(event, overlay) {
-  const bounds = overlay.getBoundingClientRect();
-  return clampCompanionPosition({
-    x: ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 100,
-    y: ((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 100,
-  });
-}
+const COSTUME_ICONS = Object.fromEntries(COMPANION_COSTUMES.map((item) => [item.value, item.emoji]));
+const REACTION_ICONS = { snow: "❄️", candy: "🍬", heart: "💗" };
 
 function getSeasonalReaction(seasonalEvent) {
   return REACTION_ICONS[seasonalEvent?.interaction?.target] || "✨";
 }
 
-export default function Companion({ userId, enabled = true, seasonalEvent = null, onModeChange }) {
-  const initialState = React.useMemo(
-    () => loadCompanionState(userId) || { ...DEFAULT_COMPANION_STATE },
-    [userId],
+function Capybara({ costume }) {
+  const costumeIcon = COSTUME_ICONS[costume] || "🦫";
+  return (
+    <span className="capybara-body" aria-hidden="true">
+      {costume !== "none" && <span className="capybara-costume" aria-hidden="true">{costumeIcon}</span>}
+      <span className="capybara-ear capybara-ear-left" />
+      <span className="capybara-ear capybara-ear-right" />
+      <span className="capybara-eye capybara-eye-left" />
+      <span className="capybara-eye capybara-eye-right" />
+      <span className="capybara-snout"><span className="capybara-nose" /></span>
+      <span className="capybara-foot capybara-foot-left" />
+      <span className="capybara-foot capybara-foot-right" />
+    </span>
   );
-  const [position, setPosition] = React.useState({ x: initialState.x, y: initialState.y });
-  const [mode, setMode] = React.useState(initialState.mode);
-  const [hydratedUserId, setHydratedUserId] = React.useState(userId);
-  const [reacting, setReacting] = React.useState(false);
-  const [dragging, setDragging] = React.useState(false);
-  const [reducedMotion, setReducedMotion] = React.useState(false);
-  const overlayRef = React.useRef(null);
-  const pointerStartRef = React.useRef(null);
-  const dragMovedRef = React.useRef(false);
-  const reactionTimerRef = React.useRef(null);
+}
+
+export default function Companion({ userId, seasonalEvent = null }) {
+  const [settings, setSettings] = React.useState(() => loadCompanionSettings(userId));
+  const [reaction, setReaction] = React.useState("");
+  const [talkLineIndex, setTalkLineIndex] = React.useState(0);
 
   React.useEffect(() => {
-    const stored = loadCompanionState(userId);
-    setPosition({ x: stored.x, y: stored.y });
-    setMode(stored.mode);
-    setHydratedUserId(userId);
+    setSettings(loadCompanionSettings(userId));
   }, [userId]);
 
   React.useEffect(() => {
-    if (hydratedUserId !== userId) return;
-    saveCompanionState(userId, { ...position, mode });
-  }, [userId, hydratedUserId, position.x, position.y, mode]);
+    const handleSettingsChange = (event) => {
+      if (event?.detail) setSettings(event.detail);
+      else setSettings(loadCompanionSettings(userId));
+    };
+    window.addEventListener("flicd:companion-settings", handleSettingsChange);
+    return () => window.removeEventListener("flicd:companion-settings", handleSettingsChange);
+  }, [userId]);
 
   React.useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return undefined;
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener?.("change", update);
-    return () => mediaQuery.removeEventListener?.("change", update);
-  }, []);
+    if (!settings.enabled || settings.animation !== "talk" || !settings.bubbles) return undefined;
+    const timer = window.setInterval(() => setTalkLineIndex((current) => (current + 1) % TALK_LINES.length), 4200);
+    return () => window.clearInterval(timer);
+  }, [settings.enabled, settings.animation, settings.bubbles]);
 
   React.useEffect(() => {
-    if (
-      !enabled
-      || hydratedUserId !== userId
-      || mode !== COMPANION_MODES.ACTIVE
-      || reducedMotion
-      || dragging
-    ) return undefined;
-
-    const timer = window.setTimeout(() => {
-      setPosition((current) => getRandomCompanionTarget(current));
-    }, MOVE_DELAY_MIN + Math.random() * MOVE_DELAY_RANGE);
-
+    if (!reaction) return undefined;
+    const timer = window.setTimeout(() => setReaction(""), 1200);
     return () => window.clearTimeout(timer);
-  }, [enabled, userId, hydratedUserId, mode, reducedMotion, dragging, position.x, position.y]);
+  }, [reaction]);
 
-  React.useEffect(() => () => {
-    if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
-  }, []);
+  if (!settings.enabled) return null;
 
-  const toggleMode = () => {
-    const nextMode = mode === COMPANION_MODES.ACTIVE
-      ? COMPANION_MODES.QUIET
-      : COMPANION_MODES.ACTIVE;
-    setMode(nextMode);
-    onModeChange?.(nextMode);
-  };
-
-  const showReaction = () => {
-    if (mode === COMPANION_MODES.QUIET) return;
-    setReacting(true);
-    if (reactionTimerRef.current) window.clearTimeout(reactionTimerRef.current);
-    reactionTimerRef.current = window.setTimeout(() => setReacting(false), REACTION_DURATION);
-  };
-
-  const handlePointerDown = (event) => {
-    if (!enabled) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    pointerStartRef.current = { x: event.clientX, y: event.clientY };
-    dragMovedRef.current = false;
-    setDragging(true);
-  };
-
-  const handlePointerMove = (event) => {
-    if (!dragging || !overlayRef.current || !pointerStartRef.current) return;
-    const distance = Math.hypot(
-      event.clientX - pointerStartRef.current.x,
-      event.clientY - pointerStartRef.current.y,
-    );
-    if (distance >= DRAG_THRESHOLD) dragMovedRef.current = true;
-    setPosition(getPointerPosition(event, overlayRef.current));
-  };
-
-  const handlePointerUp = (event) => {
-    if (!dragging) return;
-    event.currentTarget.releasePointerCapture?.(event.pointerId);
-    setDragging(false);
-    pointerStartRef.current = null;
-    if (!dragMovedRef.current) showReaction();
-  };
-
-  if (!enabled) return null;
-
-  const seasonalLabel = seasonalEvent?.label ? `${seasonalEvent.label} ` : "";
-  const hat = HAT_ICONS[seasonalEvent?.character?.hat] || null;
-  const accessory = ACCESSORY_ICONS[seasonalEvent?.character?.accessory] || null;
-  const reaction = getSeasonalReaction(seasonalEvent);
-  const modeLabel = mode === COMPANION_MODES.ACTIVE ? "quiet mode" : "companion mode";
+  const isWalking = settings.animation === "walk";
+  const isSitting = settings.animation === "sit";
+  const isTalking = settings.animation === "talk";
+  const seasonalReaction = getSeasonalReaction(seasonalEvent);
 
   return (
-    <div className="companion-overlay" ref={overlayRef} aria-label="Companion overlay">
-      <div
-        className={`companion-node${dragging ? " is-dragging" : ""}${reacting ? " is-reacting" : ""}${mode === COMPANION_MODES.QUIET ? " is-quiet" : ""}`}
-        style={{ left: `${position.x}%`, top: `${position.y}%` }}
-      >
+    <div className="companion-zone" data-testid="companion-zone" aria-label="Companion area">
+      <div className={`companion-walker companion-${settings.animation}`}>
+        {isTalking && settings.bubbles && (
+          <span className="companion-talk" aria-live="polite">{TALK_LINES[talkLineIndex]}</span>
+        )}
+        {reaction && settings.reactions && <span className="companion-reaction" aria-live="polite">{reaction}</span>}
         <button
           type="button"
           className="companion-character"
-          aria-label={`${seasonalLabel}capybara companion`}
-          aria-pressed={reacting}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          title="Drag me around"
+          aria-label={`${settings.name} the capybara companion`}
+          onClick={() => {
+            if (settings.reactions) setReaction(seasonalEvent ? seasonalReaction : "✨");
+          }}
         >
-          <span className="companion-hat" aria-hidden="true">{hat}</span>
-          <span className="companion-scarf" aria-hidden="true">{accessory}</span>
-          <span className="capybara-body" aria-hidden="true">
-            <span className="capybara-ear capybara-ear-left" />
-            <span className="capybara-ear capybara-ear-right" />
-            <span className="capybara-eye capybara-eye-left" />
-            <span className="capybara-eye capybara-eye-right" />
-            <span className="capybara-snout"><span className="capybara-nose" /></span>
-            <span className="capybara-foot capybara-foot-left" />
-            <span className="capybara-foot capybara-foot-right" />
-          </span>
-        </button>
-        {reacting && <span className="companion-reaction" aria-live="polite" aria-label="Companion reaction">{reaction}</span>}
-        <button
-          type="button"
-          className="companion-mode-control"
-          aria-label={`Enable ${modeLabel}`}
-          aria-pressed={mode === COMPANION_MODES.QUIET}
-          onClick={toggleMode}
-          title={mode === COMPANION_MODES.ACTIVE ? "Quiet mode" : "Companion mode"}
-        >
-          {mode === COMPANION_MODES.ACTIVE ? "◌" : "☀"}
+          <Capybara costume={settings.costume} />
         </button>
       </div>
+      {isWalking && <span className="companion-path" aria-hidden="true" />}
+      {!isSitting && !isTalking && <span className="companion-nameplate" aria-hidden="true">{settings.name}</span>}
     </div>
   );
 }

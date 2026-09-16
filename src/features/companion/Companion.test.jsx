@@ -2,17 +2,10 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Companion from "./Companion.jsx";
-
-const christmas = {
-  id: "christmas",
-  label: "Christmas",
-  character: { hat: "santa", accessory: "scarf" },
-  interaction: { target: "snow", reaction: "playful" },
-};
 
 afterEach(() => {
   cleanup();
@@ -21,70 +14,88 @@ afterEach(() => {
 
 describe("Companion", () => {
   it("renders a capybara companion", () => {
-    render(<Companion userId="u1" enabled seasonalEvent={null} />);
+    render(<Companion userId="u1" />);
+
     expect(
-      screen.getByRole("button", { name: /capybara companion/i }),
+      screen.getByRole("button", {
+        name: /Buddy the capybara companion/i,
+      }),
     ).toBeInTheDocument();
+
+    expect(screen.getByTestId("companion-zone")).toBeInTheDocument();
   });
 
   it("reacts when tapped", async () => {
     const user = userEvent.setup();
 
-    render(<Companion userId="u1" enabled seasonalEvent={null} />);
+    render(<Companion userId="u1" />);
 
     await user.click(
-      screen.getByRole("button", { name: /capybara companion/i }),
+      screen.getByRole("button", {
+        name: /Buddy the capybara companion/i,
+      }),
     );
 
     expect(screen.getByText("✨")).toBeInTheDocument();
   });
 
-  it("shows seasonal capybara treatment from event data", () => {
-    render(<Companion userId="u1" enabled seasonalEvent={christmas} />);
+  it("shows the configured costume", () => {
+    localStorage.setItem(
+      "flicd:companion:u1:settings",
+      JSON.stringify({
+        enabled: true,
+        name: "Buddy",
+        costume: "santa",
+        animation: "walk",
+        bubbles: true,
+        reactions: true,
+      }),
+    );
+
+    render(<Companion userId="u1" />);
 
     expect(
       screen.getByRole("button", {
-        name: /Christmas capybara companion/i,
+        name: /Buddy the capybara companion/i,
       }),
     ).toBeInTheDocument();
 
     expect(screen.getByText("🎅")).toBeInTheDocument();
-    expect(screen.getByText("🧣")).toBeInTheDocument();
   });
 
-  it("switches to quiet mode", async () => {
-    const user = userEvent.setup();
-    const onModeChange = vi.fn();
-
-    render(
-      <Companion
-        userId="u1"
-        enabled
-        seasonalEvent={null}
-        onModeChange={onModeChange}
-      />,
+  it("shows talk bubbles in talk mode", () => {
+    localStorage.setItem(
+      "flicd:companion:u1:settings",
+      JSON.stringify({
+        enabled: true,
+        name: "Buddy",
+        costume: "none",
+        animation: "talk",
+        bubbles: true,
+        reactions: true,
+      }),
     );
 
-    await user.click(
-      screen.getByRole("button", { name: /enable quiet mode/i }),
-    );
+    render(<Companion userId="u1" />);
 
-    expect(onModeChange).toHaveBeenCalledWith("quiet");
+    expect(screen.getByText("just vibin' 🦫")).toBeInTheDocument();
   });
 
-  it("does not react while quiet mode is enabled", async () => {
-    const user = userEvent.setup();
-
-    render(<Companion userId="u1" enabled seasonalEvent={null} />);
-
-    await user.click(
-      screen.getByRole("button", { name: /enable quiet mode/i }),
+  it("hides when disabled", () => {
+    localStorage.setItem(
+      "flicd:companion:u1:settings",
+      JSON.stringify({
+        enabled: false,
+        name: "Buddy",
+        costume: "none",
+        animation: "walk",
+        bubbles: true,
+        reactions: true,
+      }),
     );
 
-    await user.click(
-      screen.getByRole("button", { name: /capybara companion/i }),
-    );
+    render(<Companion userId="u1" />);
 
-    expect(screen.queryByText("✨")).toBeNull();
+    expect(screen.queryByTestId("companion-zone")).not.toBeInTheDocument();
   });
 });

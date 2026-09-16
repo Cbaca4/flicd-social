@@ -2,8 +2,31 @@ import React from "react";
 import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
+import CompanionSettings from "../companion/CompanionSettings.jsx";
+import { normalizeCompanionSettings } from "../companion/companionSettingsConfig.js";
+import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
 
 function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
+  const [companionUserId, setCompanionUserId] = React.useState("");
+  const [companionSettings, setCompanionSettings] = React.useState(() => loadCompanionSettings(""));
+
+  React.useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!active) return;
+      const userId = data?.user?.id || "local";
+      setCompanionUserId(userId);
+      setCompanionSettings(loadCompanionSettings(userId));
+    });
+    return () => { active = false; };
+  }, []);
+
+  const updateCompanionSettings = (nextSettings) => {
+    const normalized = normalizeCompanionSettings(nextSettings);
+    setCompanionSettings(normalized);
+    saveCompanionSettings(companionUserId || "local", normalized);
+  };
+
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) console.error("Failed to sign out:", error);
@@ -52,6 +75,13 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
         {row(Palette, "Profile Studio", "Customize your profile's look, sections, and theme.", onCustomize)}
         {row(LayoutGrid, "Boards", "Manage your saved Boards and pinned profile Boards.", onBoards)}
         {row(Users, "Spaces", "Switch between your Flic'd spaces and identities.", onSpaces)}
+
+        <div className="settings-section-label" style={{ marginTop: 12 }}>
+          <div className="eyebrow">Coming Soon · Features</div>
+          <p className="subtitle" style={{ marginTop: 4 }}>Little extras that make Flic'd feel like yours.</p>
+        </div>
+
+        <CompanionSettings value={companionSettings} onChange={updateCompanionSettings} />
 
         <div className="eyebrow" style={{ marginTop: 12 }}>Account</div>
         {placeholderRow(UserRoundCog, "Account & Security", "Email, password, active sessions, and account management.")}
