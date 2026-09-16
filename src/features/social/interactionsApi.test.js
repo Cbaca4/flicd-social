@@ -29,22 +29,29 @@ describe("social interactions API", () => {
     getUser.mockResolvedValue({ data: { user: { id: "me" } }, error: null });
   });
 
-  it("toggles a like for the current user", async () => {
-    const removeLike = chain({ data: null, error: null });
+  it("adds a like without requiring an update permission", async () => {
     const addLike = chain({ data: { dump_id: "dump-1", user_id: "me" }, error: null });
-    from.mockImplementationOnce(() => removeLike).mockImplementationOnce(() => addLike);
+    from.mockReturnValue(addLike);
 
-    const { unlikeDump, likeDump } = await import("./interactionsApi.js");
-    await unlikeDump("dump-1");
+    const { likeDump } = await import("./interactionsApi.js");
     await likeDump("dump-1");
+
+    expect(addLike.upsert).toHaveBeenCalledWith(
+      { dump_id: "dump-1", user_id: "me" },
+      { onConflict: "dump_id,user_id", ignoreDuplicates: true },
+    );
+  });
+
+  it("removes a like for the current user", async () => {
+    const removeLike = chain({ data: null, error: null });
+    from.mockReturnValue(removeLike);
+
+    const { unlikeDump } = await import("./interactionsApi.js");
+    await unlikeDump("dump-1");
 
     expect(removeLike.delete).toHaveBeenCalled();
     expect(removeLike.eq).toHaveBeenCalledWith("dump_id", "dump-1");
     expect(removeLike.eq).toHaveBeenCalledWith("user_id", "me");
-    expect(addLike.upsert).toHaveBeenCalledWith(
-      { dump_id: "dump-1", user_id: "me" },
-      { onConflict: "dump_id,user_id" },
-    );
   });
 
   it("creates a trimmed comment for the current user", async () => {
