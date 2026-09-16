@@ -64,4 +64,16 @@ describe("comment media upload", () => {
 
     expect(upload).not.toHaveBeenCalled();
   });
+
+  it("allows a video at exactly 15 seconds", async () => {
+    const { validateCommentVideoDuration } = await import("./commentMediaUpload.js");
+
+    expect(() => validateCommentVideoDuration(15)).not.toThrow();
+  });
+
+  it("rejects a video longer than 15 seconds", async () => {
+    const { validateCommentVideoDuration } = await import("./commentMediaUpload.js");
+
+    expect(() => validateCommentVideoDuration(15.01)).toThrow("Comment videos must be 15 seconds or shorter.");
+  });
 });
