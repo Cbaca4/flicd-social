@@ -54,10 +54,10 @@ describe("UserSearch public profile navigation", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: /@maren_/i })).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: /Open profile @maren_/i })).toBeInTheDocument()
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /@maren_/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Open profile @maren_/i }));
 
     expect(onUserSelect).toHaveBeenCalledWith(
       expect.objectContaining({
