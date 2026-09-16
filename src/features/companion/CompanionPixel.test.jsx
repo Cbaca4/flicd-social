@@ -2,12 +2,13 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import Companion from "./Companion.jsx";
 import CompanionSettings from "./CompanionSettings.jsx";
 
 afterEach(() => {
+  vi.useRealTimers();
   cleanup();
   localStorage.clear();
 });
@@ -86,15 +87,64 @@ describe("Pixel companion redesign", () => {
     }
   });
 
-  it("uses a slower walking patrol", () => {
+  it("starts in an idle pause before autonomous walking begins", () => {
+    vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
     const walker = screen
       .getByTestId("companion-zone")
       .querySelector(".companion-walker");
 
-    expect(walker).toHaveClass("companion-walk");
-    expect(walker).toHaveAttribute("data-walk-speed", "slow");
+    expect(walker).toHaveAttribute("data-motion-state", "idle");
+
+    vi.advanceTimersByTime(2999);
+    expect(walker).toHaveAttribute("data-motion-state", "idle");
+
+    vi.advanceTimersByTime(1);
+    expect(walker).toHaveAttribute("data-motion-state", "walking");
+  });
+
+  it("uses a bounded position and deliberately slow travel duration", () => {
+    vi.useFakeTimers();
+    render(<Companion userId="pixel-test" />);
+
+    const walker = screen
+      .getByTestId("companion-zone")
+      .querySelector(".companion-walker");
+
+    vi.advanceTimersByTime(3000);
+
+    const position = Number.parseFloat(
+      walker.style.getPropertyValue("--companion-position"),
+    );
+    const duration = Number.parseInt(
+      walker.style.getPropertyValue("--companion-travel-duration"),
+      10,
+    );
+
+    expect(position).toBeGreaterThanOrEqual(5);
+    expect(position).toBeLessThanOrEqual(78);
+    expect(duration).toBeGreaterThanOrEqual(11000);
+  });
+
+  it("returns to an idle pause after each slow patrol leg", () => {
+    vi.useFakeTimers();
+    render(<Companion userId="pixel-test" />);
+
+    const walker = screen
+      .getByTestId("companion-zone")
+      .querySelector(".companion-walker");
+
+    vi.advanceTimersByTime(3000);
+
+    const duration = Number.parseInt(
+      walker.style.getPropertyValue("--companion-travel-duration"),
+      10,
+    );
+
+    vi.advanceTimersByTime(duration);
+
+    expect(walker).toHaveAttribute("data-motion-state", "idle");
   });
 
   it("keeps the companion inside its dedicated zone", () => {
