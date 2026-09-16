@@ -6,7 +6,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
 
-const signOut = vi.fn().mockResolvedValue({ error: null });
+const { signOut } = vi.hoisted(() => ({
+  signOut: vi.fn().mockResolvedValue({ error: null }),
+}));
 
 vi.mock("../../lib/supabase", () => ({
   supabase: {
