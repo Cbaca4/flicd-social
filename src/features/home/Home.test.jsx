@@ -16,8 +16,21 @@ vi.mock("../profile/PublicProfile.jsx", () => ({
   default: () => null,
 }));
 
+const startRecording = vi.fn();
+
+vi.mock("../social/voiceCommentRecorder.js", () => ({
+  createVoiceCommentRecorder: () => ({
+    start: startRecording,
+    stop: vi.fn(),
+    cancel: vi.fn(),
+    getState: () => "idle",
+    getBlob: () => null,
+  }),
+}));
+
 afterEach(() => {
   cleanup();
+  vi.clearAllMocks();
 });
 
 describe("Home feed states", () => {
@@ -152,5 +165,21 @@ describe("Post viewer", () => {
     );
 
     expect(screen.getByRole("button", { name: "Record voice comment" })).toBeInTheDocument();
+  });
+
+  it("starts voice recording when the voice control is pressed", () => {
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
+    expect(startRecording).toHaveBeenCalledTimes(1);
   });
 });
