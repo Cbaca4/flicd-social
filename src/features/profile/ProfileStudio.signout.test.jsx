@@ -6,10 +6,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
 
-const { signOut } = vi.hoisted(() => ({
+const { getCurrentProfile, setPrivateAccount, signOut } = vi.hoisted(() => ({
+  getCurrentProfile: vi.fn().mockResolvedValue({ is_private: false }),
+  setPrivateAccount: vi.fn(),
   signOut: vi.fn().mockResolvedValue({ error: null }),
 }));
 
+vi.mock("../social/socialApi.js", () => ({ getCurrentProfile, setPrivateAccount }));
 vi.mock("../../lib/supabase", () => ({
   supabase: {
     auth: {
