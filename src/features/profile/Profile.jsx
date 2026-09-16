@@ -1,6 +1,56 @@
 import React from "react";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil } from "lucide-react";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
+
+function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) console.error("Failed to sign out:", error);
+  };
+
+  const row = (Icon, title, description, onClick) => (
+    <button type="button" className="card" onClick={onClick} style={{ width: "100%", textAlign: "left" }}>
+      <div className="row">
+        <Icon size={18} />
+        <div style={{ flex: 1 }}>
+          <strong>{title}</strong>
+          <p className="subtitle" style={{ marginTop: 3 }}>{description}</p>
+        </div>
+        <ChevronRight size={18} className="muted" />
+      </div>
+    </button>
+  );
+
+  return (
+    <div className="screen">
+      <div className="topbar">
+        <div>
+          <div className="eyebrow">Settings</div>
+          <h1 className="title">Settings</h1>
+          <p className="subtitle">Manage your profile and Flic'd account.</p>
+        </div>
+        <button type="button" className="btn" onClick={onBack}>Done</button>
+      </div>
+
+      <div className="stack" style={{ maxWidth: 760 }}>
+        {row(Pencil, "Edit Profile", "Change your username, name, bio, and profile details.", onEditProfile)}
+        {row(Palette, "Profile Studio", "Customize your profile's look, sections, and theme.", onCustomize)}
+        {row(LayoutGrid, "Boards", "Manage your saved Boards and pinned profile Boards.", onBoards)}
+        {row(Users, "Spaces", "Switch between your Flic'd spaces and identities.", onSpaces)}
+
+        <div className="card" style={{ marginTop: 4 }}>
+          <div className="eyebrow">Account</div>
+          <p className="subtitle" style={{ marginTop: 4 }}>Sign out of this Flic'd account on this device.</p>
+          <button type="button" className="btn" style={{ marginTop: 10 }} onClick={handleSignOut} aria-label="Sign out">
+            <LogOut size={15} />
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function BoardPreview({ board, onOpenBoard }) {
   const style = board?.style_config || {};
@@ -23,7 +73,25 @@ function BoardPreview({ board, onOpenBoard }) {
 }
 
 export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard }) {
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const pinnedBoards = getPinnedBoards(boards);
+
+  if (settingsOpen) {
+    return (
+      <SettingsList
+        onBack={() => setSettingsOpen(false)}
+        onEditProfile={() => { setSettingsOpen(false); onEditProfile?.(); }}
+        onCustomize={() => { setSettingsOpen(false); onCustomize?.(); }}
+        onBoards={() => { setSettingsOpen(false); onOpenBoards?.(); }}
+        onSpaces={() => { setSettingsOpen(false); onSwitchSpaces?.(); }}
+      />
+    );
+  }
+
+  const openSettings = () => {
+    if (onSettings) onSettings();
+    else setSettingsOpen(true);
+  };
 
   return (
     <div className="screen" style={{ background: theme.background }}>
@@ -38,7 +106,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
               </div>
               <div className="row">
                 <button type="button" className="btn" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
-                <button type="button" className="btn icon-btn" onClick={onSettings} aria-label="Settings"><Settings size={18} /></button>
+                <button type="button" className="btn icon-btn" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
               </div>
             </div>
             <p className="subtitle" style={{ marginTop: 10 }}>{theme.message}</p>
