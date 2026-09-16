@@ -25,15 +25,17 @@ const SPRITE_ROWS = {
   valentine: 4,
 };
 
-const PATROL_MIN_POSITION = 5;
-const PATROL_MAX_POSITION = 78;
-const PATROL_START_DELAY = 3000;
-const PATROL_MIN_PAUSE = 2400;
-const PATROL_MAX_PAUSE = 4800;
-const PATROL_MIN_TRAVEL = 11000;
-const PATROL_MAX_TRAVEL = 24000;
-const PATROL_MS_PER_PERCENT = 300;
-const INITIAL_POSITION = 8;
+const PATROL_MIN_POSITION = 10;
+const PATROL_MAX_POSITION = 73;
+const TALK_MIN_POSITION = 18;
+const TALK_MAX_POSITION = 65;
+const PATROL_START_DELAY = 4500;
+const PATROL_MIN_PAUSE = 4000;
+const PATROL_MAX_PAUSE = 7000;
+const PATROL_MIN_TRAVEL = 16000;
+const PATROL_MAX_TRAVEL = 32000;
+const PATROL_MS_PER_PERCENT = 400;
+const INITIAL_POSITION = 18;
 
 function getSeasonalReaction(seasonalEvent) {
   return REACTION_ICONS[seasonalEvent?.interaction?.target] || "✨";
@@ -70,11 +72,19 @@ function getPatrolTravelDuration(distance) {
   );
 }
 
+function clampTalkPosition(position) {
+  return Math.min(
+    TALK_MAX_POSITION,
+    Math.max(TALK_MIN_POSITION, position),
+  );
+}
+
 function PixelCapybara({ costume }) {
   return (
     <span
       className="capybara-pixel-sprite"
       data-testid="capybara-pixel-sprite"
+      data-walk-animation="step-and-bob"
       style={{
         "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
       }}
@@ -213,6 +223,9 @@ export default function Companion({ userId, seasonalEvent = null }) {
   if (!settings.enabled) return null;
 
   const seasonalReaction = getSeasonalReaction(seasonalEvent);
+  const displayPosition = isTalking
+    ? clampTalkPosition(patrol.position)
+    : patrol.position;
   const walkerClassName = [
     "companion-walker",
     `companion-${settings.animation}`,
@@ -230,9 +243,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
       <div
         className={walkerClassName}
         data-motion-state={isWalking ? patrol.motion : undefined}
+        data-talk-contained={isTalking ? "true" : undefined}
         data-walk-speed={isWalking ? "slow" : undefined}
         style={{
-          "--companion-position": `${patrol.position}%`,
+          "--companion-position": `${displayPosition}%`,
           "--companion-travel-duration": `${patrol.travelDuration}ms`,
           "--capy-facing": patrol.direction,
         }}
