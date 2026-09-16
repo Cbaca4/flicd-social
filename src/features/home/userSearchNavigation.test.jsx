@@ -2,15 +2,18 @@
 import React from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import UserSearch from "./UserSearch.jsx";
 
-const fromMock = vi.fn();
+const { fromMock } = vi.hoisted(() => ({
+  fromMock: vi.fn(),
+}));
 
 vi.mock("../../lib/supabase", () => ({
   supabase: {
     from: fromMock,
   },
 }));
+
+import UserSearch from "./UserSearch.jsx";
 
 describe("UserSearch public profile navigation", () => {
   beforeEach(() => {
