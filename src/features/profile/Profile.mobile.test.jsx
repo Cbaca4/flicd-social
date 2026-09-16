@@ -2,7 +2,7 @@
 
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
@@ -56,7 +56,7 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
   });
 
-  it("marks Profile Studio as using the page scroll container on handheld layouts", () => {
+  it("keeps the full Profile Studio form usable after editing Favorite artist", () => {
     render(
       <ProfileStudio
         theme={DEFAULT_THEME}
@@ -67,11 +67,13 @@ describe("handheld profile layout", () => {
       />,
     );
 
-    expect(screen.getByTestId("profile-studio-screen")).toHaveAttribute(
-      "data-scroll-container",
-      "screen",
-    );
-    expect(screen.getByLabelText("Favorite artist")).toBeInTheDocument();
+    const studio = screen.getByTestId("profile-studio-screen");
+    const artist = screen.getByLabelText("Favorite artist");
+
+    expect(studio).toHaveAttribute("data-scroll-container", "screen");
+    fireEvent.change(artist, { target: { value: "Deftones" } });
+
+    expect(artist).toHaveValue("Deftones");
     expect(screen.getByText("Sections")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Save Profile/i })).toBeInTheDocument();
   });
