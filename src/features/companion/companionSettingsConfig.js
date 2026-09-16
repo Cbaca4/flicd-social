@@ -9,7 +9,6 @@ export const COMPANION_COSTUMES = Object.freeze([
 export const COMPANION_ANIMATIONS = Object.freeze([
   { value: "walk", label: "Walk" },
   { value: "sit", label: "Sit" },
-  { value: "talk", label: "Talk" },
 ]);
 
 const DEFAULT_VALUE = Object.freeze({
@@ -17,28 +16,28 @@ const DEFAULT_VALUE = Object.freeze({
   name: "Buddy",
   costume: "none",
   animation: "walk",
-  bubbles: true,
   reactions: true,
 });
 
 export function normalizeCompanionSettings(value = {}) {
   const animationValues = COMPANION_ANIMATIONS.map((item) => item.value);
   const costumeValues = COMPANION_COSTUMES.map((item) => item.value);
+  const rawName = value.name;
 
   return {
     ...DEFAULT_VALUE,
     ...value,
     enabled: value.enabled !== false,
     name:
-      String(value.name || DEFAULT_VALUE.name).trim().slice(0, 24) ||
-      DEFAULT_VALUE.name,
+      rawName === undefined || rawName === null
+        ? DEFAULT_VALUE.name
+        : String(rawName).trim().slice(0, 24),
     costume: costumeValues.includes(value.costume)
       ? value.costume
       : DEFAULT_VALUE.costume,
     animation: animationValues.includes(value.animation)
       ? value.animation
       : DEFAULT_VALUE.animation,
-    bubbles: value.bubbles !== false,
     reactions: value.reactions !== false,
   };
 }
