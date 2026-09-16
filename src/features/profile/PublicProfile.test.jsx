@@ -30,7 +30,7 @@ describe("PublicProfile", () => {
     );
 
     const usernameHeadings = screen.getAllByRole("heading", { name: "@maren_" });
-    expect(usernameHeadings).toHaveLength(2);
+    expect(usernameHeadings.length).toBe(2);
     expect(screen.getByText("Maren")).toBeTruthy();
     expect(screen.getByText("moments + coffee")).toBeTruthy();
     expect(screen.getByText("42")).toBeTruthy();
