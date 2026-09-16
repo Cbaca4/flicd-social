@@ -157,7 +157,7 @@ describe("Pixel companion redesign", () => {
     expect(walker).toHaveAttribute("data-motion-state", "idle");
   });
 
-  it("uses a visible step-and-bob walk cycle instead of a slide-only motion", () => {
+  it("uses an eight-frame step-and-bob walk cycle instead of a slide-only motion", () => {
     render(<Companion userId="pixel-test" />);
 
     const sprite = screen
@@ -165,6 +165,8 @@ describe("Pixel companion redesign", () => {
       .querySelector(".capybara-pixel-sprite");
 
     expect(sprite).toHaveAttribute("data-walk-animation", "step-and-bob");
+    expect(sprite).toHaveAttribute("data-walk-frames", "8");
+    expect(sprite).toHaveAttribute("data-sprite-frame", "96x72");
   });
 
   it("keeps talk mode away from the edges so its bubble stays contained", async () => {
@@ -199,8 +201,9 @@ describe("Pixel companion redesign", () => {
     );
 
     expect(walker).toHaveAttribute("data-talk-contained", "true");
-    expect(position).toBeGreaterThanOrEqual(18);
-    expect(position).toBeLessThanOrEqual(65);
+    expect(walker).toHaveAttribute("data-bubble-contained", "true");
+    expect(position).toBeGreaterThanOrEqual(24);
+    expect(position).toBeLessThanOrEqual(58);
   });
 
   it("keeps the companion inside its dedicated zone", () => {
