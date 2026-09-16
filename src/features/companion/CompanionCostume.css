@@ -1,0 +1,85 @@
+/* Keep every costume tied to the same 96x72 capybara frame. */
+.capybara-pixel-sprite {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.capybara-pixel-sprite::before,
+.capybara-pixel-sprite::after {
+  box-sizing: border-box;
+  transform-origin: center;
+}
+
+/* Permanent costumes: body-centered anchors so the outfit follows the sprite. */
+.companion-costume-hero::before {
+  left: 9px;
+  top: 28px;
+}
+
+.companion-costume-hero::after {
+  left: 55px;
+  top: 26px;
+}
+
+.companion-costume-speedster::before {
+  left: 52px;
+  top: 20px;
+}
+
+.companion-costume-speedster::after {
+  left: 17px;
+  top: 48px;
+  width: 62px;
+}
+
+.companion-costume-cosmic::before {
+  left: 12px;
+  top: 29px;
+  width: 52px;
+}
+
+.companion-costume-cosmic::after {
+  left: 60px;
+  top: 20px;
+}
+
+/* Seasonal costumes share the same centered head/body anchor. */
+.companion-costume-pumpkin-king::before,
+.companion-costume-vampire::before,
+.companion-costume-reaper::before,
+.companion-costume-elf::before,
+.companion-costume-reindeer::before {
+  left: 50px;
+  top: 18px;
+}
+
+.companion-costume-pumpkin-king::after,
+.companion-costume-vampire::after,
+.companion-costume-reindeer::after {
+  z-index: 3;
+}
+
+.companion-costume-gingerbread::before {
+  left: 29px;
+  top: 44px;
+}
+
+.companion-costume-cupid::before {
+  left: 28px;
+  top: 34px;
+}
+
+.companion-costume-cupid::after {
+  left: 61px;
+  top: 19px;
+}
+
+.companion-costume-love-letter::before {
+  left: 27px;
+  top: 42px;
+}
+
+.companion-costume-love-letter::after {
+  left: 49px;
+  top: 50px;
+}
