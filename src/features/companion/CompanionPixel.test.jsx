@@ -157,6 +157,52 @@ describe("Pixel companion redesign", () => {
     expect(walker).toHaveAttribute("data-motion-state", "idle");
   });
 
+  it("uses a visible step-and-bob walk cycle instead of a slide-only motion", () => {
+    render(<Companion userId="pixel-test" />);
+
+    const sprite = screen
+      .getByTestId("companion-zone")
+      .querySelector(".capybara-pixel-sprite");
+
+    expect(sprite).toHaveAttribute("data-walk-animation", "step-and-bob");
+  });
+
+  it("keeps talk mode away from the edges so its bubble stays contained", async () => {
+    vi.useFakeTimers();
+    render(<Companion userId="pixel-test" />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    window.dispatchEvent(
+      new CustomEvent("flicd:companion-settings", {
+        detail: {
+          enabled: true,
+          name: "Buddy",
+          costume: "none",
+          animation: "talk",
+          bubbles: true,
+          reactions: true,
+        },
+      }),
+    );
+
+    const walker = screen
+      .getByTestId("companion-zone")
+      .querySelector(".companion-walker");
+
+    await act(async () => {});
+
+    const position = Number.parseFloat(
+      walker.style.getPropertyValue("--companion-position"),
+    );
+
+    expect(walker).toHaveAttribute("data-talk-contained", "true");
+    expect(position).toBeGreaterThanOrEqual(18);
+    expect(position).toBeLessThanOrEqual(65);
+  });
+
   it("keeps the companion inside its dedicated zone", () => {
     render(<Companion userId="pixel-test" />);
 
