@@ -1,13 +1,11 @@
 import React from "react";
+
 import "./Companion.css";
+
+import { getActiveSeasonalEvent } from "../seasonal/seasonalEvents.js";
 import { loadCompanionSettings } from "./companionStorage.js";
 import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
-
-const REACTION_ICONS = {
-  snow: "❄️",
-  candy: "🍬",
-  heart: "💗",
-};
+import { getCompanionReactions } from "./companionCostumes.js";
 
 const SPRITE_ROWS = {
   none: 0,
@@ -17,22 +15,22 @@ const SPRITE_ROWS = {
   valentine: 4,
 };
 
-const PATROL_MIN_POSITION = 8;
-const PATROL_MAX_POSITION = 82;
+const PATROL_MIN_POSITION = 10;
+const PATROL_MAX_POSITION = 73;
 const PATROL_START_DELAY = 4500;
-const PATROL_MIN_PAUSE = 2600;
-const PATROL_MAX_PAUSE = 4800;
-const PATROL_MIN_TRAVEL = 9000;
-const PATROL_MAX_TRAVEL = 18000;
-const PATROL_MS_PER_PERCENT = 220;
+const PATROL_MIN_PAUSE = 4000;
+const PATROL_MAX_PAUSE = 7000;
+const PATROL_MIN_TRAVEL = 16000;
+const PATROL_MAX_TRAVEL = 32000;
+const PATROL_MS_PER_PERCENT = 400;
 const INITIAL_POSITION = 18;
-
-function getSeasonalReaction(seasonalEvent) {
-  return REACTION_ICONS[seasonalEvent?.interaction?.target] || "✨";
-}
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function getRandomItem(items) {
+  return items[getRandomInt(0, items.length - 1)] || "✨";
 }
 
 function getNextPatrolPosition(currentPosition) {
@@ -59,18 +57,20 @@ function getPatrolTravelDuration(distance) {
   );
 }
 
-function PixelCapybara({ costume }) {
+function PixelCapybara({ costume, seasonalEventId }) {
+  const spriteRow = SPRITE_ROWS[costume] ?? SPRITE_ROWS.none;
+
   return (
     <span
-      className="capybara-pixel-sprite"
+      className={`capybara-pixel-sprite companion-costume-${costume}`}
       data-testid="capybara-pixel-sprite"
       data-sprite-style="retro-16bit"
       data-leg-detail="visible"
       data-walk-frames="10"
       data-sprite-sheet="1152x360"
-      style={{
-        "--sprite-row": SPRITE_ROWS[costume] ?? SPRITE_ROWS.none,
-      }}
+      data-costume={costume}
+      data-seasonal-event={seasonalEventId || "none"}
+      style={{ "--sprite-row": spriteRow }}
       aria-hidden="true"
     />
   );
@@ -87,8 +87,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
     motion: "idle",
     travelDuration: 0,
   });
-  const patrolPositionRef = React.useRef(INITIAL_POSITION);
 
+  const patrolPositionRef = React.useRef(INITIAL_POSITION);
+  const activeSeasonalEvent = seasonalEvent || getActiveSeasonalEvent();
+  const seasonalEventId = activeSeasonalEvent?.id || null;
   const isWalking = settings.animation === "walk";
   const isSitting = settings.animation === "sit";
 
@@ -190,25 +192,32 @@ export default function Companion({ userId, seasonalEvent = null }) {
   React.useEffect(() => {
     if (!reaction) return undefined;
 
-    const timer = window.setTimeout(() => setReaction(""), 1200);
+    const timer = window.setTimeout(() => setReaction(""), 1600);
     return () => window.clearTimeout(timer);
   }, [reaction]);
 
   if (!settings.enabled) return null;
 
-  const seasonalReaction = getSeasonalReaction(seasonalEvent);
   const walkerClassName = [
     "companion-walker",
     `companion-${settings.animation}`,
+    `companion-season-${seasonalEventId || "none"}`,
     isWalking ? `companion-motion-${patrol.motion}` : "",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const triggerReaction = () => {
+    if (!settings.reactions) return;
+
+    setReaction(getRandomItem(getCompanionReactions(seasonalEventId)));
+  };
+
   return (
     <div
       className="companion-zone"
       data-testid="companion-zone"
+      data-seasonal-event={seasonalEventId || "none"}
       aria-label="Companion area"
     >
       <div
@@ -228,15 +237,12 @@ export default function Companion({ userId, seasonalEvent = null }) {
           type="button"
           className="companion-character"
           aria-label={`${settings.name || "Unnamed"} the capybara companion`}
-          onClick={() => {
-            if (settings.reactions) {
-              setReaction(
-                seasonalEvent ? seasonalReaction : "✨",
-              );
-            }
-          }}
+          onClick={triggerReaction}
         >
-          <PixelCapybara costume={settings.costume} />
+          <PixelCapybara
+            costume={settings.costume}
+            seasonalEventId={seasonalEventId}
+          />
         </button>
       </div>
 
@@ -244,7 +250,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
         <span
           className="companion-reaction"
           aria-live="polite"
-          style={{ "--companion-bubble-position": `${patrol.position}%` }}
+          aria-label={`Companion reaction: ${reaction}`}
+          style={{
+            "--companion-bubble-position": `${patrol.position}%`,
+          }}
         >
           {reaction}
         </span>
