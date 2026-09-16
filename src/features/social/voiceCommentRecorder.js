@@ -14,6 +14,11 @@ export function createVoiceCommentRecorder({
   let recorder = null;
   let stopTimer = null;
   const chunks = [];
+  const listeners = new Set();
+
+  function notify() {
+    listeners.forEach((listener) => listener(state));
+  }
 
   function clearStopTimer() {
     if (stopTimer !== null) {
@@ -42,10 +47,12 @@ export function createVoiceCommentRecorder({
       blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
       stream?.getTracks?.().forEach((track) => track.stop());
       state = "review";
+      notify();
     };
 
     recorder.start();
     state = "recording";
+    notify();
     stopTimer = setTimeoutFn(() => stop(), MAX_VOICE_COMMENT_DURATION * 1000);
   }
 
@@ -61,12 +68,20 @@ export function createVoiceCommentRecorder({
     blob = null;
     chunks.length = 0;
     state = "idle";
+    notify();
+  }
+
+  function subscribe(listener) {
+    if (typeof listener !== "function") return () => {};
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   }
 
   return {
     start,
     stop,
     cancel,
+    subscribe,
     getState: () => state,
     getBlob: () => blob,
   };
