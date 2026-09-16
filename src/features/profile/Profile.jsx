@@ -152,21 +152,22 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   return (
     <div className="screen" style={{ background: theme.background }}>
       <div className="profile-hero">
-        <div className="row" style={{ alignItems: "flex-start" }}>
+        <div className="profile-heading">
           <div className="avatar lg">{profile.handle[0].toUpperCase()}</div>
-          <div style={{ flex: 1 }}>
-            <div className="row" style={{ justifyContent: "space-between" }}>
+          <div className="profile-identity">
+            <div className="profile-title-row">
               <div>
                 <div className="eyebrow">{activeSpace.label} space</div>
                 <h1 className="title" style={{ fontSize: 28, marginTop: 2 }}>@{profile.handle}</h1>
               </div>
-              <div className="row">
+              <div className="profile-actions">
                 <button type="button" className="btn" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
                 <button type="button" className="btn icon-btn" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
               </div>
             </div>
-            <p className="subtitle" style={{ marginTop: 10 }}>{theme.message}</p>
-            <p style={{ marginTop: 8, color: theme.accent, fontSize: 12 }}>{theme.statusEmoji} {theme.status}</p>
+            {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
+            <p className="subtitle profile-message">{theme.message}</p>
+            <p className="profile-status" style={{ color: theme.accent }}>{theme.statusEmoji} {theme.status}</p>
           </div>
         </div>
 
