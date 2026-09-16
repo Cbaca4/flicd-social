@@ -42,21 +42,27 @@
 }
 
 .companion-walker {
+  --companion-width: 96px;
   position: absolute;
   bottom: 3px;
-  left: 0;
-  width: 96px;
+  left: clamp(
+    0px,
+    var(--companion-position, 8%),
+    calc(100% - var(--companion-width))
+  );
+  width: var(--companion-width);
   height: 72px;
   display: grid;
   place-items: end center;
   filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.28));
   pointer-events: none;
-  will-change: transform;
+  transition: left var(--companion-travel-duration, 0ms) linear;
+  will-change: left;
 }
 
 .companion-character {
   position: relative;
-  width: 96px;
+  width: var(--companion-width);
   height: 72px;
   border: 0;
   padding: 0;
@@ -65,6 +71,9 @@
   display: grid;
   place-items: end center;
   cursor: pointer;
+  transform: scaleX(var(--capy-facing, 1));
+  transform-origin: center bottom;
+  transition: transform 180ms steps(1, end);
 }
 
 .companion-character:focus-visible {
@@ -84,8 +93,12 @@
   background-position: 0 calc(var(--sprite-row, 0) * -72px);
 }
 
-.companion-walk .capybara-pixel-sprite {
-  animation: capySpriteWalk 0.72s steps(4, end) infinite;
+.companion-walk.companion-motion-walking .capybara-pixel-sprite {
+  animation: capySpriteWalk 0.94s steps(4, end) infinite;
+}
+
+.companion-walk.companion-motion-idle .capybara-pixel-sprite {
+  animation: capySpriteIdle 2.2s ease-in-out infinite;
 }
 
 .companion-sit .capybara-pixel-sprite {
@@ -243,6 +256,17 @@
   }
 }
 
+@keyframes capySpriteIdle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(1px);
+  }
+}
+
 @keyframes capySpriteSit {
   from {
     background-position-x: -384px;
@@ -332,21 +356,24 @@
     height: 64px;
   }
 
+  .companion-walker {
+    --companion-width: 86px;
+  }
+
   .capybara-pixel-sprite {
     background-size: 683px 320px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .companion-walk,
-  .companion-sit,
+  .companion-walker,
+  .companion-character,
+  .companion-walk .capybara-pixel-sprite,
+  .companion-sit .capybara-pixel-sprite,
   .companion-talk .capybara-pixel-sprite,
   .companion-talk,
   .companion-reaction {
     animation: none;
-  }
-
-  .companion-walk {
-    transform: translateX(35%);
+    transition-duration: 0ms !important;
   }
 }
