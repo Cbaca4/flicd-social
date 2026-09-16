@@ -94,9 +94,30 @@ export async function getPeopleSuggestions({ limit = 30 } = {}) {
   if (profileResult.error) throw profileResult.error;
   if (peopleResult.error) throw peopleResult.error;
   const interests = new Set((profileResult.data?.interests || []).map((value) => String(value).toLowerCase()));
-  return (peopleResult.data || [])
-    .filter((person) => !following[person.id])
-    .map((person) => ({ ...person, sharedInterests: (person.interests || []).filter((value) => interests.has(String(value).toLowerCase())), score: (person.interests || []).filter((value) => interests.has(String(value).toLowerCase())).length }))
-    .sort((a, b) => b.score - a.score || new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, limit);
+  return (peopleResult.data || []).filter((person) => !following[person.id]).map((person) => ({ ...person, sharedInterests: (person.interests || []).filter((value) => interests.has(String(value).toLowerCase())), score: (person.interests || []).filter((value) => interests.has(String(value).toLowerCase())).length })).sort((a, b) => b.score - a.score || new Date(b.created_at) - new Date(a.created_at)).slice(0, limit);
+}
+
+export async function getPendingFollowRequests() {
+  const userId = await getCurrentUserId();
+  const { data: requests, error } = await supabase.from("follows").select("follower_id,created_at").eq("following_id", userId).eq("status", "pending");
+  if (error) throw error;
+  const ids = (requests || []).map((row) => row.follower_id);
+  if (!ids.length) return [];
+  const { data: profiles, error: profileError } = await supabase.from("profiles").select("id,username,display_name,bio,avatar_url").in("id", ids);
+  if (profileError) throw profileError;
+  const byId = Object.fromEntries((profiles || []).map((profile) => [profile.id, profile]));
+  return (requests || []).map((row) => ({ ...row, profile: byId[row.follower_id] })).filter((row) => row.profile);
+}
+
+export async function approveFollowRequest(followerId) {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase.from("follows").update({ status: "accepted" }).eq("follower_id", followerId).eq("following_id", userId).eq("status", "pending").select("status").single();
+  if (error) throw error;
+  return data.status;
+}
+
+export async function declineFollowRequest(followerId) {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", userId).eq("status", "pending");
+  if (error) throw error;
 }
