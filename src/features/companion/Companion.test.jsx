@@ -36,4 +36,12 @@ describe("Companion", () => {
     await userEvent.click(screen.getByRole("button", { name: /enable quiet mode/i }));
     expect(onModeChange).toHaveBeenCalledWith("quiet");
   });
+
+  it("does not react while quiet mode is enabled", async () => {
+    const user = userEvent.setup();
+    render(<Companion userId="u1" enabled seasonalEvent={null} />);
+    await user.click(screen.getByRole("button", { name: /enable quiet mode/i }));
+    await user.click(screen.getByRole("button", { name: /capybara companion/i }));
+    expect(screen.queryByText("✨")).toBeNull();
+  });
 });
