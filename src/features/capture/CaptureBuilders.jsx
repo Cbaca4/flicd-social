@@ -4,6 +4,7 @@ import { ROLL_STAGES, getNextRollStage } from './rollPresentation.js';
 import { MAX_MEDIA_COUNT, validateMediaFile, validateMediaFiles } from './mediaUpload.js';
 
 const MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp';
+const DUMP_MOODS = ['golden hour', 'late night', 'chaotic', 'nostalgic', 'summer'];
 
 function FileSummary({ files }) {
   if (!files.length) {
@@ -94,7 +95,7 @@ export function DumpBuilder({ spaces, activeSpaceId, onCancel, onPost }) {
       {error && <p role="alert" className="subtitle" style={{ marginTop: 10 }}>{error}</p>}
       <p className="subtitle" style={{ marginTop: 10 }}>Up to {MAX_MEDIA_COUNT} photos. Mix camera shots and gallery photos in the same dump. Your first note becomes the dump context.</p>
     </div>
-    <div className="card"><p className="eyebrow">Mood</p><div className="wrap" style={{ marginTop: 10 }}>{moods.map(m => <Pill key={m} active={mood === m} onClick={() => setMood(m)}>{m}</Pill>)}</div></div>
+    <div className="card"><p className="eyebrow">Mood</p><div className="wrap" style={{ marginTop: 10 }}>{DUMP_MOODS.map(m => <Pill key={m} active={mood === m} onClick={() => setMood(m)}>{m}</Pill>)}</div></div>
     <div className="card"><p className="eyebrow">Context card</p><input className="input" style={{ marginTop: 10 }} value={note} onChange={e => setNote(e.target.value)} placeholder="A memory, song, location…" maxLength={240} /></div>
     <div className="card"><p className="eyebrow">Expires</p><div className="wrap" style={{ marginTop: 10 }}><Pill active={expiry === '24h'} onClick={() => setExpiry('24h')}>24 hours</Pill><Pill active={expiry === 'once'} onClick={() => setExpiry('once')}>View once</Pill></div></div>
     <div className="card"><p className="eyebrow">Posting as</p><div className="wrap" style={{ marginTop: 10 }}>{spaces.map(s => <Pill key={s.id} active={postAs === s.id} onClick={() => setPostAs(s.id)}>@{s.handle}</Pill>)}</div></div>
