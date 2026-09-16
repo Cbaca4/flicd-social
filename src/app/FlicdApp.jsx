@@ -19,7 +19,6 @@ import AppShell from "./AppShell.jsx";
 import Home, { Viewer } from "../features/home/Home.jsx";
 
 import CreateChoose from "../features/capture/CreateChoose.jsx";
-
 import {
   DumpBuilder,
   RollBuilder,
@@ -29,6 +28,10 @@ import {
   createDump,
   getDumps,
 } from "../features/capture/dumpApi.js";
+import {
+  removeDumpImages,
+  uploadDumpImages,
+} from "../features/capture/mediaUpload.js";
 
 import Messages from "../features/messages/Messages.jsx";
 import Profile from "../features/profile/Profile.jsx";
@@ -296,29 +299,43 @@ export default function FlicdApp() {
   };
 
   const postDump = async ({ mood, expiry, channel, items }) => {
+    let uploadedPaths = [];
     try {
-      const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: items[0]?.note || "new dump", frameCount: items.length, items });
-      const newDump = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items, context: items[0]?.note || "new dump" };
+      const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
+      uploadedPaths = await uploadDumpImages(imageFiles);
+      let uploadIndex = 0;
+      const itemsWithPaths = items.map((item) => ({
+        note: item.note || "",
+        imagePath: item.imageFile ? uploadedPaths[uploadIndex++] : null,
+      }));
+
+      const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: itemsWithPaths[0]?.note || "new dump", frameCount: itemsWithPaths.length, items: itemsWithPaths });
+      const newDump = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump" };
       setDumps((currentDumps) => [newDump, ...currentDumps]);
       setScreen("home");
       onToast("Dump posted");
     } catch (error) {
+      if (uploadedPaths.length) await removeDumpImages(uploadedPaths);
       console.error("Failed to post dump:", error);
-      onToast(error.message || "Failed to post dump");
+      throw error;
     }
   };
 
-  const postRoll = async ({ mood, expiry, channel, frameCount }) => {
+  const postRoll = async ({ mood, expiry, channel, frameCount, items }) => {
+    let uploadedPaths = [];
     try {
-      const items = Array.from({ length: frameCount }, () => ({ note: "" }));
-      const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items });
-      const newRoll = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items, context: `${frameCount} frame roll` };
+      const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
+      uploadedPaths = await uploadDumpImages(imageFiles);
+      const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null }));
+      const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items: itemsWithPaths });
+      const newRoll = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll` };
       setDumps((currentDumps) => [newRoll, ...currentDumps]);
       setScreen("home");
       onToast("Roll posted");
     } catch (error) {
+      if (uploadedPaths.length) await removeDumpImages(uploadedPaths);
       console.error("Failed to post roll:", error);
-      onToast(error.message || "Failed to post roll");
+      throw error;
     }
   };
 
