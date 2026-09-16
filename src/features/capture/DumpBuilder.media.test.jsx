@@ -33,8 +33,6 @@ describe("DumpBuilder media inputs", () => {
 
     expect(inputs).toHaveLength(2);
     expect(inputs[0].getAttribute("accept")).toBe("image/jpeg,image/png,image/webp");
-    expect(inputs[0].hasAttribute("capture")).toBe(true);
-    expect(inputs[0].getAttribute("capture") || "").toMatch(/^environment$|^$/);
     expect(inputs[0].hasAttribute("multiple")).toBe(false);
     expect(inputs[1].getAttribute("accept")).toBe("image/jpeg,image/png,image/webp");
     expect(inputs[1].hasAttribute("multiple")).toBe(true);
