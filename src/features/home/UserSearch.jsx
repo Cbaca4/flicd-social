@@ -2,7 +2,7 @@ import React from "react";
 import { Search, X } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 
-export default function UserSearch({ onClose }) {
+export default function UserSearch({ onClose, onUserSelect }) {
   const [query, setQuery] = React.useState("");
   const [results, setResults] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
@@ -60,7 +60,14 @@ export default function UserSearch({ onClose }) {
           {!loading && error && <div className="card subtitle">{error}</div>}
           {!loading && !error && query.trim() && !results.length && <div className="card subtitle">No users found.</div>}
           {results.map((user) => (
-            <div key={user.id} className="card">
+            <button
+              key={user.id}
+              type="button"
+              className="card"
+              onClick={() => onUserSelect?.(user)}
+              style={{ width: "100%", textAlign: "left", cursor: "pointer" }}
+              aria-label={`Open profile @${user.username || "unknown"}`}
+            >
               <div className="row">
                 <div className="avatar">{(user.username || user.display_name || "?")[0].toUpperCase()}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -69,7 +76,7 @@ export default function UserSearch({ onClose }) {
                   {user.bio && <div className="subtitle" style={{ marginTop: 4 }}>{user.bio}</div>}
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
