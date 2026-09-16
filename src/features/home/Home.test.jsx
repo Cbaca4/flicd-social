@@ -16,20 +16,34 @@ vi.mock("../profile/PublicProfile.jsx", () => ({
   default: () => null,
 }));
 
-const startRecording = vi.fn();
+let recorderState = "idle";
+let recorderListener = null;
+const startRecording = vi.fn(async () => {
+  recorderState = "recording";
+  recorderListener?.(recorderState);
+});
+const stopRecording = vi.fn();
 
 vi.mock("../social/voiceCommentRecorder.js", () => ({
   createVoiceCommentRecorder: () => ({
     start: startRecording,
-    stop: vi.fn(),
+    stop: stopRecording,
     cancel: vi.fn(),
-    getState: () => "idle",
+    getState: () => recorderState,
     getBlob: () => null,
+    subscribe: (listener) => {
+      recorderListener = listener;
+      return () => {
+        if (recorderListener === listener) recorderListener = null;
+      };
+    },
   }),
 }));
 
 afterEach(() => {
   cleanup();
+  recorderState = "idle";
+  recorderListener = null;
   vi.clearAllMocks();
 });
 
@@ -181,5 +195,22 @@ describe("Post viewer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
     expect(startRecording).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a stop control after recording starts", async () => {
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Record voice comment" }));
+
+    expect(await screen.findByRole("button", { name: "Stop voice recording" })).toBeInTheDocument();
   });
 });
