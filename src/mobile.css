@@ -104,19 +104,19 @@ body { overflow-x: hidden; }
 
   .profile-title-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 1fr;
     align-items: start;
     gap: 10px;
   }
 
   .profile-actions {
-    width: auto;
-    justify-content: flex-end;
+    width: 100%;
+    justify-content: stretch;
     align-items: center;
   }
 
   .profile-actions .btn:first-child {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
   }
 
   .profile-actions .icon-btn {
