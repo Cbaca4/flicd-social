@@ -14,14 +14,15 @@ afterEach(() => {
 });
 
 describe("Retro 16-bit companion redesign", () => {
-  it("renders a retro 16-bit capybara sprite with distinct visible legs", () => {
+  it("renders a retro 16-bit capybara with ten visible walk frames", () => {
     render(<Companion userId="pixel-test" />);
 
     const sprite = screen.getByTestId("capybara-pixel-sprite");
 
     expect(sprite).toHaveAttribute("data-sprite-style", "retro-16bit");
     expect(sprite).toHaveAttribute("data-leg-detail", "visible");
-    expect(sprite).toHaveAttribute("data-walk-frames", "6");
+    expect(sprite).toHaveAttribute("data-walk-frames", "10");
+    expect(sprite).toHaveAttribute("data-sprite-sheet", "1152x360");
   });
 
   it("renders an actual costume from the sprite sheet", () => {
@@ -91,7 +92,7 @@ describe("Retro 16-bit companion redesign", () => {
     expect(walker).toHaveAttribute("data-motion-state", "walking");
   });
 
-  it("uses a bounded position and deliberately slow travel duration", async () => {
+  it("uses a bounded position and deliberately slow continuous travel", async () => {
     vi.useFakeTimers();
     render(<Companion userId="pixel-test" />);
 
@@ -114,6 +115,7 @@ describe("Retro 16-bit companion redesign", () => {
     expect(position).toBeGreaterThanOrEqual(10);
     expect(position).toBeLessThanOrEqual(73);
     expect(duration).toBeGreaterThanOrEqual(16000);
+    expect(walker).toHaveAttribute("data-movement", "continuous");
   });
 
   it("returns to an idle pause after each slow patrol leg", async () => {
@@ -138,6 +140,39 @@ describe("Retro 16-bit companion redesign", () => {
     });
 
     expect(walker).toHaveAttribute("data-motion-state", "idle");
+  });
+
+  it("stops the walk transition immediately when switched to sit", async () => {
+    vi.useFakeTimers();
+    render(<Companion userId="pixel-test" />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(4500);
+    });
+
+    window.dispatchEvent(
+      new CustomEvent("flicd:companion-settings", {
+        detail: {
+          enabled: true,
+          name: "Buddy",
+          costume: "none",
+          animation: "sit",
+          reactions: true,
+        },
+      }),
+    );
+
+    const walker = screen
+      .getByTestId("companion-zone")
+      .querySelector(".companion-walker");
+
+    await act(async () => {});
+
+    expect(walker).toHaveClass("companion-sit");
+    expect(walker).toHaveStyle({
+      "--companion-travel-duration": "0ms",
+    });
+    expect(walker).not.toHaveClass("companion-motion-walking");
   });
 
   it("does not render the removed talk feature", () => {
