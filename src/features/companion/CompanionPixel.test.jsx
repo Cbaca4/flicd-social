@@ -98,7 +98,7 @@ describe("Pixel companion redesign", () => {
     expect(walker).toHaveAttribute("data-motion-state", "idle");
 
     await act(async () => {
-      vi.advanceTimersByTime(2999);
+      vi.advanceTimersByTime(4499);
     });
     expect(walker).toHaveAttribute("data-motion-state", "idle");
 
@@ -117,7 +117,7 @@ describe("Pixel companion redesign", () => {
       .querySelector(".companion-walker");
 
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(4500);
     });
 
     const position = Number.parseFloat(
@@ -128,9 +128,9 @@ describe("Pixel companion redesign", () => {
       10,
     );
 
-    expect(position).toBeGreaterThanOrEqual(5);
-    expect(position).toBeLessThanOrEqual(78);
-    expect(duration).toBeGreaterThanOrEqual(11000);
+    expect(position).toBeGreaterThanOrEqual(10);
+    expect(position).toBeLessThanOrEqual(73);
+    expect(duration).toBeGreaterThanOrEqual(16000);
   });
 
   it("returns to an idle pause after each slow patrol leg", async () => {
@@ -142,7 +142,7 @@ describe("Pixel companion redesign", () => {
       .querySelector(".companion-walker");
 
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(4500);
     });
 
     const duration = Number.parseInt(
@@ -172,7 +172,7 @@ describe("Pixel companion redesign", () => {
     render(<Companion userId="pixel-test" />);
 
     await act(async () => {
-      vi.advanceTimersByTime(3000);
+      vi.advanceTimersByTime(4500);
     });
 
     window.dispatchEvent(
