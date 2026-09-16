@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Companion from "./Companion.jsx";
 import CompanionSettings from "./CompanionSettings.jsx";
 
@@ -69,6 +69,26 @@ describe("Retro 16-bit companion redesign", () => {
         "--sprite-row": row,
       });
     }
+  });
+
+  it("supports superhero preset costumes without changing the base sprite frame", () => {
+    localStorage.setItem(
+      "flicd:companion:pixel-test:settings",
+      JSON.stringify({
+        enabled: true,
+        name: "Buddy",
+        costume: "hero",
+        animation: "walk",
+        reactions: true,
+      }),
+    );
+
+    render(<Companion userId="pixel-test" />);
+
+    const sprite = screen.getByTestId("capybara-pixel-sprite");
+
+    expect(sprite).toHaveClass("companion-costume-hero");
+    expect(sprite).toHaveStyle({ "--sprite-row": "0" });
   });
 
   it("starts in an idle pause before autonomous walking begins", async () => {
@@ -173,6 +193,61 @@ describe("Retro 16-bit companion redesign", () => {
       "--companion-travel-duration": "0ms",
     });
     expect(walker).not.toHaveClass("companion-motion-walking");
+  });
+
+  it("responds with a reaction or short phrase and does not render a reaction box", async () => {
+    vi.useFakeTimers();
+    render(<Companion userId="pixel-test" />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Buddy the capybara companion/i,
+      }),
+    );
+
+    const reaction = screen.getByRole("status", {
+      name: /Companion reaction:/i,
+    });
+
+    expect(reaction).not.toHaveStyle({
+      background: expect.anything(),
+    });
+    expect(reaction.textContent.length).toBeGreaterThan(0);
+
+    await act(async () => {
+      vi.advanceTimersByTime(1600);
+    });
+
+    expect(
+      screen.queryByRole("status", { name: /Companion reaction:/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses seasonal reaction copy when a seasonal event is active", () => {
+    render(
+      <Companion
+        userId="pixel-test"
+        seasonalEvent={{
+          id: "halloween",
+          label: "Halloween",
+          interaction: { target: "candy", reaction: "excited" },
+        }}
+      />,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Buddy the capybara companion/i,
+      }),
+    );
+
+    const reaction = screen.getByRole("status", {
+      name: /Companion reaction:/i,
+    });
+
+    expect(["🎃", "👻", "🦇", "🍬", "spooky!", "trick or treat!", "boo!"]).toContain(
+      reaction.textContent,
+    );
   });
 
   it("does not render the removed talk feature", () => {
