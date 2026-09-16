@@ -12,7 +12,7 @@ vi.mock("./mediaUpload.js", () => ({
   validateMediaFiles: (files) => files,
 }));
 
-vi.mock("../rollPresentation.js", () => ({
+vi.mock("./rollPresentation.js", () => ({
   ROLL_STAGES: ["loading", "finished"],
   getNextRollStage: () => "finished",
 }));
