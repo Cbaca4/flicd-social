@@ -138,4 +138,19 @@ describe("Post viewer", () => {
     expect(screen.getByRole("button", { name: "Keep" })).toBeEnabled();
     expect(screen.getByPlaceholderText("Add a comment")).toBeEnabled();
   });
+
+  it("shows a voice comment control in the composer", () => {
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Record voice comment" })).toBeInTheDocument();
+  });
 });
