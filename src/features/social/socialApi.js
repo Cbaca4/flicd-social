@@ -61,25 +61,17 @@ export async function getFollowingIds() {
 export async function getRelationshipCounts(profileId) {
   if (!profileId) return { followers: 0, following: 0 };
 
-  const [followersResult, followingResult] = await Promise.all([
-    supabase
-      .from("follows")
-      .select("following_id", { count: "exact", head: true })
-      .eq("following_id", profileId)
-      .eq("status", "accepted"),
-    supabase
-      .from("follows")
-      .select("follower_id", { count: "exact", head: true })
-      .eq("follower_id", profileId)
-      .eq("status", "accepted"),
-  ]);
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("follower_count,following_count")
+    .eq("id", profileId)
+    .maybeSingle();
 
-  if (followersResult.error) throw followersResult.error;
-  if (followingResult.error) throw followingResult.error;
+  if (error) throw error;
 
   return {
-    followers: followersResult.count || 0,
-    following: followingResult.count || 0,
+    followers: data?.follower_count || 0,
+    following: data?.following_count || 0,
   };
 }
 
