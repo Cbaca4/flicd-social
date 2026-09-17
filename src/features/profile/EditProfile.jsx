@@ -1,6 +1,7 @@
 import React from "react";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, ImagePlus, Save } from "lucide-react";
 import { supabase } from "../../lib/supabase";
+import { removeProfilePhoto, uploadProfilePhoto } from "./profileMedia.js";
 
 export default function EditProfile({
   profile,
@@ -13,9 +14,49 @@ export default function EditProfile({
     profile.displayName || ""
   );
   const [bio, setBio] = React.useState(profile.bio || "");
+  const [avatarUrl, setAvatarUrl] = React.useState(profile.avatarUrl || "");
+  const [photoSaving, setPhotoSaving] = React.useState(false);
 
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [photoError, setPhotoError] = React.useState("");
+
+  async function handlePhotoChange(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || photoSaving) return;
+
+    setPhotoError("");
+    setPhotoSaving(true);
+    let uploadedUrl = "";
+
+    try {
+      uploadedUrl = await uploadProfilePhoto(file);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("You must be logged in to change your profile photo.");
+
+      const { data, error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: uploadedUrl })
+        .eq("id", user.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(uploadedUrl);
+      onSaved?.(data);
+      onToast?.("Profile photo updated");
+    } catch (photoUploadError) {
+      if (uploadedUrl) await removeProfilePhoto(uploadedUrl);
+      setPhotoError(photoUploadError.message || "Could not update your profile photo.");
+    } finally {
+      setPhotoSaving(false);
+    }
+  }
 
   async function handleSave(event) {
     event.preventDefault();
@@ -48,6 +89,7 @@ export default function EditProfile({
         username: cleanUsername,
         display_name: cleanDisplayName || null,
         bio: cleanBio || null,
+        avatar_url: avatarUrl || null,
       })
       .eq("id", user.id)
       .select()
@@ -73,6 +115,7 @@ export default function EditProfile({
     <div className="screen">
       <div className="topbar">
         <button
+          type="button"
           className="btn icon-btn"
           onClick={onBack}
           aria-label="Back to profile"
@@ -91,7 +134,43 @@ export default function EditProfile({
         onSubmit={handleSave}
         style={{ marginTop: 18 }}
       >
-        {/* Username */}
+        <div>
+          <label className="eyebrow" htmlFor="profile-photo">
+            Profile photo
+          </label>
+
+          <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
+            <div className="avatar lg" aria-hidden="true">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }}
+                />
+              ) : (
+                (username || "?")[0].toUpperCase()
+              )}
+            </div>
+            <div style={{ flex: 1 }}>
+              <input
+                id="profile-photo"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                disabled={photoSaving || saving}
+                aria-label="Profile photo"
+              />
+              <p className="subtitle" style={{ marginTop: 6 }}>
+                Choose a photo from your gallery. JPEG, PNG, or WebP, up to 5 MB.
+              </p>
+            </div>
+            <ImagePlus size={20} className="muted" aria-hidden="true" />
+          </div>
+
+          {photoSaving ? <p className="subtitle" style={{ marginTop: 7 }}>Uploading photo...</p> : null}
+          {photoError ? <p className="subtitle" style={{ marginTop: 7, color: "var(--danger, #ff6b6b)" }}>{photoError}</p> : null}
+        </div>
+
         <div>
           <label
             className="eyebrow"
@@ -116,7 +195,6 @@ export default function EditProfile({
           </p>
         </div>
 
-        {/* Display Name */}
         <div>
           <label
             className="eyebrow"
@@ -142,7 +220,6 @@ export default function EditProfile({
           </p>
         </div>
 
-        {/* Bio */}
         <div>
           <label
             className="eyebrow"
@@ -172,7 +249,6 @@ export default function EditProfile({
           </p>
         </div>
 
-        {/* Error */}
         {error && (
           <div
             className="card"
@@ -184,11 +260,10 @@ export default function EditProfile({
           </div>
         )}
 
-        {/* Save */}
         <button
           className="btn btn-primary"
           type="submit"
-          disabled={saving}
+          disabled={saving || photoSaving}
         >
           <Save size={15} />
 
