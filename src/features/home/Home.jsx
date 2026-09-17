@@ -1,5 +1,5 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import UserSearch from './UserSearch.jsx';
 import PublicProfile from '../profile/PublicProfile.jsx';
@@ -8,6 +8,7 @@ import { getDumpItemMediaUrl } from './mediaUrl.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
 import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 import GifPicker from '../social/GifPicker.jsx';
+import VideoCommentPicker from '../social/VideoCommentPicker.jsx';
 
 function timeLeft(post){
   if(post.mode==='once')return post.viewed?'expired':'view once';
@@ -90,6 +91,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [voiceReviewBlob,setVoiceReviewBlob]=React.useState(null);
   const [voiceReviewUrl,setVoiceReviewUrl]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
+  const [videoPickerOpen,setVideoPickerOpen]=React.useState(false);
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
   React.useEffect(()=>{onMarkViewed?.(post.id)},[onMarkViewed,post.id]);
@@ -131,6 +133,15 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     });
     setGifPickerOpen(false);
   };
+  const handleVideoSelect=(video)=>{
+    if(!video?.mediaBlob)return;
+    onComment(post.id,{
+      media_type:'video',
+      media_blob:video.mediaBlob,
+      media_metadata:video.mediaMetadata||null,
+    });
+    setVideoPickerOpen(false);
+  };
   const cancelVoice=()=>{
     recorderRef.current?.cancel();
     setRecording(false);
@@ -143,5 +154,5 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     recorderRef.current?.cancel();
     setVoiceReviewBlob(null);
   };
-  return <div className="screen" style={{paddingBottom:28}}><div className="topbar"><button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button><span className="tag flicd-mono">{timeLeft(post)}</span></div><div className="card"><MediaFrame item={item} index={index} post={post}/>{post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}<div className="post-actions"><button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button><button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button></div><section className="post-conversation" aria-label="Conversation"><div className="stack">{post.comments.length?<>{post.comments.map(c=>(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia key={c.id} comment={c}/>:<p key={c.id} className="subtitle"><strong style={{color:'var(--text)'}}>@{c.from}</strong> {c.text}</p>)}</>:<p className="subtitle">No comments yet.</p>}</div>{voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment"/><button className="btn" type="button" aria-label="Choose GIF" onClick={()=>setGifPickerOpen(true)}>GIF</button><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice}><Mic size={16}/></button><button className="btn btn-primary" disabled={!text.trim()} onClick={()=>{onComment(post.id,text.trim());setText('')}}>Send</button></div>}{gifPickerOpen&&<GifPicker onSelect={handleGifSelect} onClose={()=>setGifPickerOpen(false)}/>}</section></div></div>;
+  return <div className="screen" style={{paddingBottom:28}}><div className="topbar"><button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button><span className="tag flicd-mono">{timeLeft(post)}</span></div><div className="card"><MediaFrame item={item} index={index} post={post}/>{post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}<div className="post-actions"><button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button><button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button></div><section className="post-conversation" aria-label="Conversation"><div className="stack">{post.comments.length?<>{post.comments.map(c=>(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia key={c.id} comment={c}/>:<p key={c.id} className="subtitle"><strong style={{color:'var(--text)'}}>@{c.from}</strong> {c.text}</p>)}</>:<p className="subtitle">No comments yet.</p>}</div>{voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment"/><button className="btn" type="button" aria-label="Choose GIF" onClick={()=>setGifPickerOpen(true)}>GIF</button><button className="btn icon-btn" type="button" aria-label="Choose video" onClick={()=>setVideoPickerOpen(true)}><Video size={16}/></button><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice}><Mic size={16}/></button><button className="btn btn-primary" disabled={!text.trim()} onClick={()=>{onComment(post.id,text.trim());setText('')}}>Send</button></div>}{gifPickerOpen&&<GifPicker onSelect={handleGifSelect} onClose={()=>setGifPickerOpen(false)}/>} {videoPickerOpen&&<VideoCommentPicker onSelect={handleVideoSelect} onClose={()=>setVideoPickerOpen(false)}/>}</section></div></div>;
 }
