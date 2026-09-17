@@ -33,11 +33,11 @@ import {
   uploadDumpImages,
 } from "../features/capture/mediaUpload.js";
 import {
-  addComment,
   hydrateDumpInteractions,
   likeDump,
   unlikeDump,
 } from "../features/social/interactionsApi.js";
+import { createCommentAction } from "../features/social/commentAction.js";
 
 import Messages from "../features/messages/Messages.jsx";
 import Profile from "../features/profile/Profile.jsx";
@@ -214,20 +214,14 @@ export default function FlicdApp() {
     }
   };
 
-  const comment = async (id, text) => {
-    const cleanText = String(text || "").trim();
-    if (!cleanText) return;
-    try {
-      const savedComment = await addComment(id, cleanText);
-      setDumps((currentDumps) => currentDumps.map((post) => post.id === id ? {
-        ...post,
-        comments: [...post.comments, { id: savedComment.id, from: supabaseProfile?.username || "you", text: savedComment.text, created_at: savedComment.created_at }],
-      } : post));
-    } catch (error) {
-      console.error("Failed to add comment:", error);
-      onToast(error.message || "Could not add comment");
-    }
-  };
+  const comment = React.useCallback(async (id, input) => {
+    if (typeof input === "string" && !input.trim()) return;
+    return createCommentAction({
+      setDumps,
+      username: supabaseProfile?.username || "you",
+      onToast,
+    })(id, input);
+  }, [supabaseProfile?.username]);
 
   const keep = async (post, index) => {
     try {
