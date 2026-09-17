@@ -4,6 +4,7 @@ import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import PublicProfile from "./PublicProfile.jsx";
 
 const getRelationshipCounts = vi.hoisted(() => vi.fn());
 const getPublicProfile = vi.hoisted(() => vi.fn());
