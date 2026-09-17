@@ -44,6 +44,7 @@ import Profile from "../features/profile/Profile.jsx";
 import ProfileStudio from "../features/profile/ProfileStudio.jsx";
 import EditProfile from "../features/profile/EditProfile.jsx";
 import Discovery from "../features/discovery/Discovery.jsx";
+import PublicProfile from "../features/profile/PublicProfile.jsx";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
 
 import {
@@ -52,7 +53,7 @@ import {
 } from "../features/profile/profileTheme.js";
 
 const seedSpaces = [
-  { id: "main", handle: "you", label: "Main", followers: 128, following: 94 },
+  { id: "main", handle: "you", label: "Main", followers: 0, following: 0 },
   { id: "gym", handle: "gym_log", label: "Gym", followers: 42, following: 12 },
   { id: "music", handle: "the.setlist", label: "Music", followers: 301, following: 58 },
 ];
@@ -81,6 +82,7 @@ export default function FlicdApp() {
   const [chats, setChats] = React.useState([]);
   const [theme, setTheme] = React.useState(() => sanitizeProfileTheme(DEFAULT_THEME));
   const [supabaseProfile, setSupabaseProfile] = React.useState(null);
+  const [publicProfile, setPublicProfile] = React.useState(null);
   const [toast, setToast] = React.useState("");
 
   React.useEffect(() => {
@@ -177,7 +179,7 @@ export default function FlicdApp() {
       try {
         setBoards(await getBoards());
       } catch (error) {
-        console.error("Failed to load boards:", error);
+        console.error("Failed to load Boards:", error);
       }
     }
     loadBoards();
@@ -187,6 +189,9 @@ export default function FlicdApp() {
   const activePost = dumps.find((dump) => dump.id === activePostId);
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
+  const openPublicProfile = React.useCallback((user) => {
+    if (user?.id) setPublicProfile(user);
+  }, []);
 
   const [pendingLikeIds, setPendingLikeIds] = React.useState(() => new Set());
 
@@ -292,7 +297,7 @@ export default function FlicdApp() {
       }));
 
       const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: itemsWithPaths[0]?.note || "new dump", frameCount: itemsWithPaths.length, items: itemsWithPaths });
-      const newDump = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump" };
+      const newDump = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump" };
       setDumps((currentDumps) => [newDump, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -311,7 +316,7 @@ export default function FlicdApp() {
       uploadedPaths = await uploadDumpImages(imageFiles);
       const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null }));
       const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items: itemsWithPaths });
-      const newRoll = { id: savedDump.id, channel, author: activeSpace.handle, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll` };
+      const newRoll = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll` };
       setDumps((currentDumps) => [newRoll, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -324,6 +329,7 @@ export default function FlicdApp() {
   };
 
   const profile = {
+    id: supabaseProfile?.id || session.user.id,
     handle: supabaseProfile?.username || activeSpace.handle,
     displayName: supabaseProfile?.display_name || "",
     bio: supabaseProfile?.bio || "",
@@ -336,10 +342,12 @@ export default function FlicdApp() {
 
   let content;
 
-  if (screen === "home") {
-    content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} />;
+  if (publicProfile) {
+    content = <PublicProfile profile={publicProfile} onBack={() => setPublicProfile(null)} />;
+  } else if (screen === "home") {
+    content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} onUserSelect={openPublicProfile} />;
   } else if (screen === "discover") {
-    content = <Discovery onToast={onToast} />;
+    content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
   } else if (screen === "messages") {
     content = <Messages requests={requests} setRequests={setRequests} chats={chats} setChats={setChats} onToast={onToast} />;
   } else if (screen === "profile") {
@@ -359,7 +367,7 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={() => {}} likePending={pendingLikeIds.has(activePost.id)} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" />;
+    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={() => {}} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
   const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces"].includes(screen) ? (screen === "profile-settings" || screen === "edit-profile" || screen === "boards" || screen === "spaces" ? "profile" : "home") : screen;
