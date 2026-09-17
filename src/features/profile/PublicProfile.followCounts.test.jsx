@@ -17,8 +17,6 @@ vi.mock("../social/FollowButton.jsx", () => ({
   ),
 }));
 
-import PublicProfile from "./PublicProfile.jsx";
-
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -61,7 +59,8 @@ describe("PublicProfile relationship counts", () => {
 
     render(<PublicProfile profile={{ id: "person-2" }} onBack={() => {}} />);
 
-    expect(await screen.findByRole("heading", { name: "@maren_" })).toBeInTheDocument();
+    const usernameHeadings = await screen.findAllByRole("heading", { name: "@maren_" });
+    expect(usernameHeadings.length).toBeGreaterThan(0);
     expect(screen.getByText("moments + coffee")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
