@@ -21,6 +21,7 @@ vi.mock("../social/socialApi.js", () => ({
   getCurrentProfile: vi.fn().mockResolvedValue({ is_private: false }),
   setPrivateAccount: vi.fn(),
   getPendingFollowRequests: vi.fn().mockResolvedValue([]),
+  getRelationshipCounts: vi.fn().mockResolvedValue({ followers: 12, following: 8 }),
 }));
 
 describe("handheld profile layout", () => {
@@ -55,6 +56,30 @@ describe("handheld profile layout", () => {
       screen.getByRole("button", { name: "Edit Profile" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
+  });
+
+  it("renders the saved profile photo instead of the fallback initial", () => {
+    render(
+      <Profile
+        profile={{
+          id: "user-1",
+          handle: "baco",
+          avatarUrl: "https://cdn.example/avatar.jpg",
+          followers: 12,
+          following: 8,
+        }}
+        activeSpace={{ label: "Personal", handle: "baco" }}
+        theme={DEFAULT_THEME}
+        boards={[]}
+        onEditProfile={() => {}}
+        onCustomize={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("img", { name: "@baco profile" })).toHaveAttribute(
+      "src",
+      "https://cdn.example/avatar.jpg",
+    );
   });
 
   it("keeps the full Profile Studio form usable after editing Favorite artist", () => {
