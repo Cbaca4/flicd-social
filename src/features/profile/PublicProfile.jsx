@@ -9,15 +9,17 @@ export default function PublicProfile({ profile, onBack }) {
     followers: profile?.followers ?? 0,
     following: profile?.following ?? 0,
   }));
+  const relationshipVersion = React.useRef(0);
   const avatarSource = profile?.avatar_url || profile?.username || profile?.display_name || "?";
   const avatarLabel = avatarSource[0]?.toUpperCase() || "?";
 
   React.useEffect(() => {
     if (!profile?.id) return undefined;
     let active = true;
+    const requestVersion = relationshipVersion.current;
     getRelationshipCounts(profile.id)
       .then((counts) => {
-        if (active) setRelationshipCounts(counts);
+        if (active && relationshipVersion.current === requestVersion) setRelationshipCounts(counts);
       })
       .catch(() => {});
     return () => {
@@ -25,12 +27,13 @@ export default function PublicProfile({ profile, onBack }) {
     };
   }, [profile?.id]);
 
-  const handleFollowChange = (nextStatus) => {
+  const handleFollowChange = (nextStatus, previousStatus) => {
+    relationshipVersion.current += 1;
     setRelationshipCounts((current) => {
-      if (nextStatus === "accepted") {
+      if (nextStatus === "accepted" && previousStatus !== "accepted") {
         return { ...current, followers: current.followers + 1 };
       }
-      if (nextStatus === null) {
+      if (nextStatus === null && previousStatus === "accepted") {
         return { ...current, followers: Math.max(0, current.followers - 1) };
       }
       return current;
