@@ -19,6 +19,17 @@ export async function getCurrentProfile() {
   return data;
 }
 
+export async function getPublicProfile(profileId) {
+  if (!profileId) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id,username,display_name,bio,avatar_url,profile_theme,is_private")
+    .eq("id", profileId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function ensureCurrentProfile() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError) throw authError;
