@@ -15,6 +15,18 @@ vi.mock("./UserSearch.jsx", () => ({
 vi.mock("../profile/PublicProfile.jsx", () => ({
   default: () => null,
 }));
+vi.mock("../../lib/supabase", () => ({
+  supabase: {
+    storage: {
+      from: vi.fn(() => ({
+        createSignedUrl: vi.fn(async () => ({
+          data: { signedUrl: "https://media.example.test/comment-audio.webm" },
+          error: null,
+        })),
+      })),
+    },
+  },
+}));
 
 let recorderState = "idle";
 let recorderListener = null;
@@ -261,5 +273,32 @@ describe("Post viewer", () => {
       media_type: "audio",
       media_blob: voiceBlob,
     });
+  });
+
+  it("renders a saved audio comment with a signed storage URL", async () => {
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [{
+            id: "comment-audio-1",
+            from: "mia",
+            text: null,
+            media_type: "audio",
+            media_url: null,
+            media_path: "user-1/comments/voice-1.webm",
+            media_metadata: { duration_seconds: 8 },
+          }],
+        }}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    const audio = await screen.findByLabelText("Audio comment");
+    expect(audio).toHaveAttribute("src", "https://media.example.test/comment-audio.webm");
   });
 });
