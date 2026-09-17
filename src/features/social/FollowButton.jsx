@@ -19,11 +19,12 @@ export default function FollowButton({ userId, onChange, compact = false }) {
 
   const handleClick = async () => {
     if (saving || status === "loading") return;
+    const previousStatus = status;
     try {
       setSaving(true);
       const next = status ? await unfollowUser(userId) : await followUser(userId);
       setStatus(next);
-      onChange?.(next);
+      onChange?.(next, previousStatus);
     } catch (error) {
       console.error("Follow action failed:", error);
     } finally {
