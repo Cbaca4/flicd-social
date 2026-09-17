@@ -175,7 +175,17 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
     <div className="screen" style={{ background: theme.background }}>
       <div className="profile-hero">
         <div className="profile-heading">
-          <div className="avatar lg">{profile.handle[0].toUpperCase()}</div>
+          <div className="avatar lg">
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={`@${profile.handle} profile`}
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit", display: "block" }}
+              />
+            ) : (
+              profile.handle[0].toUpperCase()
+            )}
+          </div>
           <div className="profile-identity">
             <div className="profile-title-row">
               <div>
