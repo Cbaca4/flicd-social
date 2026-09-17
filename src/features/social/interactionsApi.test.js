@@ -198,9 +198,15 @@ describe("social interactions API", () => {
           media_path: null,
           media_metadata: null,
           created_at: "2026-09-16T10:00:00Z",
+          user_id: "friend",
         }],
       },
-      { id: "dump-2", likes: 1, liked: false, comments: [] },
+      {
+        id: "dump-2",
+        likes: 1,
+        liked: false,
+        comments: [],
+      },
     ]);
   });
 });
