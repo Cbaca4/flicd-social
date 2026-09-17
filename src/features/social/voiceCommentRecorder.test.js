@@ -51,6 +51,33 @@ describe("voice comment recorder", () => {
     expect(trackStop).toHaveBeenCalled();
   });
 
+  it("keeps a cancelled recording in idle when MediaRecorder fires onstop later", async () => {
+    const { createVoiceCommentRecorder } = await import("./voiceCommentRecorder.js");
+    const trackStop = vi.fn();
+    const stream = { getTracks: () => [{ stop: trackStop }] };
+    const recorder = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      ondataavailable: null,
+      onstop: null,
+      mimeType: "audio/webm",
+    };
+    function MediaRecorder() {
+      return recorder;
+    }
+    const getUserMedia = vi.fn().mockResolvedValue(stream);
+    const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
+
+    await controller.start();
+    controller.cancel();
+    recorder.ondataavailable({ data: new Blob(["should not save"], { type: "audio/webm" }) });
+    recorder.onstop();
+
+    expect(controller.getState()).toBe("idle");
+    expect(controller.getBlob()).toBeNull();
+    expect(trackStop).toHaveBeenCalled();
+  });
+
   it("notifies subscribers when review is ready", async () => {
     const { createVoiceCommentRecorder } = await import("./voiceCommentRecorder.js");
     const stream = { getTracks: () => [{ stop: vi.fn() }] };
