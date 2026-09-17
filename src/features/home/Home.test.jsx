@@ -323,6 +323,34 @@ describe("Post viewer", () => {
     expect(await screen.findByText("No comments yet.")).toBeInTheDocument();
   });
 
+  it("shows Report for another user's comment and sends the selected reason", async () => {
+    const onReportComment = vi.fn().mockResolvedValue(true);
+
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [{ id: "other", user_id: "friend-id", from: "mia", text: "their comment" }],
+        }}
+        currentUserId="me"
+        onReportComment={onReportComment}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Report comment" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Report comment" }));
+    expect(screen.getByText("Report this comment")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Spam" }));
+
+    expect(onReportComment).toHaveBeenCalledWith("other", "spam");
+    expect(await screen.findByText("Comment reported.")).toBeInTheDocument();
+  });
+
   it("renders a saved audio comment with a signed storage URL", async () => {
     render(
       <Viewer
