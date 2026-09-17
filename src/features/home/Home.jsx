@@ -9,6 +9,7 @@ import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
 import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 import GifPicker from '../social/GifPicker.jsx';
 import VideoCommentPicker from '../social/VideoCommentPicker.jsx';
+import '../social/CommentComposer.css';
 
 function timeLeft(post){
   if(post.mode==='once')return post.viewed?'expired':'view once';
