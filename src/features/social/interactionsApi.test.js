@@ -120,6 +120,18 @@ describe("social interactions API", () => {
     await expect(addComment("dump-1", "x".repeat(501))).rejects.toThrow("500 characters or fewer");
   });
 
+  it("deletes a comment for the current user", async () => {
+    const query = chain({ data: null, error: null });
+    from.mockReturnValue(query);
+
+    const { deleteComment } = await import("./interactionsApi.js");
+    await deleteComment("comment-1");
+
+    expect(query.delete).toHaveBeenCalled();
+    expect(query.eq).toHaveBeenCalledWith("id", "comment-1");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "me");
+  });
+
   it("hydrates feed interaction counts and current-user state with usernames", async () => {
     const likes = chain({
       data: [
