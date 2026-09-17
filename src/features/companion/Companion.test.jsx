@@ -88,6 +88,29 @@ describe("Companion", () => {
     expect(screen.queryByText("just vibin' 🦫")).not.toBeInTheDocument();
   });
 
+  it("uses a slow patrol leg and a measured walk cycle", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    render(<Companion userId="u1" />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(4500);
+    });
+
+    const walker = screen
+      .getByTestId("companion-zone")
+      .querySelector(".companion-walker");
+
+    expect(walker).toHaveClass("companion-motion-walking");
+    expect(walker).toHaveStyle({
+      "--companion-travel-duration": "41250ms",
+      "--companion-walk-cycle": "1400ms",
+    });
+    expect(walker).toHaveAttribute("data-movement", "continuous");
+    expect(walker).toHaveAttribute("data-walk-speed", "slow");
+  });
+
   it("stops the walking transition immediately when sitting is selected", async () => {
     vi.useFakeTimers();
     render(<Companion userId="u1" />);
