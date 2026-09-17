@@ -13,14 +13,23 @@ vi.mock("../lib/supabase", () => ({
       getSession: vi.fn(async () => ({
         data: { session: { user: { id: "user-1" } } },
       })),
-      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
-      getUser: vi.fn(async () => ({ data: { user: { id: "user-1" } } })),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+      getUser: vi.fn(async () => ({
+        data: { user: { id: "user-1" } },
+      })),
     },
     from: vi.fn(() => ({
       select: vi.fn(() => ({
-        eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: { username: "baco" }, error: null })) })),
+        eq: vi.fn(() => ({
+          maybeSingle: vi.fn(async () => ({
+            data: { username: "baco" },
+            error: null,
+          })),
+        })),
       })),
-    }),
+    })),
   },
 }));
 
@@ -61,12 +70,17 @@ vi.mock("../features/capture/mediaUpload.js", () => ({
   uploadDumpImages: vi.fn(),
 }));
 
-vi.mock("./AppShell.jsx", () => ({ default: ({ children }) => <div>{children}</div> }));
+vi.mock("./AppShell.jsx", () => ({
+  default: ({ children }) => <div>{children}</div>,
+}));
 vi.mock("../features/auth/Auth.jsx", () => ({ default: () => <div>auth</div> }));
 vi.mock("../features/profile/Boards.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/BoardStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => null }));
-vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => null, RollBuilder: () => null }));
+vi.mock("../features/capture/CaptureBuilders.jsx", () => ({
+  DumpBuilder: () => null,
+  RollBuilder: () => null,
+}));
 vi.mock("../features/messages/Messages.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/Profile.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/ProfileStudio.jsx", () => ({ default: () => null }));
@@ -83,7 +97,10 @@ vi.mock("../features/home/Home.jsx", () => ({
   Viewer: ({ post, onComment }) => (
     <button
       type="button"
-      onClick={() => onComment(post.id, { media_type: "audio", media_blob: new Blob(["voice"], { type: "audio/webm" }) })}
+      onClick={() => onComment(post.id, {
+        media_type: "audio",
+        media_blob: new Blob(["voice"], { type: "audio/webm" }),
+      })}
     >
       Send voice comment
     </button>
