@@ -111,6 +111,64 @@ describe("Companion", () => {
     expect(walker).toHaveAttribute("data-walk-speed", "slow");
   });
 
+  it("freezes at the current on-screen position when sitting is selected", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    render(<Companion userId="u1" />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(4500);
+    });
+
+    const zone = screen.getByTestId("companion-zone");
+    const walker = zone.querySelector(".companion-walker");
+
+    vi.spyOn(zone, "getBoundingClientRect").mockReturnValue({
+      left: 100,
+      top: 0,
+      right: 1100,
+      bottom: 100,
+      width: 1000,
+      height: 100,
+      x: 100,
+      y: 0,
+      toJSON: () => {},
+    });
+    vi.spyOn(walker, "getBoundingClientRect").mockReturnValue({
+      left: 520,
+      top: 20,
+      right: 616,
+      bottom: 98,
+      width: 96,
+      height: 78,
+      x: 520,
+      y: 20,
+      toJSON: () => {},
+    });
+
+    await act(async () => {
+      window.dispatchEvent(
+        new CustomEvent("flicd:companion-settings", {
+          detail: {
+            enabled: true,
+            name: "Buddy",
+            costume: "none",
+            animation: "sit",
+            reactions: true,
+          },
+        }),
+      );
+    });
+
+    expect(walker).toHaveClass("companion-sit");
+    expect(walker).not.toHaveClass("companion-motion-walking");
+    expect(walker).toHaveStyle({
+      "--companion-position": "42%",
+      "--companion-travel-duration": "0ms",
+    });
+  });
+
   it("stops the walking transition immediately when sitting is selected", async () => {
     vi.useFakeTimers();
     render(<Companion userId="u1" />);
