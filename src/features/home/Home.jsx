@@ -70,7 +70,9 @@ function SavedCommentMedia({comment}){
   },[comment?.media_path,comment?.media_url]);
 
   if(comment?.media_type==='video'){
-    return <div className="comment-media" aria-label="Saved video comment">{error?<span className="subtitle">Video unavailable.</span>:url?<video aria-label="Video comment" controls src={url}/>:<span className="subtitle">Loading video…</span>}</div>;
+    const durationSeconds=Number(comment?.media_metadata?.duration_seconds);
+    const durationLabel=Number.isFinite(durationSeconds)&&durationSeconds>0?`${Math.round(durationSeconds)}s`:null;
+    return <div className="comment-media" aria-label="Saved video comment"><div style={{position:'relative'}}>{error?<span className="subtitle">Video unavailable.</span>:url?<video aria-label="Video comment" controls src={url}/>:<span className="subtitle">Loading video…</span>}{durationLabel&&<span className="tag flicd-mono" style={{position:'absolute',top:8,right:8}}>{durationLabel}</span>}</div></div>;
   }
 
   return <div className="comment-media" aria-label="Saved audio comment">{error?<span className="subtitle">Audio unavailable.</span>:url?<audio aria-label="Audio comment" controls src={url}/>:<span className="subtitle">Loading audio…</span>}</div>;
