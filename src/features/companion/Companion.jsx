@@ -57,6 +57,24 @@ function getPatrolTravelDuration(distance) {
   );
 }
 
+function getCurrentPatrolPosition(walkerElement, zoneElement) {
+  if (!walkerElement || !zoneElement) return null;
+
+  const zoneRect = zoneElement.getBoundingClientRect();
+  const walkerRect = walkerElement.getBoundingClientRect();
+  const zoneWidth = zoneRect.width;
+
+  if (!Number.isFinite(zoneWidth) || zoneWidth <= 0) return null;
+
+  const rawPosition = ((walkerRect.left - zoneRect.left) / zoneWidth) * 100;
+  const clampedPosition = Math.min(
+    PATROL_MAX_POSITION,
+    Math.max(PATROL_MIN_POSITION, rawPosition),
+  );
+
+  return Math.round(clampedPosition * 10) / 10;
+}
+
 function PixelCapybara({ costume, seasonalEventId }) {
   const spriteRow = SPRITE_ROWS[costume] ?? SPRITE_ROWS.none;
 
@@ -86,9 +104,12 @@ export default function Companion({ userId, seasonalEvent = null }) {
     direction: 1,
     motion: "idle",
     travelDuration: 0,
+    frozen: false,
   });
 
   const patrolPositionRef = React.useRef(INITIAL_POSITION);
+  const zoneRef = React.useRef(null);
+  const walkerRef = React.useRef(null);
   const activeSeasonalEvent = seasonalEvent || getActiveSeasonalEvent();
   const seasonalEventId = activeSeasonalEvent?.id || null;
   const isWalking = settings.animation === "walk";
@@ -102,6 +123,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
       direction: 1,
       motion: "idle",
       travelDuration: 0,
+      frozen: false,
     });
   }, [userId]);
 
@@ -112,9 +134,24 @@ export default function Companion({ userId, seasonalEvent = null }) {
         : loadCompanionSettings(userId);
 
       if (nextSettings.animation === "sit") {
+        const measuredPosition = getCurrentPatrolPosition(
+          walkerRef.current,
+          zoneRef.current,
+        );
+        const frozenPosition = measuredPosition ?? patrolPositionRef.current;
+
+        patrolPositionRef.current = frozenPosition;
         setPatrol((current) => ({
           ...current,
+          position: frozenPosition,
           motion: "idle",
+          travelDuration: 0,
+          frozen: true,
+        }));
+      } else {
+        setPatrol((current) => ({
+          ...current,
+          frozen: false,
           travelDuration: 0,
         }));
       }
@@ -137,6 +174,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
         ...current,
         motion: "idle",
         travelDuration: 0,
+        frozen: false,
       }));
       return undefined;
     }
@@ -165,6 +203,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
           direction: nextPosition >= currentPosition ? 1 : -1,
           motion: "walking",
           travelDuration,
+          frozen: false,
         });
 
         travelTimer = window.setTimeout(() => {
@@ -174,6 +213,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
             ...current,
             motion: "idle",
             travelDuration: 0,
+            frozen: false,
           }));
 
           scheduleNextLeg(getRandomInt(PATROL_MIN_PAUSE, PATROL_MAX_PAUSE));
@@ -203,6 +243,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
     `companion-${settings.animation}`,
     `companion-season-${seasonalEventId || "none"}`,
     isWalking ? `companion-motion-${patrol.motion}` : "",
+    patrol.frozen ? "companion-frozen" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -214,16 +255,19 @@ export default function Companion({ userId, seasonalEvent = null }) {
 
   return (
     <div
+      ref={zoneRef}
       className="companion-zone"
       data-testid="companion-zone"
       data-seasonal-event={seasonalEventId || "none"}
       aria-label="Companion area"
     >
       <div
+        ref={walkerRef}
         className={walkerClassName}
         data-motion-state={isWalking ? patrol.motion : undefined}
         data-movement="continuous"
         data-walk-speed={isWalking ? "slow" : undefined}
+        data-motion-frozen={patrol.frozen ? "true" : "false"}
         style={{
           "--companion-position": `${patrol.position}%`,
           "--companion-travel-duration": isWalking
