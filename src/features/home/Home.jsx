@@ -70,7 +70,7 @@ function SavedCommentMedia({comment}){
   },[comment?.media_path,comment?.media_url]);
 
   if(comment?.media_type==='gif'){
-    return <div className="comment-media" aria-label="GIF comment">{error?<span className="subtitle">GIF unavailable.</span>:url?<img src={url} alt={comment?.media_metadata?.title||'GIF comment'} style={{maxWidth:'100%',borderRadius:14,display:'block'}}/>:<span className="subtitle">Loading GIF…</span>}</div>;
+    return <div className="comment-media">{error?<span className="subtitle">GIF unavailable.</span>:url?<img aria-label="GIF comment" src={url} alt={comment?.media_metadata?.title||'GIF comment'} style={{maxWidth:'100%',borderRadius:14,display:'block'}}/>:<span className="subtitle">Loading GIF…</span>}</div>;
   }
 
   if(comment?.media_type==='video'){
