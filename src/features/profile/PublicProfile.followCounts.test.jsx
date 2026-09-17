@@ -22,6 +22,7 @@ import PublicProfile from "./PublicProfile.jsx";
 describe("PublicProfile relationship counts", () => {
   it("increments followers when a follow becomes accepted", () => {
     getRelationshipCounts.mockResolvedValue({ followers: 4, following: 2 });
+    getPublicProfile.mockResolvedValue(null);
 
     render(
       <PublicProfile
