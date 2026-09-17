@@ -130,7 +130,7 @@ describe("Post viewer", () => {
     postedMinutesAgo: 20,
     liked: false,
     likes: 4,
-    comments: [{ id: "comment-1", from: "mia", text: "love this" }],
+    comments: [{ id: "comment-1", user_id: "friend-id", from: "mia", text: "love this" }],
     items: [{ id: "item-1", note: "one moment" }],
   };
 
@@ -273,6 +273,54 @@ describe("Post viewer", () => {
       media_type: "audio",
       media_blob: voiceBlob,
     });
+  });
+
+  it("shows Delete only for the current user's comment", () => {
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [
+            { id: "own", user_id: "me", from: "baco", text: "my comment" },
+            { id: "other", user_id: "friend-id", from: "mia", text: "their comment" },
+          ],
+        }}
+        currentUserId="me"
+        onDeleteComment={() => {}}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Delete comment" })).toBeInTheDocument();
+  });
+
+  it("deletes the current user's comment from the viewer after success", async () => {
+    const onDeleteComment = vi.fn().mockResolvedValue(true);
+
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [{ id: "own", user_id: "me", from: "baco", text: "my comment" }],
+        }}
+        currentUserId="me"
+        onDeleteComment={onDeleteComment}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete comment" }));
+
+    expect(onDeleteComment).toHaveBeenCalledWith("own");
+    expect(await screen.findByText("No comments yet.")).toBeInTheDocument();
   });
 
   it("renders a saved audio comment with a signed storage URL", async () => {
