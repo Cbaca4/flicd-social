@@ -301,4 +301,33 @@ describe("Post viewer", () => {
     const audio = await screen.findByLabelText("Audio comment");
     expect(audio).toHaveAttribute("src", "https://media.example.test/comment-audio.webm");
   });
+
+  it("renders a saved video comment with a signed storage URL and controls", async () => {
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [{
+            id: "comment-video-1",
+            from: "mia",
+            text: null,
+            media_type: "video",
+            media_url: null,
+            media_path: "user-1/comments/clip-1.mp4",
+            media_metadata: { duration_seconds: 12 },
+          }],
+        }}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    const video = await screen.findByLabelText("Video comment");
+    expect(video).toHaveAttribute("src", "https://media.example.test/comment-audio.webm");
+    expect(video).toHaveAttribute("controls");
+    expect(screen.getByText("12s")).toBeInTheDocument();
+  });
 });
