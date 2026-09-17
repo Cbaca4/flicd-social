@@ -287,7 +287,7 @@
 }
 
 .companion-walk.companion-motion-walking .capybara-pixel-sprite {
-  animation: capySpriteWalk 800ms step-end infinite;
+  animation: capySpriteWalk var(--companion-walk-cycle, 1400ms) steps(1, end) infinite;
 }
 
 .companion-walk.companion-motion-idle .capybara-pixel-sprite {

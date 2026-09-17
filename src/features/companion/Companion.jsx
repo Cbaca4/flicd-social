@@ -21,8 +21,8 @@ const PATROL_START_DELAY = 4500;
 const PATROL_MIN_PAUSE = 4000;
 const PATROL_MAX_PAUSE = 7000;
 const PATROL_MIN_TRAVEL = 16000;
-const PATROL_MAX_TRAVEL = 32000;
-const PATROL_MS_PER_PERCENT = 400;
+const PATROL_MAX_TRAVEL = 60000;
+const PATROL_MS_PER_PERCENT = 750;
 const INITIAL_POSITION = 18;
 
 function getRandomInt(min, max) {
@@ -229,6 +229,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
           "--companion-travel-duration": isWalking
             ? `${patrol.travelDuration}ms`
             : "0ms",
+          "--companion-walk-cycle": isWalking ? "1400ms" : "0ms",
           "--capy-facing": patrol.direction,
         }}
       >
