@@ -132,6 +132,20 @@ describe("social interactions API", () => {
     expect(query.eq).toHaveBeenCalledWith("user_id", "me");
   });
 
+  it("reports a comment for the current user with a reason", async () => {
+    const query = chain({ data: { id: "report-1" }, error: null });
+    from.mockReturnValue(query);
+
+    const { reportComment } = await import("./interactionsApi.js");
+    await reportComment("comment-2", "spam");
+
+    expect(query.insert).toHaveBeenCalledWith({
+      comment_id: "comment-2",
+      reporter_id: "me",
+      reason: "spam",
+    });
+  });
+
   it("hydrates feed interaction counts and current-user state with usernames", async () => {
     const likes = chain({
       data: [
