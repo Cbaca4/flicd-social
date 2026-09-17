@@ -47,8 +47,9 @@ describe("GIPHY API", () => {
 
     await searchGifs("cat & dog", { apiKey: "test", limit: 12 });
 
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("q=cat%20%26%20dog"));
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("rating=pg-13"));
+    const requestUrl = new URL(fetch.mock.calls[0][0]);
+    expect(requestUrl.searchParams.get("q")).toBe("cat & dog");
+    expect(requestUrl.searchParams.get("rating")).toBe("pg-13");
   });
 
   it("fails clearly when no API key is configured", async () => {
