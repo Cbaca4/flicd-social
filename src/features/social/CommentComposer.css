@@ -10,4 +10,7 @@
 .comment-composer{align-items:center;flex-wrap:wrap}
 .comment-composer .input{min-width:180px;flex:1 1 220px}
 .comment-composer .btn{flex:0 0 auto}
+.comment-author-link{border:0;background:transparent;color:var(--text);font:inherit;font-weight:700;padding:0;cursor:pointer}
+.comment-author-link:hover{text-decoration:underline}
+.comment-author-link:focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
 @media(max-width:600px){.comment-composer{gap:7px}.comment-composer .btn{padding:10px 11px}.comment-composer .icon-btn{width:40px;height:40px}.comment-pending>img{width:64px;height:64px}.comment-pending__video-wrap video{width:190px;max-height:120px}}
