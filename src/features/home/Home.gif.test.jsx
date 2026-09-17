@@ -80,8 +80,8 @@ describe("Viewer GIF composer", () => {
     expect(screen.getByRole("dialog", { name: "Choose a GIF" })).toBeInTheDocument();
   });
 
-  it("sends a selected GIF through the existing comment callback", () => {
-    const onComment = vi.fn();
+  it("keeps a selected GIF as a pending attachment until Send", async () => {
+    const onComment = vi.fn().mockResolvedValue({ id: "gif-comment-1" });
 
     render(
       <Viewer
@@ -97,10 +97,39 @@ describe("Viewer GIF composer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Choose GIF" }));
     fireEvent.click(screen.getByTestId("mock-gif-select"));
 
+    expect(screen.getByLabelText("Pending GIF attachment")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send comment" })).toBeEnabled();
+    expect(onComment).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send comment" }));
+
     expect(onComment).toHaveBeenCalledWith("post-1", {
       media_type: "gif",
       media_url: "https://giphy.test/reaction.gif",
       media_metadata: expect.objectContaining({ id: "gif-1" }),
     });
+  });
+
+  it("removes a pending GIF without sending it", () => {
+    const onComment = vi.fn();
+
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={onComment}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose GIF" }));
+    fireEvent.click(screen.getByTestId("mock-gif-select"));
+    fireEvent.click(screen.getByRole("button", { name: "Remove attachment" }));
+
+    expect(screen.queryByLabelText("Pending GIF attachment")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send comment" })).toBeDisabled();
+    expect(onComment).not.toHaveBeenCalled();
   });
 });
