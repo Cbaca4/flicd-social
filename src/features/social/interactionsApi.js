@@ -3,6 +3,7 @@ import { getCurrentUserId } from "./socialApi.js";
 
 const MAX_COMMENT_LENGTH = 500;
 const COMMENT_MEDIA_TYPES = new Set(["text", "gif", "audio", "video"]);
+const COMMENT_REPORT_REASONS = new Set(["spam", "harassment", "hate", "violence", "sexual", "other"]);
 
 export async function likeDump(dumpId) {
   const userId = await getCurrentUserId();
@@ -91,6 +92,24 @@ export async function deleteComment(commentId) {
   if (error) throw error;
 }
 
+export async function reportComment(commentId, reason) {
+  const userId = await getCurrentUserId();
+  const cleanReason = String(reason || "").trim().toLowerCase();
+  if (!COMMENT_REPORT_REASONS.has(cleanReason)) {
+    throw new Error("Choose a valid report reason");
+  }
+
+  const { error } = await supabase
+    .from("comment_reports")
+    .insert({
+      comment_id: commentId,
+      reporter_id: userId,
+      reason: cleanReason,
+    });
+  if (error) throw error;
+  return true;
+}
+
 export async function hydrateDumpInteractions(dumps) {
   const ids = (dumps || []).map((dump) => dump.id).filter(Boolean);
   if (!ids.length) return [];
@@ -139,6 +158,7 @@ export async function hydrateDumpInteractions(dumps) {
       media_path: comment.media_path || null,
       media_metadata: comment.media_metadata || null,
       created_at: comment.created_at,
+      user_id: comment.user_id,
     });
     commentsByDump.set(comment.dump_id, list);
   }
