@@ -82,8 +82,8 @@ describe("Viewer video composer", () => {
     expect(screen.getByRole("dialog", { name: "Choose a video" })).toBeInTheDocument();
   });
 
-  it("sends a selected video through the existing comment callback", () => {
-    const onComment = vi.fn();
+  it("keeps a selected video as a pending attachment until Send", () => {
+    const onComment = vi.fn().mockResolvedValue({ id: "video-comment-1" });
 
     render(
       <Viewer
@@ -99,10 +99,39 @@ describe("Viewer video composer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Choose video" }));
     fireEvent.click(screen.getByTestId("mock-video-select"));
 
+    expect(screen.getByLabelText("Pending video attachment")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send comment" })).toBeEnabled();
+    expect(onComment).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Send comment" }));
+
     expect(onComment).toHaveBeenCalledWith("post-1", expect.objectContaining({
       media_type: "video",
       media_blob: expect.any(File),
       media_metadata: { duration_seconds: 12 },
     }));
+  });
+
+  it("removes a pending video without sending it", () => {
+    const onComment = vi.fn();
+
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={onComment}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose video" }));
+    fireEvent.click(screen.getByTestId("mock-video-select"));
+    fireEvent.click(screen.getByRole("button", { name: "Remove attachment" }));
+
+    expect(screen.queryByLabelText("Pending video attachment")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send comment" })).toBeDisabled();
+    expect(onComment).not.toHaveBeenCalled();
   });
 });
