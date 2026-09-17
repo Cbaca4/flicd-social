@@ -140,6 +140,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
         );
         const frozenPosition = measuredPosition ?? patrolPositionRef.current;
 
+        if (walkerRef.current) {
+          walkerRef.current.style.transition = "none";
+        }
+
         patrolPositionRef.current = frozenPosition;
         setPatrol((current) => ({
           ...current,
@@ -149,6 +153,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
           frozen: true,
         }));
       } else {
+        if (walkerRef.current) {
+          walkerRef.current.style.removeProperty("transition");
+        }
+
         setPatrol((current) => ({
           ...current,
           frozen: false,
