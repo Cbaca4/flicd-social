@@ -8,11 +8,14 @@ export async function submitComment(dumpId, input) {
     }
 
     if (input.media_type === "audio" || input.media_type === "video") {
-      return sendCommentMedia(dumpId, {
+      const mediaInput = {
         mediaType: input.media_type,
         mediaBlob: input.media_blob,
-        mediaMetadata: input.media_metadata ?? null,
-      });
+      };
+      if (input.media_metadata != null) {
+        mediaInput.mediaMetadata = input.media_metadata;
+      }
+      return sendCommentMedia(dumpId, mediaInput);
     }
 
     return addComment(dumpId, {
