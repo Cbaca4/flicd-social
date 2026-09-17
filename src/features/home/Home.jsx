@@ -6,6 +6,7 @@ import PublicProfile from '../profile/PublicProfile.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
 import { getDumpItemMediaUrl } from './mediaUrl.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
+import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 
 function timeLeft(post){
   if(post.mode==='once')return post.viewed?'expired':'view once';
@@ -44,6 +45,31 @@ export default function Home({dumps,activeSpace,onOpen,onUserSelect,loading=fals
   if(publicProfile){return <PublicProfile profile={publicProfile} onBack={()=>setPublicProfile(null)}/>};
   const handleUserSelect=(user)=>{setSearchOpen(false);if(onUserSelect){onUserSelect(user);return}setPublicProfile(user)};
   return <div className="screen" style={{position:'relative'}}><SeasonalOverlay/><div className="topbar"><div><div className="eyebrow">Flic'd / {activeSpace.label}</div><h1 className="title">Your moments</h1><p className="subtitle">Following from @{activeSpace.handle}.</p></div><div className="row"><div className="tag flicd-mono">{activeSpace.followers} followers</div><button type="button" className="btn icon-btn" onClick={()=>setSearchOpen(true)} aria-label="Search users"><Search size={19}/></button></div></div><div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen}/>)}</div>{searchOpen&&<UserSearch onClose={()=>setSearchOpen(false)} onUserSelect={handleUserSelect}/>}</div>;
+}
+
+function SavedAudioComment({comment}){
+  const [url,setUrl]=React.useState(comment?.media_url||'');
+  const [error,setError]=React.useState(null);
+
+  React.useEffect(()=>{
+    let active=true;
+    if(comment?.media_url){
+      setUrl(comment.media_url);
+      return ()=>{active=false;};
+    }
+    if(!comment?.media_path){
+      setUrl('');
+      return undefined;
+    }
+    getCommentMediaUrl(comment).then((resolvedUrl)=>{
+      if(active)setUrl(resolvedUrl||'');
+    }).catch((loadError)=>{
+      if(active)setError(loadError);
+    });
+    return ()=>{active=false;};
+  },[comment?.media_path,comment?.media_url]);
+
+  return <div className="comment-media" aria-label="Saved audio comment">{error?<span className="subtitle">Audio unavailable.</span>:url?<audio aria-label="Audio comment" controls src={url}/>:<span className="subtitle">Loading audio…</span>}</div>;
 }
 
 export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false}){
@@ -96,5 +122,5 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     recorderRef.current?.cancel();
     setVoiceReviewBlob(null);
   };
-  return <div className="screen" style={{paddingBottom:28}}><div className="topbar"><button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button><span className="tag flicd-mono">{timeLeft(post)}</span></div><div className="card"><MediaFrame item={item} index={index} post={post}/>{post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}<div className="post-actions"><button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button><button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button></div><section className="post-conversation" aria-label="Conversation"><div className="stack">{post.comments.length?<>{post.comments.map(c=><p key={c.id} className="subtitle"><strong style={{color:'var(--text)'}}>@{c.from}</strong> {c.text}</p>)}</>:<p className="subtitle">No comments yet.</p>}</div>{voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment"/><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice}><Mic size={16}/></button><button className="btn btn-primary" disabled={!text.trim()} onClick={()=>{onComment(post.id,text.trim());setText('')}}>Send</button></div>}</section></div></div>;
+  return <div className="screen" style={{paddingBottom:28}}><div className="topbar"><button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button><span className="tag flicd-mono">{timeLeft(post)}</span></div><div className="card"><MediaFrame item={item} index={index} post={post}/>{post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}<div className="post-actions"><button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button><button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button></div><section className="post-conversation" aria-label="Conversation"><div className="stack">{post.comments.length?<>{post.comments.map(c=>c.media_type==='audio'?<SavedAudioComment key={c.id} comment={c}/>:<p key={c.id} className="subtitle"><strong style={{color:'var(--text)'}}>@{c.from}</strong> {c.text}</p>)}</>:<p className="subtitle">No comments yet.</p>}</div>{voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment"/><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice}><Mic size={16}/></button><button className="btn btn-primary" disabled={!text.trim()} onClick={()=>{onComment(post.id,text.trim());setText('')}}>Send</button></div>}</section></div></div>;
 }
