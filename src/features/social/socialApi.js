@@ -58,6 +58,31 @@ export async function getFollowingIds() {
   return Object.fromEntries((data || []).map((row) => [row.following_id, row.status]));
 }
 
+export async function getRelationshipCounts(profileId) {
+  if (!profileId) return { followers: 0, following: 0 };
+
+  const [followersResult, followingResult] = await Promise.all([
+    supabase
+      .from("follows")
+      .select("following_id", { count: "exact", head: true })
+      .eq("following_id", profileId)
+      .eq("status", "accepted"),
+    supabase
+      .from("follows")
+      .select("follower_id", { count: "exact", head: true })
+      .eq("follower_id", profileId)
+      .eq("status", "accepted"),
+  ]);
+
+  if (followersResult.error) throw followersResult.error;
+  if (followingResult.error) throw followingResult.error;
+
+  return {
+    followers: followersResult.count || 0,
+    following: followingResult.count || 0,
+  };
+}
+
 export async function getFollowStatus(targetUserId) {
   const userId = await getCurrentUserId();
   if (userId === targetUserId) return "self";
