@@ -2,6 +2,7 @@ import React from "react";
 import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
+import { getRelationshipCounts } from "../social/socialApi.js";
 import CompanionSettings from "../companion/CompanionSettings.jsx";
 import { normalizeCompanionSettings } from "../companion/companionSettingsConfig.js";
 import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
@@ -88,7 +89,7 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
         {placeholderRow(ShieldCheck, "Privacy & Safety", "Visibility, blocking, interaction controls, and safety settings.")}
         {placeholderRow(Bell, "Notifications", "Choose which likes, comments, messages, follows, and requests you receive.")}
         {placeholderRow(SlidersHorizontal, "Content Preferences", "Manage muted words, feed preferences, and content controls.")}
-        {placeholderRow(Settings, "Appearance", "App-wide theme, accessibility, and display preferences.")}
+        {placeholderRow(Settings, "Appearance", "App-wide theme, accessibility, and display settings.")}
         {placeholderRow(Database, "Data & Storage", "Downloads, cached media, storage usage, and data controls.")}
 
         <div className="eyebrow" style={{ marginTop: 12 }}>Support & About</div>
@@ -130,7 +131,28 @@ function BoardPreview({ board, onOpenBoard }) {
 
 export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [relationshipCounts, setRelationshipCounts] = React.useState(() => ({
+    followers: profile?.followers ?? 0,
+    following: profile?.following ?? 0,
+  }));
   const pinnedBoards = getPinnedBoards(boards);
+
+  React.useEffect(() => {
+    setRelationshipCounts({
+      followers: profile?.followers ?? 0,
+      following: profile?.following ?? 0,
+    });
+    if (!profile?.id) return undefined;
+    let active = true;
+    getRelationshipCounts(profile.id)
+      .then((counts) => {
+        if (active) setRelationshipCounts(counts);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [profile?.id, profile?.followers, profile?.following]);
 
   if (settingsOpen) {
     return (
@@ -172,8 +194,8 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
         </div>
 
         <div className="row" style={{ gap: 28, marginTop: 22 }}>
-          <div><strong>{profile.followers}</strong><div className="subtitle">followers</div></div>
-          <div><strong>{profile.following}</strong><div className="subtitle">following</div></div>
+          <div><strong>{relationshipCounts.followers}</strong><div className="subtitle">followers</div></div>
+          <div><strong>{relationshipCounts.following}</strong><div className="subtitle">following</div></div>
           <div><strong>{boards.length}</strong><div className="subtitle">boards</div></div>
         </div>
       </div>
