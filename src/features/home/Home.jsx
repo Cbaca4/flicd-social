@@ -121,7 +121,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [videoPickerOpen,setVideoPickerOpen]=React.useState(false);
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
+
   React.useEffect(()=>{onMarkViewed?.(post.id)},[onMarkViewed,post.id]);
+
   React.useEffect(()=>{
     if(currentUserId){
       setResolvedCurrentUserId(currentUserId);
@@ -133,7 +135,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     }).catch(()=>{});
     return ()=>{active=false;};
   },[currentUserId]);
+
   React.useEffect(()=>()=>{unsubscribeRef.current?.();recorderRef.current?.cancel();},[]);
+
   React.useEffect(()=>{
     if(!voiceReviewBlob){
       setVoiceReviewUrl('');
@@ -144,6 +148,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     setVoiceReviewUrl(url);
     return ()=>URL.revokeObjectURL?.(url);
   },[voiceReviewBlob]);
+
   React.useEffect(()=>{
     if(pendingComment?.media_type!=='video'||!pendingComment?.media_blob||typeof URL?.createObjectURL!=='function'){
       setPendingVideoUrl('');
@@ -153,11 +158,13 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     setPendingVideoUrl(url);
     return ()=>URL.revokeObjectURL?.(url);
   },[pendingComment]);
+
   const confirmAttachmentReplace=(nextType)=>{
     if(!pendingComment||pendingComment.media_type===nextType)return true;
     if(typeof window==='undefined'||typeof window.confirm!=='function')return true;
     return window.confirm('Replace the current attachment?');
   };
+
   const openAttachmentPicker=(type)=>{
     if(!confirmAttachmentReplace(type))return;
     if(type==='gif'){
@@ -168,6 +175,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       setVideoPickerOpen(true);
     }
   };
+
   const handleVoice=async()=>{
     if(recording){recorderRef.current?.stop();return;}
     if(pendingComment&&!confirmAttachmentReplace('audio'))return;
@@ -187,23 +195,27 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       setRecording(false);
     }
   };
+
   const handleGifSelect=(gif)=>{
     if(!gif?.mediaUrl)return;
     setText('');
     setPendingComment({media_type:'gif',media_url:gif.mediaUrl,media_metadata:{provider:'giphy',id:gif.id,title:gif.title||''}});
     setGifPickerOpen(false);
   };
+
   const handleVideoSelect=(video)=>{
     if(!video?.mediaBlob)return;
     setText('');
     setPendingComment({media_type:'video',media_blob:video.mediaBlob,media_metadata:video.mediaMetadata||null});
     setVideoPickerOpen(false);
   };
+
   const cancelVoice=()=>{
     recorderRef.current?.cancel();
     setRecording(false);
     setVoiceReviewBlob(null);
   };
+
   const sendVoice=()=>{
     const blob=voiceReviewBlob||recorderRef.current?.getBlob?.();
     if(!blob)return;
@@ -211,7 +223,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     recorderRef.current?.cancel();
     setVoiceReviewBlob(null);
   };
+
   const removeAttachment=()=>setPendingComment(null);
+
   const sendComment=async()=>{
     if(commentSending)return;
     const input=pendingComment||text.trim();
@@ -227,6 +241,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       setCommentSending(false);
     }
   };
+
   const handleDeleteComment=async(commentId)=>{
     if(deletingCommentId)return;
     const handler=onDeleteComment||deleteComment;
@@ -244,6 +259,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       setDeletingCommentId(null);
     }
   };
+
   const handleReportComment=async(reason)=>{
     if(!reportingCommentId||reporting)return;
     const handler=onReportComment||reportComment;
@@ -266,8 +282,56 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       setReporting(false);
     }
   };
+
   const visibleComments=(post.comments||[]).filter((comment)=>!deletedCommentIds.has(comment.id));
   const pendingType=pendingComment?.media_type;
   const openCommentAuthor=(comment)=>onUserSelect?.({id:comment.user_id,username:comment.from});
-  return <div className="screen" style={{paddingBottom:28}}><div className="topbar"><button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button><span className="tag flicd-mono">{timeLeft(post)}</span></div><div className="card"><MediaFrame item={post.items[index]} index={index} post={post} onUserSelect={onUserSelect}/>{post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}<div className="post-actions"><button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button><button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button></div><section className="post-conversation" aria-label="Conversation"><div className="stack">{visibleComments.length?visibleComments.map(c=><div key={c.id} className="comment-row">{(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia comment={c}/>:<p className="subtitle">{onUserSelect?<button type="button" className="comment-author-link" onClick={()=>openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>:<strong style={{color:'var(--text)'}}>@{c.from}</strong>} {c.text}</p>}{resolvedCurrentUserId&&c.user_id===resolvedCurrentUserId&&<button className="btn comment-delete-btn" type="button" aria-label="Delete comment" disabled={deletingCommentId===c.id} onClick={()=>handleDeleteComment(c.id)}>{deletingCommentId===c.id?'Deleting…':'Delete'}</button>}{resolvedCurrentUserId&&c.user_id&&c.user_id!==resolvedCurrentUserId&&!reportedCommentIds.has(c.id)&&<button className="btn comment-report-btn" type="button" aria-label="Report comment" disabled={reporting} onClick={()=>{setReportMessage('');setReportError('');setReportingCommentId(c.id);}}>Report</button>}{resolvedCurrentUserId&&reportedCommentIds.has(c.id)&&<span className="tag" aria-label="Comment reported">Reported</span>}</div>):<p className="subtitle">No comments yet.</p>}{reportMessage&&<p className="subtitle" role="status">{reportMessage}</p>}</div>{voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<>{pendingComment&&<div className="comment-pending" aria-label={pendingType==='gif'?'Pending GIF attachment':pendingType==='video'?'Pending video attachment':''}>{pendingType==='gif'&&<img src={pendingComment.media_url} alt={pendingComment.media_metadata?.title||'GIF attachment'}/>} {pendingType==='video'&&<div className="comment-pending__video-wrap">{pendingVideoUrl?<video aria-label="Pending video preview" controls src={pendingVideoUrl}/>:<span className="subtitle">Preparing video preview…</span>}{Number.isFinite(Number(pendingComment.media_metadata?.duration_seconds))&&<span className="tag flicd-mono comment-pending__duration">{Math.round(Number(pendingComment.media_metadata.duration_seconds))}s</span>}</div>}<button className="btn icon-btn" type="button" aria-label="Remove attachment" onClick={removeAttachment}>×</button></div>}<div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment" disabled={Boolean(pendingComment)||commentSending}/><button className="btn" type="button" aria-label="Choose GIF" onClick={()=>openAttachmentPicker('gif')} disabled={commentSending}>GIF</button><button className="btn icon-btn" type="button" aria-label="Choose video" onClick={()=>openAttachmentPicker('video')} disabled={commentSending}><Video size={16}/></button><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice} disabled={commentSending}><Mic size={16}/></button><button className="btn btn-primary" aria-label="Send comment" disabled={(!text.trim()&&!pendingComment)||commentSending} onClick={sendComment}>{commentSending?'Sending…':'Send'}</button></div></>}{gifPickerOpen&&<GifPicker onSelect={handleGifSelect} onClose={()=>setGifPickerOpen(false)}/>} {videoPickerOpen&&<VideoCommentPicker onSelect={handleVideoSelect} onClose={()=>setVideoPickerOpen(false)}/>}</section></div></div>;
+
+  return <div className="screen" style={{paddingBottom:28}}>
+    <div className="topbar">
+      <button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button>
+      <span className="tag flicd-mono">{timeLeft(post)}</span>
+    </div>
+    <div className="card">
+      <MediaFrame item={post.items[index]} index={index} post={post} onUserSelect={onUserSelect}/>
+      {post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}
+      <div className="post-actions">
+        <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
+        <button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button>
+      </div>
+      <section className="post-conversation" aria-label="Conversation">
+        <div className="stack">
+          {visibleComments.length?visibleComments.map(c=><div key={c.id} className="comment-row">
+            {(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia comment={c}/>:<p className="subtitle">{onUserSelect?<button type="button" className="comment-author-link" onClick={()=>openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>:<strong style={{color:'var(--text)'}}>@{c.from}</strong>} {c.text}</p>}
+            {resolvedCurrentUserId&&c.user_id===resolvedCurrentUserId&&<button className="btn comment-delete-btn" type="button" aria-label="Delete comment" disabled={deletingCommentId===c.id} onClick={()=>handleDeleteComment(c.id)}>{deletingCommentId===c.id?'Deleting…':'Delete'}</button>}
+            {resolvedCurrentUserId&&c.user_id&&c.user_id!==resolvedCurrentUserId&&!reportedCommentIds.has(c.id)&&<button className="btn comment-report-btn" type="button" aria-label="Report comment" disabled={reporting} onClick={()=>{setReportMessage('');setReportError('');setReportingCommentId(c.id);}}>Report</button>}
+            {resolvedCurrentUserId&&reportedCommentIds.has(c.id)&&<span className="tag" aria-label="Comment reported">Reported</span>}
+          </div>):<p className="subtitle">No comments yet.</p>}
+          {reportMessage&&<p className="subtitle" role="status">{reportMessage}</p>}
+        </div>
+        {reportingCommentId&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Report comment" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!reporting)setReportingCommentId(null);}}>
+          <div className="modal" style={{width:'100%',maxWidth:520}}>
+            <div className="row" style={{justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <div className="eyebrow">Report comment</div>
+                <h2 style={{marginTop:4}}>Report this comment</h2>
+                <p className="subtitle" style={{marginTop:5}}>Choose the reason that best describes the problem.</p>
+              </div>
+              <button type="button" className="btn icon-btn" aria-label="Close report" disabled={reporting} onClick={()=>setReportingCommentId(null)}>×</button>
+            </div>
+            <div className="stack" style={{marginTop:16}}>
+              {REPORT_REASONS.map(([value,label])=><button key={value} type="button" className="card" disabled={reporting} onClick={()=>handleReportComment(value)} style={{width:'100%',textAlign:'left',cursor:reporting?'wait':'pointer',opacity:reporting?0.65:1}}>{label}</button>)}
+            </div>
+            {reportError&&<p className="subtitle" role="status" style={{marginTop:10,color:'var(--danger, #ff6b6b)'}}>{reportError}</p>}
+            <div className="row" style={{justifyContent:'flex-end',marginTop:16}}><button type="button" className="btn" disabled={reporting} onClick={()=>setReportingCommentId(null)}>Cancel</button></div>
+          </div>
+        </div>}
+        {voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<>
+          {pendingComment&&<div className="comment-pending" aria-label={pendingType==='gif'?'Pending GIF attachment':pendingType==='video'?'Pending video attachment':''}>{pendingType==='gif'&&<img src={pendingComment.media_url} alt={pendingComment.media_metadata?.title||'GIF attachment'}/>} {pendingType==='video'&&<div className="comment-pending__video-wrap">{pendingVideoUrl?<video aria-label="Pending video preview" controls src={pendingVideoUrl}/>:<span className="subtitle">Preparing video preview…</span>}{Number.isFinite(Number(pendingComment.media_metadata?.duration_seconds))&&<span className="tag flicd-mono comment-pending__duration">{Math.round(Number(pendingComment.media_metadata.duration_seconds))}s</span>}</div>}<button className="btn icon-btn" type="button" aria-label="Remove attachment" onClick={removeAttachment}>×</button></div>}
+          <div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment" disabled={Boolean(pendingComment)||commentSending}/><button className="btn" type="button" aria-label="Choose GIF" onClick={()=>openAttachmentPicker('gif')} disabled={commentSending}>GIF</button><button className="btn icon-btn" type="button" aria-label="Choose video" onClick={()=>openAttachmentPicker('video')} disabled={commentSending}><Video size={16}/></button><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice} disabled={commentSending}><Mic size={16}/></button><button className="btn btn-primary" aria-label="Send comment" disabled={(!text.trim()&&!pendingComment)||commentSending} onClick={sendComment}>{commentSending?'Sending…':'Send'}</button></div>
+        </>}
+        {gifPickerOpen&&<GifPicker onSelect={handleGifSelect} onClose={()=>setGifPickerOpen(false)}/>} {videoPickerOpen&&<VideoCommentPicker onSelect={handleVideoSelect} onClose={()=>setVideoPickerOpen(false)}/>} 
+      </section>
+    </div>
+  </div>;
 }
