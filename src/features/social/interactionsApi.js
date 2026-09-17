@@ -81,6 +81,16 @@ export async function addComment(dumpId, payload) {
   return data;
 }
 
+export async function deleteComment(commentId) {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("comments")
+    .delete()
+    .eq("id", commentId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 export async function hydrateDumpInteractions(dumps) {
   const ids = (dumps || []).map((dump) => dump.id).filter(Boolean);
   if (!ids.length) return [];
