@@ -6,6 +6,8 @@ import {
 } from "./commentMediaUpload.js";
 
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const createPreviewObjectUrl = (file) => URL.createObjectURL(file);
+const revokePreviewObjectUrl = (url) => URL.revokeObjectURL(url);
 
 async function getVideoDuration(file) {
   const url = URL.createObjectURL(file);
@@ -31,8 +33,8 @@ export default function VideoCommentPicker({
   onSelect,
   onClose,
   getVideoDuration: getDuration = getVideoDuration,
-  createObjectUrl = (file) => URL.createObjectURL(file),
-  revokeObjectUrl = (url) => URL.revokeObjectURL(url),
+  createObjectUrl = createPreviewObjectUrl,
+  revokeObjectUrl = revokePreviewObjectUrl,
 }) {
   const [error, setError] = React.useState("");
   const [pendingVideo, setPendingVideo] = React.useState(null);
@@ -48,11 +50,8 @@ export default function VideoCommentPicker({
 
   const clearPreview = React.useCallback(() => {
     setPendingVideo(null);
-    setPreviewUrl((currentUrl) => {
-      if (currentUrl) revokeObjectUrl(currentUrl);
-      return "";
-    });
-  }, [revokeObjectUrl]);
+    setPreviewUrl("");
+  }, []);
 
   const handleChange = async (event) => {
     const file = event.target.files?.[0];
