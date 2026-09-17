@@ -328,6 +328,8 @@ export default function FlicdApp() {
     }
   };
 
+  if (!session) return <Auth onLogin={() => {}} />;
+
   const profile = {
     id: supabaseProfile?.id || session.user.id,
     handle: supabaseProfile?.username || activeSpace.handle,
@@ -337,8 +339,6 @@ export default function FlicdApp() {
     followers: activeSpace.followers,
     following: activeSpace.following,
   };
-
-  if (!session) return <Auth onLogin={() => {}} />;
 
   let content;
 
