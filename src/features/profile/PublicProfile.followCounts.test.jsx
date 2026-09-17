@@ -2,8 +2,8 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 const getRelationshipCounts = vi.hoisted(() => vi.fn());
 const getPublicProfile = vi.hoisted(() => vi.fn());
@@ -18,6 +18,11 @@ vi.mock("../social/FollowButton.jsx", () => ({
 }));
 
 import PublicProfile from "./PublicProfile.jsx";
+
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 describe("PublicProfile relationship counts", () => {
   it("increments followers when a follow becomes accepted", () => {
