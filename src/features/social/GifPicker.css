@@ -1,0 +1,55 @@
+.comment-media-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(100%, 520px);
+  max-height: min(78vh, 620px);
+  padding: 16px;
+  overflow: auto;
+  background: var(--panel, #171b20);
+  border: 1px solid var(--line, #2b3138);
+  border-radius: 20px;
+  box-sizing: border-box;
+}
+
+.comment-media-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.gif-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gif-tile {
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gif-tile img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.giphy-attribution {
+  padding-top: 2px;
+  font-size: 12px;
+  line-height: 1.2;
+  opacity: .75;
+}
+
+@media (min-width: 501px) {
+  .gif-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
