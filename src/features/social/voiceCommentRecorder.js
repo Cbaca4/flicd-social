@@ -13,6 +13,7 @@ export function createVoiceCommentRecorder({
   let stream = null;
   let recorder = null;
   let stopTimer = null;
+  let cancelled = false;
   const chunks = [];
   const listeners = new Set();
 
@@ -37,15 +38,22 @@ export function createVoiceCommentRecorder({
     recorder = new MediaRecorder(stream, { mimeType });
     chunks.length = 0;
     blob = null;
+    cancelled = false;
     clearStopTimer();
 
     recorder.ondataavailable = (event) => {
-      if (event?.data?.size) chunks.push(event.data);
+      if (!cancelled && event?.data?.size) chunks.push(event.data);
     };
     recorder.onstop = () => {
       clearStopTimer();
-      blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
       stream?.getTracks?.().forEach((track) => track.stop());
+      if (cancelled) {
+        blob = null;
+        chunks.length = 0;
+        state = "idle";
+        return;
+      }
+      blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
       state = "review";
       notify();
     };
@@ -64,7 +72,10 @@ export function createVoiceCommentRecorder({
 
   function cancel() {
     clearStopTimer();
-    if (state === "recording" && recorder) recorder.stop();
+    if (state === "recording" && recorder) {
+      cancelled = true;
+      recorder.stop();
+    }
     blob = null;
     chunks.length = 0;
     state = "idle";
