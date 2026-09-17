@@ -330,4 +330,31 @@ describe("Post viewer", () => {
     expect(video).toHaveAttribute("controls");
     expect(screen.getByText("12s")).toBeInTheDocument();
   });
+
+  it("renders a saved GIF comment as an image tile", async () => {
+    render(
+      <Viewer
+        post={{
+          ...post,
+          comments: [{
+            id: "comment-gif-1",
+            from: "mia",
+            text: null,
+            media_type: "gif",
+            media_url: "https://media.example.test/funny.gif",
+            media_path: null,
+            media_metadata: { provider: "giphy", title: "Funny reaction" },
+          }],
+        }}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    const gif = await screen.findByLabelText("GIF comment");
+    expect(gif).toHaveAttribute("src", "https://media.example.test/funny.gif");
+  });
 });
