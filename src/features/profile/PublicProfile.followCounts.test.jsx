@@ -59,8 +59,7 @@ describe("PublicProfile relationship counts", () => {
 
     render(<PublicProfile profile={{ id: "person-2" }} onBack={() => {}} />);
 
-    const usernameHeadings = await screen.findAllByRole("heading", { name: "@maren_" });
-    expect(usernameHeadings.length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { level: 1, name: "@maren_" })).toBeInTheDocument();
     expect(screen.getByText("moments + coffee")).toBeInTheDocument();
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
