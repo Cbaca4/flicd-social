@@ -1,8 +1,6 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
-import UserSearch from './UserSearch.jsx';
-import PublicProfile from '../profile/PublicProfile.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
 import { getDumpItemMediaUrl } from './mediaUrl.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
@@ -23,7 +21,7 @@ function timeLeft(post){
 
 const gradients=['linear-gradient(145deg,#2f3a40,#12161b)','linear-gradient(145deg,#493221,#17120e)','linear-gradient(145deg,#293f39,#111816)','linear-gradient(145deg,#3b293d,#17121a)'];
 
-function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "" }) {
+function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, onReveal }) {
   const [failed, setFailed] = React.useState(false);
   const imageUrl = item?.imageUrl || getDumpItemMediaUrl(item?.imagePath);
   const openAuthor = () => onUserSelect?.({ id: post.authorId || post.author, username: post.authorName || post.author });
@@ -70,9 +68,21 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
           src={imageUrl}
           alt={item?.note || `Moment ${index + 1}`}
           onError={() => setFailed(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: blurred ? "blur(22px)" : "none", transform: blurred ? "scale(1.08)" : "none" }}
         />
         {musicOverlay}
+        {blurred && (
+          <button
+            type="button"
+            className="view-once-reveal"
+            onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
+            aria-label="View once photo"
+          >
+            <Eye size={20} />
+            <strong>Tap to view once</strong>
+            <span>You'll only get one look.</span>
+          </button>
+        )}
         <div style={{ position: "absolute", left: 12, right: 12, bottom: 12 }}>
           <span className="tag">{authorIdentity} · {post.mood}</span>
           {item?.note && <div className="media-text" style={{ marginTop: 10 }}>{item.note}</div>}
@@ -87,6 +97,18 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
       style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1" }}
     >
       {musicOverlay}
+      {blurred && (
+        <button
+          type="button"
+          className="view-once-reveal"
+          onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
+          aria-label="View once photo"
+        >
+          <Eye size={20} />
+          <strong>Tap to view once</strong>
+          <span>You'll only get one look.</span>
+        </button>
+      )}
       <div>
         {authorIdentity}
         <span className="tag"> · {post.mood}</span>
@@ -98,24 +120,42 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
 
 export function DumpCard({post,onOpen}){
   const expired=timeLeft(post)==='expired';
+  const viewOnceLocked=post.mode==='once'&&!post.viewed;
   const firstItem=post.items.find(item=>item?.imageUrl||item?.imagePath);
   const firstImage=firstItem?.imageUrl||getDumpItemMediaUrl(firstItem?.imagePath);
-  return <button className="card post-card" onClick={()=>!expired&&onOpen(post)} style={{width:'100%',textAlign:'left',opacity:expired?.45:1}}><div className="post-media" style={{background:gradients[post.id%gradients.length],position:'relative',overflow:'hidden'}}>{firstImage&&<img src={firstImage} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:.86}}/>}<div style={{position:'relative',zIndex:1}}><span className="tag">{post.mood}</span><div className="media-text" style={{marginTop:10}}>{post.items.length} moments</div></div><span className="tag flicd-mono" style={{position:'relative',zIndex:1,marginLeft:'auto',alignSelf:'flex-start',color:post.mode==='once'?'var(--danger)':'var(--amber)'}}>{post.mode==='once'&&<Eye size={11} style={{marginRight:4}}/>}{timeLeft(post)}</span></div><div className="meta"><div><strong>@{post.authorName||post.author}</strong><div className="subtitle" style={{marginTop:3}}>{post.context||'shared a moment'}</div></div><div className="row muted"><span className="row"><Heart size={14} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</span><span className="row"><MessageCircle size={14}/>{post.comments.length}</span></div></div></button>;
+  return <button className="card post-card" onClick={()=>!expired&&onOpen(post)} style={{width:'100%',textAlign:'left',opacity:expired?.45:1}}>
+    <div className="post-media" style={{background:gradients[post.id%gradients.length],position:'relative',overflow:'hidden'}}>
+      {firstImage&&<img src={firstImage} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:viewOnceLocked?.5:.86,filter:viewOnceLocked?'blur(22px)':'none',transform:viewOnceLocked?'scale(1.08)':'none'}}/>}
+      {viewOnceLocked&&<div className="view-once-feed-overlay"><Eye size={20}/><strong>View once</strong><span>Tap to open</span></div>}
+      <div style={{position:'relative',zIndex:1}}><span className="tag">{post.mood}</span><div className="media-text" style={{marginTop:10}}>{post.items.length} moments</div></div>
+      <span className="tag flicd-mono" style={{position:'relative',zIndex:1,marginLeft:'auto',alignSelf:'flex-start',color:post.mode==='once'?'var(--danger)':'var(--amber)'}}>{post.mode==='once'&&<Eye size={11} style={{marginRight:4}}/>}{timeLeft(post)}</span>
+    </div>
+    <div className="meta"><div><strong>@{post.authorName||post.author}</strong><div className="subtitle" style={{marginTop:3}}>{post.context||'shared a moment'}</div></div><div className="row muted"><span className="row"><Heart size={14} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</span><span className="row"><MessageCircle size={14}/>{post.comments.length}</span></div></div>
+  </button>;
 }
 
-export default function Home({dumps,activeSpace,onOpen,onUserSelect,loading=false,error='',onRetry}){
-  const [searchOpen,setSearchOpen]=React.useState(false);
-  const [publicProfile,setPublicProfile]=React.useState(null);
+export default function Home({dumps,activeSpace,onOpen,onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
   const visible=dumps.filter(d=>d.channel===activeSpace.id);
+
   if(loading){
     return <div className="screen"><div className="stack">{[0,1,2].map(key=><div key={key} className="feed-skeleton card" data-testid="feed-skeleton" aria-hidden="true"/> )}</div></div>;
   }
+
   if(error){
     return <div className="screen"><div className="stack"><EmptyState title="Could not load your feed" text="Something went wrong while loading your moments." action={onRetry?<button className="btn" type="button" onClick={onRetry}>Try again</button>:null}/></div></div>;
   }
-  if(publicProfile){return <PublicProfile profile={publicProfile} onBack={()=>setPublicProfile(null)}/>};
-  const handleUserSelect=(user)=>{setSearchOpen(false);if(onUserSelect){onUserSelect(user);return}setPublicProfile(user)};
-  return <div className="screen" style={{position:'relative'}}><SeasonalOverlay/><div className="topbar"><div><div className="eyebrow">Flic'd / {activeSpace.label}</div><h1 className="title">Your moments</h1><p className="subtitle">Following from @{activeSpace.handle}.</p></div><div className="row"><div className="tag flicd-mono">{activeSpace.followers} followers</div><button type="button" className="btn icon-btn" onClick={()=>setSearchOpen(true)} aria-label="Search users"><Search size={19}/></button></div></div><div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen}/>)}</div>{searchOpen&&<UserSearch onClose={()=>setSearchOpen(false)} onUserSelect={handleUserSelect}/>}</div>;
+
+  return <div className="screen home-screen" style={{position:'relative'}}>
+    <SeasonalOverlay/>
+    <div className="topbar home-topbar">
+      <div className="home-wordmark">Flic'd</div>
+      <button type="button" className="btn icon-btn" onClick={onNotifications} aria-label="Notifications" style={{position:"relative"}}>
+        <Bell size={19}/>
+        {notificationsUnread>0&&<span className="nav-unread-badge">{notificationsUnread>9?"9+":notificationsUnread}</span>}
+      </button>
+    </div>
+    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen}/>)}</div>
+  </div>;
 }
 
 function SavedCommentMedia({comment}){
@@ -181,6 +221,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [musicMuted,setMusicMuted]=React.useState(false);
   const [musicPlaying,setMusicPlaying]=React.useState(false);
   const [viewerLocation,setViewerLocation]=React.useState(null);
+  const [revealedOnce,setRevealedOnce]=React.useState(post.mode !== "once" || Boolean(post.viewed));
   const [reportError,setReportError]=React.useState('');
   const [reportMessage,setReportMessage]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
@@ -188,7 +229,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
 
-  React.useEffect(()=>{onMarkViewed?.(post.id)},[onMarkViewed,post.id]);
+  React.useEffect(() => {
+    setRevealedOnce(post.mode !== "once" || Boolean(post.viewed));
+  }, [post.id, post.mode, post.viewed]);
 
   React.useEffect(() => {
     const track = post.musicTrack;
@@ -439,7 +482,8 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const pendingType=pendingComment?.media_type;
   const openCommentAuthor=(comment)=>onUserSelect?.({id:comment.user_id,username:comment.from});
 
-  return <div className="screen" style={{paddingBottom:28}}>
+  const canKeep = post.mode !== "once" && post.allowOthersToKeep !== false;
+  return <div className="screen viewer-screen">
     <div className="topbar">
       <button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button>
       <span className="tag flicd-mono">{timeLeft(post)}</span>
@@ -453,6 +497,12 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         musicMuted={musicMuted}
         musicPlaying={musicPlaying}
         onToggleMusic={toggleMusic}
+        blurred={post.mode === "once" && !revealedOnce}
+        onReveal={() => {
+          if (post.mode !== "once" || revealedOnce) return;
+          setRevealedOnce(true);
+          onMarkViewed?.(post.id);
+        }}
         distanceLabel={
           viewerLocation && post.location
             ? formatDistanceKm(distanceKm(
@@ -467,7 +517,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       {post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}
       <div className="post-actions">
         <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
-        <button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button>
+        <button className="btn" type="button" disabled={!canKeep} onClick={()=>canKeep&&onKeep(post,index)} aria-label={canKeep ? "Keep" : "Keep unavailable"}><Bookmark size={16}/>{canKeep ? "Keep" : "Keep unavailable"}</button>
       </div>
       {(post.location || post.taggedUsers?.length) && (
         <div className="post-metadata-row">
