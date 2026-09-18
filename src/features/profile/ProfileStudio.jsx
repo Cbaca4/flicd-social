@@ -44,6 +44,17 @@ function backgroundMediaStyle(media) {
   };
 }
 
+function sectionPreviewStyle(style) {
+  const media = style?.backgroundMedia;
+  return media?.url
+    ? {
+        backgroundImage: `linear-gradient(rgba(9,10,13,.36),rgba(9,10,13,.58)), url("${media.url}")`,
+        backgroundSize: "cover",
+        backgroundPosition: `${media.positionX ?? 50}% ${media.positionY ?? 50}%`,
+      }
+    : {};
+}
+
 export function ProfilePreview({ theme, profile }) {
   const hero = theme.sectionStyles?.hero || {};
   const boards = theme.sectionStyles?.boards || {};
@@ -98,6 +109,7 @@ export function ProfilePreview({ theme, profile }) {
             padding: 14,
             borderRadius: hero.radius || 20,
             background: hero.background || "rgba(255,255,255,.03)",
+            ...sectionPreviewStyle(hero),
             border:
               "1px solid " +
               (hero.border || "rgba(255,255,255,.08)"),
@@ -153,6 +165,7 @@ export function ProfilePreview({ theme, profile }) {
             className="mini-sect"
             style={{
               background: onRepeat.background || undefined,
+              ...sectionPreviewStyle(onRepeat),
               borderColor: onRepeat.border || undefined,
               borderRadius: onRepeat.radius || 16,
             }}
@@ -174,6 +187,7 @@ export function ProfilePreview({ theme, profile }) {
           className="mini-sect"
           style={{
             background: boards.background || undefined,
+            ...sectionPreviewStyle(boards),
             borderColor: boards.border || undefined,
             borderRadius: boards.radius || 16,
           }}
