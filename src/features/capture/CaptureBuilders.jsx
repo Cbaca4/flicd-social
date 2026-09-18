@@ -9,7 +9,7 @@ const MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp';
 const DUMP_MOODS = ['golden hour', 'late night', 'chaotic', 'nostalgic', 'summer'];
 
 function FileSummary({ files }) {
-  if (!files.length) return <p className="subtitle" style={{ marginTop: 10 }}>Choose the moments you want to share. JPEG, PNG, or WebP · 10 MB max each.</p>;
+  if (!files.length) return <p className="subtitle" style={{ marginTop: 10 }}>Choose the moments you want to share. JPEG, PNG, or WebP · 20 MB max each.</p>;
   return <div className="stack" style={{ marginTop: 12 }}><p className="subtitle">{files.length} {files.length === 1 ? 'photo' : 'photos'} selected</p><div className="stack" style={{ gap: 6 }}>{files.map((file, index) => <div key={`${file.name}-${file.size}-${file.lastModified}-${index}`} className="row" style={{ justifyContent: 'space-between' }}><span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span><span className="flicd-mono" style={{ flexShrink: 0, marginLeft: 10 }}>{Math.max(1, Math.round(file.size / 1024))} KB</span></div>)}</div></div>;
 }
 
