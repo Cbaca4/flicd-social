@@ -139,24 +139,6 @@ export function ProfilePreview({ theme, profile }) {
           </div>
         </div>
 
-        <div
-          className="mini-sect"
-          style={{
-            background: hero.background || "rgba(0,0,0,.14)",
-            borderColor: hero.border || undefined,
-          }}
-        >
-          <p
-            style={{
-              fontSize: 13,
-              lineHeight: 1.55,
-              overflowWrap: "anywhere",
-              whiteSpace: "pre-wrap",
-            }}
-          >
-          </p>
-        </div>
-
         {theme.showMusic && (
           <div
             className="mini-sect"
