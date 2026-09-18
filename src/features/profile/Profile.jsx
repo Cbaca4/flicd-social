@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon, Music2 } from "lucide-react";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -144,24 +144,6 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
-  const [activeProfileTab, setActiveProfileTab] = React.useState("boards");
-  const boardsTabRef = React.useRef(null);
-  const repeatTabRef = React.useRef(null);
-
-  const selectProfileTab = (key) => {
-    setActiveProfileTab(key);
-    if (key === "studio") {
-      onCustomize?.();
-      return;
-    }
-    if (key === "spaces") {
-      onSwitchSpaces?.();
-      return;
-    }
-    const target = key === "boards" ? boardsTabRef.current : repeatTabRef.current;
-    target?.scrollIntoView?.({ behavior: "smooth", block: "nearest", inline: "nearest" });
-  };
-
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
     if (!profile?.id) return undefined;
@@ -229,38 +211,16 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
         </section>
 
-        <nav className="profile-space-tabs" aria-label="Profile sections">
-          {[
-            { key: "boards", label: "Boards", icon: LayoutGrid },
-            ...(theme.showMusic ? [{ key: "repeat", label: "On Repeat", icon: Music2 }] : []),
-            { key: "studio", label: "Profile Studio", icon: Palette },
-            { key: "spaces", label: "Switch spaces", icon: Users },
-          ].map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              className={`profile-space-tab${activeProfileTab === key ? " is-active" : ""}`}
-              data-tab={key}
-              aria-selected={activeProfileTab === key}
-              aria-label={label}
-              onClick={() => selectProfileTab(key)}
-            >
-              <Icon size={14} aria-hidden="true" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-
         <div className="profile-lower-grid profile-space-grid">
-          <section ref={boardsTabRef} className={`card profile-section-card profile-pinned-card profile-space-panel profile-space-boards${activeProfileTab === "boards" ? " is-tab-target-active" : ""}`} style={sectionStyle("boards")}>
+          <section className="card profile-section-card profile-pinned-card profile-space-panel profile-space-boards" style={sectionStyle("boards")}>
             <div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><h2 style={{ marginTop: 0 }}>Boards</h2><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div></div>
             {pinnedBoards.length > 0 ? <div className="profile-pinned-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="profile-empty-board" onClick={onCustomizeBoards || onOpenBoards}><Plus size={18} /><span>Pin a Board</span></button>}
           </section>
 
           <div className="profile-right-stack profile-space-side">
-            <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="eyebrow profile-panel-eyebrow">Switch spaces</div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong className="profile-panel-primary">@{activeSpace.handle}</strong></div><ChevronRight size={17} className="muted" /></div></button>
-            {theme.showMusic && <div ref={repeatTabRef} className={`profile-space-repeat-wrap${activeProfileTab === "repeat" ? " is-tab-target-active" : ""}`}><OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} /></div>}
-            <div className="card profile-section-card profile-compact-section profile-space-panel profile-space-customize" style={sectionStyle("customize")}><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow profile-panel-eyebrow">Profile Studio</div></div><Palette size={17} /></div><button type="button" className="btn btn-primary profile-studio-button" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
+            <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="profile-space-panel-heading"><h2>Switch spaces</h2></div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong className="profile-panel-primary">@{activeSpace.handle}</strong></div><ChevronRight size={17} className="muted" /></div></button>
+            {theme.showMusic && <div className="profile-space-repeat-wrap"><OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} /></div>}
+            <div className="card profile-section-card profile-compact-section profile-space-panel profile-space-customize" style={sectionStyle("customize")}><div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><h2>Profile Studio</h2><Palette size={17} /></div></div><button type="button" className="btn btn-primary profile-studio-button" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
           </div>
         </div>
       </div>
