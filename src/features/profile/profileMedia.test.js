@@ -64,5 +64,5 @@ describe("profile photo storage", () => {
       size: MAX_PROFILE_BACKGROUND_VIDEO_SIZE + 1,
     };
 
-    await expect(validateProfileBackgroundVideo(file)).rejects.toThrow(/30 MB or smaller/i);
+    await expect(validateProfileBackgroundVideo(file)).rejects.toThrow(/50 MB or smaller/i);
   });
