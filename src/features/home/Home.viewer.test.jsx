@@ -182,4 +182,44 @@ expect(image.getAttribute("src")).toBe(
     expect(screen.getByText("second comment")).toBeInTheDocument();
   });
 
+  it("renders the viewer as independent media, scrim, controls, and comment layers", () => {
+    const layeredPost = {
+      id: "layered-1",
+      author: "baco",
+      mood: "late night",
+      mode: "dump",
+      postedMinutesAgo: 2,
+      likes: 9,
+      liked: false,
+      comments: [{ id: "comment-1", user_id: "friend", from: "mia", text: "hi" }],
+      items: [
+        { id: "frame-1", note: "first frame" },
+        { id: "frame-2", note: "second frame" },
+        { id: "frame-3", note: "third frame" },
+      ],
+    };
+
+    const { container } = render(
+      <Viewer
+        post={layeredPost}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />,
+    );
+
+    expect(container.querySelector(".viewer-overlay")).toBeInTheDocument();
+    expect(container.querySelector(".viewer-media-layer")).toBeInTheDocument();
+    expect(container.querySelector(".viewer-scrim-layer")).toBeInTheDocument();
+    expect(container.querySelector(".viewer-actions-rail")).toBeInTheDocument();
+    expect(container.querySelector(".viewer-bottom-layer")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "Media 1 of 3" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Comments" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Like" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keep" })).toBeInTheDocument();
+  });
+
+
 });
