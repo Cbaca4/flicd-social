@@ -27,6 +27,7 @@ import {
 import {
   createDump,
   getFeedDumps,
+  getDumpById,
 } from "../features/capture/dumpApi.js";
 import {
   removeDumpImages,
@@ -64,6 +65,38 @@ const seedSpaces = [
 const seedRequests = [
   { id: "r1", user: { handle: "alex", name: "Alex Rivera", bio: "found you through global" } },
 ];
+
+function formatDumpRecord(dump) {
+  return {
+    id: dump.id,
+    channel: dump.space_id,
+    author: dump.user_id,
+    mood: dump.mood,
+    mode: dump.expiry,
+    postedMinutesAgo: Math.floor((Date.now() - new Date(dump.created_at).getTime()) / 60000),
+    likes: 0,
+    liked: false,
+    viewed: false,
+    comments: [],
+    items: (dump.dump_items || [])
+      .sort((a, b) => a.position - b.position)
+      .map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
+    context: dump.context || "",
+    musicTrack: dump.music_tracks || null,
+    location: dump.location_name
+      ? {
+          name: dump.location_name,
+          city: dump.location_city || "",
+          latitude: dump.location_lat,
+          longitude: dump.location_lng,
+          placeId: dump.location_place_id || "",
+        }
+      : null,
+    taggedUsers: (dump.dump_tags || [])
+      .map((tag) => tag.tagged_user || null)
+      .filter(Boolean),
+  };
+}
 
 export default function FlicdApp() {
   const [session, setSession] = React.useState(null);
@@ -150,33 +183,7 @@ export default function FlicdApp() {
     setFeedState({ status: "loading", error: "" });
     try {
       const savedDumps = await getFeedDumps();
-      const formattedDumps = savedDumps.map((dump) => ({
-        id: dump.id,
-        channel: dump.space_id,
-        author: dump.user_id,
-        mood: dump.mood,
-        mode: dump.expiry,
-        postedMinutesAgo: Math.floor((Date.now() - new Date(dump.created_at).getTime()) / 60000),
-        likes: 0,
-        liked: false,
-        viewed: false,
-        comments: [],
-        items: (dump.dump_items || []).sort((a, b) => a.position - b.position).map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
-        context: dump.context || "",
-        musicTrack: dump.music_tracks || null,
-        location: dump.location_name
-          ? {
-              name: dump.location_name,
-              city: dump.location_city || "",
-              latitude: dump.location_lat,
-              longitude: dump.location_lng,
-              placeId: dump.location_place_id || "",
-            }
-          : null,
-        taggedUsers: (dump.dump_tags || [])
-          .map((tag) => tag.tagged_user || null)
-          .filter(Boolean),
-      }));
+      const formattedDumps = savedDumps.map(formatDumpRecord);
       setDumps(await hydrateDumpInteractions(formattedDumps));
       setFeedState({ status: "ready", error: "" });
     } catch (error) {
@@ -230,6 +237,31 @@ export default function FlicdApp() {
   const openPublicProfile = React.useCallback((user) => {
     if (user?.id) setPublicProfile(user);
   }, []);
+
+  const openDumpById = React.useCallback(async (dumpId) => {
+    const existing = dumps.find((dump) => dump.id === dumpId);
+    if (existing) {
+      setActivePostId(dumpId);
+      setScreen("viewer");
+      return;
+    }
+
+    try {
+      const savedDump = await getDumpById(dumpId);
+      if (!savedDump) {
+        onToast("That post is no longer available.");
+        return;
+      }
+
+      const [formattedDump] = await hydrateDumpInteractions([formatDumpRecord(savedDump)]);
+      setDumps((current) => current.some((dump) => dump.id === formattedDump.id) ? current : [formattedDump, ...current]);
+      setActivePostId(dumpId);
+      setScreen("viewer");
+    } catch (error) {
+      console.error("Failed to open post:", error);
+      onToast(error.message || "Could not open that post.");
+    }
+  }, [dumps]);
 
   const [pendingLikeIds, setPendingLikeIds] = React.useState(() => new Set());
 
@@ -443,9 +475,7 @@ export default function FlicdApp() {
         onBack={() => setScreen("profile")}
         onOpenDump={(dumpId) => {
           setPublicProfile(null);
-          setActivePostId(dumpId);
-          setScreen("viewer");
-          refreshNotificationCount();
+          openDumpById(dumpId).finally(() => refreshNotificationCount());
         }}
       />
     );
