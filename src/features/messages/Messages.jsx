@@ -18,7 +18,7 @@ import {
   sendMessage,
 } from "./messageApi.js";
 
-export default function Messages({ onToast }) {
+export default function Messages({ onToast, onChanged }) {
   const [tab, setTab] = React.useState("pending");
   const [active, setActive] = React.useState(null);
   const [text, setText] = React.useState("");
@@ -43,6 +43,7 @@ export default function Messages({ onToast }) {
 
       setRequests(requestData);
       setChats(chatData);
+      onChanged?.(requestData.length);
     } catch (err) {
       console.error("Messages loading error:", err);
       setError(err.message || "Unable to load messages.");
@@ -53,7 +54,7 @@ export default function Messages({ onToast }) {
 
   React.useEffect(() => {
     loadMessages();
-  }, []);
+  }, [onChanged]);
 
   async function handleAccept(id) {
     setActionLoading(true);
@@ -63,6 +64,7 @@ export default function Messages({ onToast }) {
       await acceptRequest(id);
 
       await loadMessages();
+      onChanged?.();
 
       onToast?.("Request accepted");
     } catch (err) {
@@ -81,6 +83,7 @@ export default function Messages({ onToast }) {
       await declineRequest(id);
 
       await loadMessages();
+      onChanged?.();
 
       onToast?.("Request declined");
     } catch (err) {
