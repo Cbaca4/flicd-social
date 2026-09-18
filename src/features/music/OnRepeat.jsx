@@ -76,8 +76,8 @@ export default function OnRepeat({ track: initialTrack = null, onTrackChange, ed
         {pickerOpen ? "Close" : track ? "Change song" : "Choose song"}
       </button>}
 
-      {pickerOpen && (
-        {editable && <div className="stack" style={{ marginTop: 12 }}>
+      {pickerOpen && editable && (
+        <div className="stack" style={{ marginTop: 12 }}>
           <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the verified catalog…" aria-label="Search profile music" />
           {tracks.map((candidate) => (
             <button key={candidate.id} type="button" className="card" style={{ textAlign: "left", width: "100%" }} onClick={() => selectTrack(candidate)}>
@@ -87,7 +87,7 @@ export default function OnRepeat({ track: initialTrack = null, onTrackChange, ed
               </div>
             </button>
           ))}
-        </div>}
+        </div>
       )}
     </div>
   );
