@@ -197,7 +197,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
       className="screen profile-screen"
       style={{
         background: theme.background,
-        "--profile-button-bg": buttonStyle.background,
+        "--profile-button-bg": buttonStyle.filled ? buttonStyle.accent : buttonStyle.background,
         "--profile-button-border": buttonStyle.border,
         "--profile-button-text": buttonStyle.text,
         "--profile-button-accent": buttonStyle.accent,
