@@ -172,7 +172,7 @@ export default function EditProfile({
                 aria-label="Profile photo"
               />
               <p className="subtitle" style={{ marginTop: 6 }}>
-                Choose a photo from your gallery. JPEG, PNG, or WebP, up to 5 MB.
+                Choose a photo from your gallery. JPEG, PNG, or WebP, up to 10 MB.
               </p>
             </div>
             <ImagePlus size={20} className="muted" aria-hidden="true" />
