@@ -76,7 +76,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
             type="button"
             className="view-once-reveal"
             onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
-            aria-label="View once photo"
+            aria-label="Tap to view once"
           >
             <Eye size={20} />
             <strong>Tap to view once</strong>
@@ -102,7 +102,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
           type="button"
           className="view-once-reveal"
           onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
-          aria-label="View once photo"
+          aria-label="Tap to view once"
         >
           <Eye size={20} />
           <strong>Tap to view once</strong>
