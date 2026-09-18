@@ -338,21 +338,7 @@ export function DumpCard({
 
   return (
     <article className="post-card" style={{ width: "100%", opacity: expired ? 0.45 : 1 }}>
-      <div
-        className="post-media-button"
-        role="button"
-        tabIndex={expired ? -1 : 0}
-        onClick={() => !expired && onOpen?.(post)}
-        onKeyDown={(event) => {
-          if (expired) return;
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onOpen?.(post);
-          }
-        }}
-        aria-label={alreadyViewed ? "Open already viewed once post" : "Open post"}
-        aria-disabled={expired}
-      >
+      <div className="post-media-button">
         <div
           className={"post-media post-feed-media" + (!firstImage ? " post-media-placeholder" : "")}
           style={{
@@ -361,6 +347,13 @@ export function DumpCard({
             overflow: "hidden",
           }}
         >
+          <button
+            type="button"
+            className="post-media-open-hitarea"
+            onClick={() => onOpen?.(post)}
+            disabled={expired}
+            aria-label={alreadyViewed ? "Open already viewed once post" : "Open post"}
+          />
           {firstImage && (
             <img
               src={firstImage}
