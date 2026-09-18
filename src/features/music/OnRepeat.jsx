@@ -9,6 +9,8 @@ export default function OnRepeat({
   editable = true,
   playing: controlledPlaying,
   onTogglePlay,
+  className = "card",
+  style,
 }) {
   const [track, setTrack] = React.useState(initialTrack);
   const [pickerOpen, setPickerOpen] = React.useState(false);
@@ -101,7 +103,7 @@ export default function OnRepeat({
   }, [pickerOpen, query]);
 
   return (
-    <div className="card">
+    <div className={className} style={style}>
       <div className="eyebrow">On repeat</div>
 
       {track ? (
