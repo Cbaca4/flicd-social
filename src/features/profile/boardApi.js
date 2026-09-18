@@ -167,6 +167,48 @@ export async function saveBoardItem({
     ? await getBoard(boardId)
     : await getOrCreateDefaultBoard();
 
+  if (!dumpId) throw new Error("A Flic'd post is required.");
+
+  const { data: sourceDump, error: sourceError } = await supabase
+    .from("dumps")
+    .select("id,user_id,expiry,allow_others_to_keep,dump_items(id,position,image_path,note,mood)")
+    .eq("id", dumpId)
+    .single();
+
+  if (sourceError) throw sourceError;
+
+  if (
+    sourceDump.user_id !== userId &&
+    !sourceDump.allow_others_to_keep
+  ) {
+    throw new Error("The owner does not allow this Flic'd to be kept.");
+  }
+
+  if (sourceDump.expiry !== "24h" && sourceDump.user_id !== userId) {
+    throw new Error("View once Flic'ds cannot be kept.");
+  }
+
+  if (
+    sourceDump.user_id !== userId &&
+    new Date(sourceDump.created_at || 0).getTime() <= Date.now() - 24 * 60 * 60 * 1000
+  ) {
+    throw new Error("That Flic'd has expired.");
+  }
+
+  const sourceItem = (sourceDump.dump_items || []).find(
+    (item) => Number(item.position) === Number(itemPosition),
+  );
+
+  if (!sourceItem) throw new Error("That saved moment is no longer available.");
+
+  let sourceUsername = "";
+  const { data: sourceProfile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", sourceDump.user_id)
+    .maybeSingle();
+  sourceUsername = sourceProfile?.username || "";
+
   const { data, error } = await supabase
     .from("board_items")
     .upsert(
@@ -175,12 +217,13 @@ export async function saveBoardItem({
         board_id: targetBoard.id,
         dump_id: dumpId,
         item_position: itemPosition,
-        note,
-        mood,
+        note: note || sourceItem.note || "",
+        mood: mood || sourceItem.mood || "",
+        saved_image_path: sourceItem.image_path || null,
+        saved_author_username: sourceUsername || null,
       },
       {
-        onConflict:
-          "user_id,board_id,dump_id,item_position",
+        onConflict: "user_id,board_id,dump_id,item_position",
       }
     )
     .select()
@@ -196,7 +239,7 @@ export async function getBoardItems(boardId = null) {
   let query = supabase
     .from("board_items")
     .select(
-      "id,user_id,board_id,dump_id,item_position,note,mood,created_at"
+      "id,user_id,board_id,dump_id,item_position,note,mood,saved_image_path,saved_author_username,created_at"
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
