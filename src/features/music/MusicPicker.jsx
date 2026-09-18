@@ -10,22 +10,35 @@ export default function MusicPicker({ value = null, onChange, onClear, disabled 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [previewId, setPreviewId] = React.useState(null);
-
-  const load = React.useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      setTracks(await getMusicTracks({ search: query, limit: 40 }));
-    } catch (loadError) {
-      setError(loadError.message || "Could not load music.");
-    } finally {
-      setLoading(false);
-    }
-  }, [query]);
+  const searchRequestRef = React.useRef(0);
 
   React.useEffect(() => {
-    if (open) load();
-  }, [open, load]);
+    if (!open) {
+      searchRequestRef.current += 1;
+      setLoading(false);
+      return undefined;
+    }
+
+    const requestId = ++searchRequestRef.current;
+    setLoading(true);
+    setError("");
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await getMusicTracks({ search: query, limit: 40 });
+        if (requestId !== searchRequestRef.current) return;
+        setTracks(results);
+      } catch (loadError) {
+        if (requestId !== searchRequestRef.current) return;
+        setTracks([]);
+        setError(loadError.message || "Could not load music.");
+      } finally {
+        if (requestId === searchRequestRef.current) setLoading(false);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [open, query]);
 
   React.useEffect(() => () => stopAudio(), []);
 
