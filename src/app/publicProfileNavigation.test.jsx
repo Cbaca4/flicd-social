@@ -159,7 +159,7 @@ describe("FlicdApp public profile navigation", () => {
     expect(interactionMock.hydrateDumpInteractions).toHaveBeenCalled();
   });
 
-  it("opens the selected user through Discover people search and returns home on back", async () => {
+  it("opens the selected user through Discover people search and returns to Discover on back", async () => {
     render(<FlicdApp />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Discover" }));
@@ -171,6 +171,6 @@ describe("FlicdApp public profile navigation", () => {
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByText("Flic'd")).toBeTruthy();
+    expect(await screen.findByText("Discovery")).toBeTruthy();
   });
 });
