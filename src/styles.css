@@ -1891,3 +1891,357 @@ button.post-metadata-pill:focus-visible {
 .post-feed-status {
   pointer-events: none;
 }
+
+
+/* Profile typography and controls: fluid sizing prevents labels from fighting
+   for space while preserving the single global roundness system. */
+.profile-space-layout {
+  --profile-control-radius: var(--profile-button-radius, var(--profile-section-radius, 20px));
+}
+.profile-action-label--compact {
+  display: none;
+}
+.profile-space-layout .btn {
+  max-width: 100%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--profile-control-radius) !important;
+}
+.profile-space-hero .profile-hero-actions {
+  min-width: 0;
+}
+.profile-space-hero .profile-hero-actions .btn-primary {
+  min-width: 0;
+}
+.profile-space-hero .profile-display-name,
+.profile-space-hero .profile-bio,
+.profile-space-hero .profile-links {
+  min-width: 0;
+}
+.profile-space-hero .profile-bio {
+  font-size: clamp(11px, 1.15vw, 13px);
+  line-height: 1.35;
+}
+.profile-space-hero .profile-links a {
+  font-size: clamp(10px, 1vw, 11px);
+}
+.profile-space-panel-heading .eyebrow,
+.profile-space-panel > .eyebrow {
+  font-size: clamp(8px, .8vw, 10px);
+}
+.profile-space-panel h2 {
+  font-size: clamp(15px, 1.7vw, 19px);
+}
+.profile-space-panel .subtitle {
+  font-size: clamp(10px, .95vw, 12px);
+  line-height: 1.3;
+}
+.profile-panel-primary {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-secondary-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-space-repeat .avatar.lg {
+  width: clamp(40px, 4.4vw, 54px);
+  height: clamp(40px, 4.4vw, 54px);
+  flex: 0 0 clamp(40px, 4.4vw, 54px);
+}
+.profile-space-repeat .row {
+  gap: 7px !important;
+}
+.profile-space-repeat .row > div {
+  min-width: 0;
+}
+.profile-space-repeat .row > div strong,
+.profile-space-repeat .row > div .subtitle {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-space-repeat .row > .btn.icon-btn {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+}
+.profile-space-repeat > .btn-primary {
+  min-height: 34px;
+  padding: 8px 11px;
+}
+.profile-space-customize .profile-studio-button {
+  min-height: 34px;
+  padding: 8px 11px;
+}
+.profile-pinned-grid .board-count-tag,
+.profile-pinned-grid .board-pin-tag {
+  font-size: 9px;
+}
+.profile-pinned-grid .board-count-tag {
+  max-width: calc(100% - 18px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-pinned-grid .board-pin-tag {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+/* Compact phone typography: remove repeated eyebrow/subtitle copy before
+   shrinking the actual content users need to read. */
+@media (max-width: 620px) {
+  .profile-action-label--full {
+    display: none;
+  }
+  .profile-action-label--compact {
+    display: inline;
+  }
+
+  .profile-space-layout {
+    font-size: 10px;
+  }
+  .profile-space-layout .btn {
+    font-size: 10px;
+    padding: 6px 8px;
+    min-height: 30px;
+    gap: 5px;
+  }
+
+  .profile-space-hero {
+    padding: 9px !important;
+  }
+  .profile-space-hero::before {
+    display: none;
+  }
+  .profile-username-heading {
+    font-size: 17px !important;
+    padding: 0 40px 5px !important;
+  }
+  .profile-main-row {
+    grid-template-columns: 48px minmax(0, 1fr) !important;
+    gap: 7px !important;
+  }
+  .profile-main-row .avatar.lg {
+    width: 48px;
+    height: 48px;
+  }
+  .profile-display-name {
+    font-size: 12px;
+  }
+  .profile-mini-stats {
+    gap: 1px !important;
+    margin-top: 1px;
+  }
+  .profile-stat--inline {
+    min-height: 32px;
+    padding: 3px 1px !important;
+    border-radius: max(10px, calc(var(--profile-section-radius, 20px) - 8px)) !important;
+    gap: 0;
+  }
+  .profile-stat--inline strong {
+    font-size: 11px;
+    line-height: 1.05;
+  }
+  .profile-stat--inline .subtitle {
+    font-size: 7px !important;
+    line-height: 1.05;
+    letter-spacing: -.02em;
+  }
+  .profile-space-hero .profile-bio {
+    margin-top: 5px;
+    max-height: 26px;
+    font-size: 9px;
+    line-height: 1.3;
+  }
+  .profile-space-hero .profile-links {
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .profile-space-hero .profile-links a {
+    max-width: 120px;
+    padding: 4px 6px;
+    font-size: 8px;
+  }
+  .profile-hero-actions {
+    gap: 5px;
+    margin-top: 5px;
+  }
+  .profile-hero-actions .btn-primary {
+    min-height: 30px;
+  }
+  .profile-settings-corner {
+    width: 30px;
+    height: 30px;
+    top: 6px;
+    right: 6px;
+  }
+  .profile-settings-corner svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .profile-space-panel {
+    padding: 7px !important;
+  }
+  .profile-panel-eyebrow,
+  .profile-space-repeat > .eyebrow {
+    display: none;
+  }
+  .profile-space-panel h2 {
+    font-size: 13px;
+    line-height: 1.1;
+  }
+  .profile-space-panel .subtitle {
+    font-size: 9px;
+    line-height: 1.2;
+  }
+  .profile-secondary-label {
+    display: none;
+  }
+  .profile-space-active .profile-compact-row {
+    margin-top: 2px;
+  }
+  .profile-space-active .profile-compact-row svg {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+  }
+
+  .profile-space-repeat .avatar.lg {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+  .profile-space-repeat .row {
+    gap: 4px !important;
+    margin-top: 5px !important;
+  }
+  .profile-space-repeat .row > div strong {
+    font-size: 9px;
+    line-height: 1.1;
+  }
+  .profile-space-repeat .row > div .subtitle {
+    margin-top: 1px !important;
+    font-size: 8px;
+  }
+  .profile-space-repeat .row > .btn.icon-btn {
+    width: 28px;
+    height: 28px;
+    flex-basis: 28px;
+    padding: 0;
+  }
+  .profile-space-repeat .row > .btn.icon-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+  .profile-space-repeat > .subtitle {
+    margin-top: 2px !important;
+    font-size: 8px;
+  }
+  .profile-space-repeat > .btn-primary,
+  .profile-space-customize .profile-studio-button {
+    min-height: 28px;
+    margin-top: 5px !important;
+    padding: 5px 7px;
+    font-size: 8px;
+  }
+  .profile-space-customize .profile-studio-label {
+    font-size: 9px;
+    line-height: 1.05;
+  }
+  .profile-space-customize svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .profile-space-boards .profile-space-panel-heading {
+    padding-bottom: 4px;
+  }
+  .profile-space-boards .profile-space-panel-heading .btn.icon-btn {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+  }
+  .profile-space-boards .profile-space-panel-heading .btn.icon-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+  .profile-space-boards .profile-pinned-grid {
+    margin-top: 5px;
+    gap: 3px;
+  }
+  .profile-space-boards .profile-pinned-grid .card {
+    padding: 4px !important;
+  }
+  .profile-space-boards .profile-pinned-grid .card > strong {
+    font-size: 8px;
+    margin-top: 3px !important;
+  }
+  .profile-space-boards .board-count-tag {
+    display: none;
+  }
+  .profile-space-boards .board-pin-tag {
+    width: 20px;
+    height: 20px;
+    right: 5px !important;
+    top: 5px !important;
+    font-size: 8px;
+  }
+  .profile-space-boards .board-pin-tag svg {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-space-layout .screen,
+  .profile-space-layout {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+  .profile-space-hero {
+    padding: 7px !important;
+  }
+  .profile-username-heading {
+    font-size: 16px !important;
+  }
+  .profile-main-row {
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    gap: 5px !important;
+  }
+  .profile-main-row .avatar.lg {
+    width: 42px;
+    height: 42px;
+  }
+  .profile-stat--inline strong {
+    font-size: 10px;
+  }
+  .profile-stat--inline .subtitle {
+    font-size: 6.5px !important;
+  }
+  .profile-space-panel {
+    padding: 6px !important;
+  }
+  .profile-space-grid {
+    gap: 5px !important;
+  }
+  .profile-space-side {
+    gap: 5px !important;
+  }
+  .profile-space-customize .profile-studio-label {
+    font-size: 8px;
+  }
+}
