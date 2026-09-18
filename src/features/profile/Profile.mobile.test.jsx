@@ -66,10 +66,12 @@ describe("handheld profile layout", () => {
     expect(document.querySelector(".profile-space-grid")).toBeTruthy();
     expect(document.querySelector(".profile-space-boards")).toBeTruthy();
     expect(document.querySelector(".profile-space-side")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Boards", exact: true })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("button", { name: "On Repeat", exact: true })).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("button", { name: "Profile Studio", exact: true })).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("button", { name: "Switch spaces", exact: true })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("heading", { name: "Boards", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "On Repeat", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Profile Studio", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Boards", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
   });
 
@@ -94,7 +96,7 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
     expect(document.querySelector(".profile-action-label--full")).toBeTruthy();
     expect(document.querySelector(".profile-action-label--compact")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Switch spaces", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
   });
 
   it("renders the saved profile photo instead of the fallback initial", () => {
