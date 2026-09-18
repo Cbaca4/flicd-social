@@ -1,5 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import { MEDIA_BUCKET } from "../capture/mediaUpload.js";
+import { ARCHIVE_BUCKET } from "./archiveApi.js";
 
 async function getCurrentUserId() {
   const {
@@ -156,11 +157,11 @@ export async function getOrCreateDefaultBoard() {
   });
 }
 
-async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosition) {
+async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosition, sourceBucket = MEDIA_BUCKET) {
   if (!sourcePath) return null;
 
   const { data: file, error: downloadError } = await supabase.storage
-    .from(MEDIA_BUCKET)
+    .from(sourceBucket)
     .download(sourcePath);
 
   if (downloadError) throw downloadError;
@@ -234,6 +235,19 @@ export async function saveBoardItem({
 
   if (!sourceItem) throw new Error("That saved moment is no longer available.");
 
+  const { data: archiveItem, error: archiveItemError } = await supabase
+    .from("flicd_archive_items")
+    .select("archive_path")
+    .eq("user_id", userId)
+    .eq("dump_id", dumpId)
+    .eq("item_position", Number(itemPosition))
+    .maybeSingle();
+
+  if (archiveItemError) throw archiveItemError;
+
+  const sourcePath = archiveItem?.archive_path || sourceItem.image_path;
+  const sourceBucket = archiveItem?.archive_path ? ARCHIVE_BUCKET : MEDIA_BUCKET;
+
   const { data: existingItem } = await supabase
     .from("board_items")
     .select("id,saved_image_path")
@@ -246,11 +260,12 @@ export async function saveBoardItem({
   const savedImagePath =
     existingItem?.saved_image_path ||
     await snapshotBoardImage(
-      sourceItem.image_path,
+      sourcePath,
       userId,
       targetBoard.id,
       dumpId,
       itemPosition,
+      sourceBucket,
     );
 
   let sourceUsername = "";
