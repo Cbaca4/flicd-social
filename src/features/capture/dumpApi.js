@@ -165,7 +165,7 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
       }));
   }
 
-  return data || [];
+  return [];
 }
 
 export async function markDumpViewed(dumpId) {
@@ -264,7 +264,6 @@ export async function getDumpById(dumpId) {
 
   if (
     data.expiry === "24h" &&
-    data.user_id !== userId &&
     new Date(data.created_at || 0).getTime() <= Date.now() - 24 * 60 * 60 * 1000
   ) {
     return null;
