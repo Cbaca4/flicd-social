@@ -8,6 +8,7 @@ import { normalizeCompanionSettings } from "../companion/companionSettingsConfig
 import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
 import OnRepeat from "../music/OnRepeat.jsx";
 import MusicCredits from "../music/MusicCredits.jsx";
+import RelationshipList from "../social/RelationshipList.jsx";
 
 function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
   const [companionUserId, setCompanionUserId] = React.useState("");
@@ -114,6 +115,15 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
         </div>
       </div>
     </div>
+      {relationshipList && (
+        <RelationshipList
+          profileId={profile.id}
+          type={relationshipList}
+          onClose={() => setRelationshipList(null)}
+          onUserSelect={onUserSelect}
+        />
+      )}
+    </div>
   );
 }
 
@@ -137,8 +147,9 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, onNotifications, notificationsUnread = 0, onUserSelect }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState(() => ({
     followers: profile?.followers ?? 0,
     following: profile?.following ?? 0,
@@ -201,6 +212,10 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
                 <h1 className="title" style={{ fontSize: 28, marginTop: 2 }}>@{profile.handle}</h1>
               </div>
               <div className="profile-actions">
+                {onNotifications && <button type="button" className="btn icon-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}>
+                  <Bell size={18} />
+                  {notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}
+                </button>}
                 <button type="button" className="btn" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
                 <button type="button" className="btn icon-btn" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
               </div>
@@ -211,10 +226,16 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
         </div>
 
-        <div className="row" style={{ gap: 28, marginTop: 22 }}>
-          <div><strong>{relationshipCounts.followers}</strong><div className="subtitle">followers</div></div>
-          <div><strong>{relationshipCounts.following}</strong><div className="subtitle">following</div></div>
-          <div><strong>{boards.length}</strong><div className="subtitle">boards</div></div>
+        <div className="row" style={{ gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+          <button type="button" className="profile-stat" onClick={() => setRelationshipList("followers")} aria-label="View followers">
+            <strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span>
+          </button>
+          <button type="button" className="profile-stat" onClick={() => setRelationshipList("following")} aria-label="View following">
+            <strong>{relationshipCounts.following}</strong><span className="subtitle">following</span>
+          </button>
+          <div className="profile-stat" aria-label="Board count">
+            <strong>{boards.length}</strong><span className="subtitle">boards</span>
+          </div>
         </div>
       </div>
 
