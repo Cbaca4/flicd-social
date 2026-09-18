@@ -160,6 +160,7 @@ export default function OnRepeat({
               className="input profile-music-search-input"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              type="search"
               placeholder="Search artist, song, or genre…"
               aria-label="Search profile music"
             />
