@@ -15,7 +15,26 @@ describe("VideoCommentPicker", () => {
     expect(screen.getByLabelText("Record a video", { selector: "input" }))
       .toHaveAttribute("capture", "user");
     expect(screen.getByLabelText("Choose a video from device", { selector: "input" }))
-      .toHaveAttribute("accept", "video/mp4,video/webm");
+      .toHaveAttribute("accept", "video/mp4,video/webm,video/quicktime");
+  });
+
+  it("accepts MOV files from mobile browsers", async () => {
+    const onSelect = vi.fn();
+    const file = new File(["video"], "clip.mov", { type: "video/quicktime" });
+
+    render(
+      <VideoCommentPicker
+        onSelect={onSelect}
+        onClose={() => {}}
+        getVideoDuration={vi.fn().mockResolvedValue(8)}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Choose a video from device", { selector: "input" }), {
+      target: { files: [file] },
+    });
+
+    expect(await screen.findByLabelText("Video preview")).toBeInTheDocument();
   });
 
   it("previews a valid video before the composer receives it", async () => {
