@@ -1,4 +1,5 @@
 import React from "react";
+import { getDumpItemMediaUrl } from "../capture/mediaUrl.js";
 import {
   ArrowLeft,
   Pin,
@@ -324,7 +325,7 @@ function BoardDetail({
           {resolvedItems.map((item) => {
             const dump = item.dump;
             const frame = dump?.items?.[item.item_position];
-            const imagePath = frame?.imagePath || item.saved_image_path || null;
+            const imagePath = frame?.imagePath || getDumpItemMediaUrl(item.saved_image_path) || null;
             const mood = item.mood || dump?.mood || "Saved";
             const note = item.note || frame?.note || "";
             
