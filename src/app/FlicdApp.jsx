@@ -47,6 +47,8 @@ import ProfileStudio from "../features/profile/ProfileStudio.jsx";
 import EditProfile from "../features/profile/EditProfile.jsx";
 import Discovery from "../features/discovery/Discovery.jsx";
 import PublicProfile from "../features/profile/PublicProfile.jsx";
+import Archive from "../features/profile/Archive.jsx";
+import { archiveDump, syncExpiredArchive } from "../features/profile/archiveApi.js";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
 import { getMusicTrack } from "../features/music/musicApi.js";
 import {
@@ -267,6 +269,12 @@ export default function FlicdApp() {
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
+      try {
+        await syncExpiredArchive();
+      } catch (archiveError) {
+        console.error("Failed to sync archive:", archiveError);
+      }
+
       const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
       setDumps(await hydrateDumpInteractions(formattedDumps));
@@ -280,7 +288,19 @@ export default function FlicdApp() {
 
   React.useEffect(() => {
     loadDumps();
-  }, [loadDumps]);
+    if (!session) return undefined;
+
+    const timer = setInterval(loadDumps, 60000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") loadDumps();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadDumps, session]);
 
   React.useEffect(() => {
     async function loadBoardItems() {
@@ -397,8 +417,13 @@ export default function FlicdApp() {
   }, [supabaseProfile?.username]);
 
   const keep = async (post, index) => {
-    if (!post.allowOthersToKeep || post.mode !== "24h") {
+    const isOwnPost = post.authorId === session?.user?.id || post.author === supabaseProfile?.username;
+    if (!isOwnPost && (!post.allowOthersToKeep || post.mode !== "24h")) {
       onToast("This Flic'd cannot be kept.");
+      return;
+    }
+    if (!isOwnPost && post.mode !== "24h") {
+      onToast("View once Flic'ds cannot be kept.");
       return;
     }
     try {
@@ -615,8 +640,10 @@ export default function FlicdApp() {
     content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
   } else if (screen === "messages") {
     content = <Messages onToast={onToast} onChanged={refreshMessageCount} />;
+  } else if (screen === "archive") {
+    content = <Archive onBack={() => setScreen("profile")} onKeep={keep} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
+    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio
       profile={profile}
@@ -668,11 +695,13 @@ export default function FlicdApp() {
   } else {
     content = activePost ? <Viewer post={activePost} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
           setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
-          markDumpViewed(dumpId).catch((error) => console.error("Failed to record view-once post:", error));
+          markDumpViewed(dumpId)
+            .then(() => archiveDump(dumpId, "view_once"))
+            .catch((error) => console.error("Failed to archive view-once post:", error));
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
-  const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? "profile" : "home") : screen;
+  const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? "profile" : "home") : screen;
 
   return (
     <>
