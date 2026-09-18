@@ -656,7 +656,15 @@ export default function FlicdApp() {
       notificationsUnread={notificationsUnread}
     />;
   } else if (screen === "discover") {
-    content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
+    content = <Discovery
+      onToast={onToast}
+      onUserSelect={openPublicProfile}
+      onOpenPost={(post) => {
+        setViewerCommentsOpen(false);
+        setActivePostId(post.id);
+        setScreen("viewer");
+      }}
+    />;
   } else if (screen === "messages") {
     content = <Messages onToast={onToast} onChanged={refreshMessageCount} />;
   } else if (screen === "archive") {
