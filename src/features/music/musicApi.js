@@ -13,6 +13,10 @@ async function withPlayableAudioList(tracks) {
   return Promise.all((tracks || []).map(withPlayableAudio));
 }
 
+export async function hydrateMusicTracks(tracks) {
+  return withPlayableAudioList(tracks);
+}
+
 export async function getMusicTracks({ search = "", limit = 50 } = {}) {
   const cleanSearch = search.trim();
   let query = supabase
