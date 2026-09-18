@@ -182,6 +182,7 @@ describe("Feed cards", () => {
         title: "Nights",
         artist: "Frank Ocean",
         cover_url: "https://media.example.test/nights.jpg",
+        audio_url: "https://media.example.test/nights.mp3",
       },
       items: [{ id: "item-1", note: "one moment" }],
     };
