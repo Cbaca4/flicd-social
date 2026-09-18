@@ -37,6 +37,42 @@ describe("Viewer", () => {
     expect(screen.getByRole("button", { name: /keep/i })).toBeTruthy();
   });
 
+  it("reveals a view-once photo and records the view", () => {
+    const onMarkViewed = vi.fn();
+    const post = {
+      id: "once-1",
+      author: "maren_",
+      mood: "golden hour",
+      mode: "once",
+      postedMinutesAgo: 1,
+      likes: 0,
+      liked: false,
+      viewed: false,
+      items: [{ note: "private moment", imagePath: "user-1/private.jpg" }],
+      comments: [],
+    };
+
+    render(
+      <Viewer
+        post={post}
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={onMarkViewed}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Tap to view once" })).toBeInTheDocument();
+    screen.getByRole("button", { name: "Tap to view once" }).click();
+
+    expect(onMarkViewed).toHaveBeenCalledWith("once-1");
+    expect(screen.getByRole("img", { name: /private moment/i })).toHaveAttribute(
+      "src",
+      "https://cdn.example.com/user-1/private.jpg",
+    );
+  });
+
   it("renders stored media when a dump item has an image path", () => {
     const post = {
       id: 2,
