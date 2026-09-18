@@ -138,7 +138,7 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, onNotifications, notificationsUnread = 0, onUserSelect }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState(() => ({
@@ -181,9 +181,40 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
     else setSettingsOpen(true);
   };
 
+  const sectionStyle = (name) => {
+    const style = theme?.sectionStyles?.[name] || {};
+    return {
+      background: style.background,
+      borderColor: style.border,
+      borderRadius: `${style.radius || 20}px`,
+    };
+  };
+
+  const buttonStyle = theme?.buttonStyle || {};
+
   return (
-    <div className="screen" style={{ background: theme.background }}>
-      <div className="profile-hero">
+    <div
+      className="screen profile-screen"
+      style={{
+        background: theme.background,
+        "--profile-button-bg": buttonStyle.background,
+        "--profile-button-border": buttonStyle.border,
+        "--profile-button-text": buttonStyle.text,
+        "--profile-button-accent": buttonStyle.accent,
+        "--profile-button-radius": `${buttonStyle.radius || 14}px`,
+      }}
+    >
+      {theme.backgroundMedia?.url && (
+        <div className="profile-background-media" aria-hidden="true">
+          {theme.backgroundMedia.type === "video" ? (
+            <video src={theme.backgroundMedia.url} autoPlay loop muted playsInline />
+          ) : (
+            <img src={theme.backgroundMedia.url} alt="" />
+          )}
+        </div>
+      )}
+      <div className="profile-content-layer">
+      <div className="profile-hero profile-section-card" style={sectionStyle("hero")}>
         <div className="profile-heading">
           <div className="avatar lg">
             {profile.avatarUrl ? (
@@ -232,7 +263,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
       <div className="profile-layout" style={{ marginTop: 14 }}>
         <div className="stack">
-          {theme.showBoards && <div className="card">
+          {theme.showBoards && <div className="card profile-section-card" style={sectionStyle("boards")}>
             <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
               <div><div className="eyebrow">Pinned Boards</div><h2 style={{ marginTop: 3 }}>Your corners of the internet</h2><p className="subtitle" style={{ marginTop: 4 }}>{pinnedBoards.length} of 3 pinned to your profile.</p></div>
               <button type="button" className="btn" onClick={onCustomizeBoards}><LayoutGrid size={15} />Manage</button>
@@ -240,21 +271,22 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             {pinnedBoards.length > 0 ? <div className="grid" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))", marginTop: 14 }}>{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="card" onClick={onCustomizeBoards || onOpenBoards} style={{ width: "100%", marginTop: 14, minHeight: 150, display: "grid", placeItems: "center", textAlign: "center", borderStyle: "dashed", cursor: "pointer" }}><div><Plus size={22} /><strong style={{ display: "block", marginTop: 8 }}>Pin a Board to your profile</strong><span className="subtitle" style={{ display: "block", marginTop: 4 }}>Choose up to three Boards to feature here.</span></div></button>}
             <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}><button type="button" className="btn" onClick={onOpenBoards}>View all Boards<ChevronRight size={15} /></button></div>
           </div>}
-          {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} />}
+          {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card" style={sectionStyle("onRepeat")} />}
         </div>
 
         <div className="stack">
-          <button type="button" className="card" style={{ textAlign: "left" }} onClick={onSwitchSpaces}>
+          <button type="button" className="card profile-section-card" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}>
             <div className="eyebrow">Active space</div>
             <div className="row" style={{ marginTop: 7 }}><div style={{ flex: 1 }}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch between your identities.</p></div><ChevronRight size={18} className="muted" /></div>
           </button>
-          <div className="card">
+          <div className="card profile-section-card" style={sectionStyle("customize")}>
             <div className="eyebrow">Profile Studio</div>
             <h3 style={{ marginTop: 5 }}>Build your page your way</h3>
             <p className="subtitle" style={{ marginTop: 5 }}>Nostalgic customization, with modern controls and privacy intact.</p>
             <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={onCustomize}><Settings size={15} />Customize profile</button>
           </div>
         </div>
+      </div>
       </div>
       {relationshipList && (
         <RelationshipList
