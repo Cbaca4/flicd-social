@@ -517,7 +517,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     setIndex(0);
     setCommentsOpen(Boolean(initialCommentsOpen));
     onceViewedAtOpenRef.current = Boolean(post.mode === "once" && post.viewed);
-  }, [post.id, initialCommentsOpen]);
+  }, [post.id, post.viewed, initialCommentsOpen]);
 
   React.useEffect(() => {
     const track = post.musicTrack;
