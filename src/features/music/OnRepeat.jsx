@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, ExternalLink, Pause, Play, Search, X } from "lucide-react";
+import { ExternalLink, Pause, Play, Search, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
 import { getActiveAudio, pauseAudio, playAudioUrl, resumeAudio, stopAudio } from "./audioController.js";
 
@@ -13,13 +13,11 @@ export default function OnRepeat({
   style,
 }) {
   const [track, setTrack] = React.useState(initialTrack);
-  const [pickerOpen, setPickerOpen] = React.useState(true);
   const [tracks, setTracks] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [localPlaying, setLocalPlaying] = React.useState(false);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
-  const [songsOpen, setSongsOpen] = React.useState(true);
   const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
@@ -58,8 +56,6 @@ export default function OnRepeat({
     setLocalPlaying(false);
     setTrack(nextTrack);
     onTrackChange?.(nextTrack);
-    setPickerOpen(true);
-    setSongsOpen(true);
     setQuery("");
   };
 
@@ -100,7 +96,7 @@ export default function OnRepeat({
   };
 
   React.useEffect(() => {
-    if (!editable || !pickerOpen || !songsOpen) {
+    if (!editable || track) {
       searchRequestRef.current += 1;
       setSearchLoading(false);
       return undefined;
@@ -125,7 +121,7 @@ export default function OnRepeat({
     }, 220);
 
     return () => clearTimeout(timer);
-  }, [editable, pickerOpen, songsOpen, query]);
+  }, [editable, track, query]);
 
   return (
     <div className={className} style={style}>
@@ -156,34 +152,20 @@ export default function OnRepeat({
         <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
       )}
 
-      {editable && pickerOpen && (
+      {editable && !track && (
         <div className="profile-music-picker">
           <div className="profile-music-search-shell">
             <Search size={14} aria-hidden="true" className="muted" />
             <input
               className="input profile-music-search-input"
               value={query}
-              onFocus={() => setSongsOpen(true)}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setSongsOpen(true);
-              }}
+              onChange={(event) => setQuery(event.target.value)}
               placeholder="Search artist, song, or genre…"
               aria-label="Search profile music"
             />
-            <button
-              type="button"
-              className="btn icon-btn profile-music-dropdown-toggle"
-              aria-label={songsOpen ? "Hide songs" : "Show all songs"}
-              aria-expanded={songsOpen}
-              onClick={() => setSongsOpen((current) => !current)}
-            >
-              <ChevronDown size={15} aria-hidden="true" />
-            </button>
           </div>
 
-          {songsOpen && (
-            <div className="profile-music-dropdown" role="listbox" aria-label="Profile music tracks">
+          <div className="profile-music-dropdown" role="listbox" aria-label="Profile music tracks">
               {searchLoading && <p className="subtitle profile-music-status">Searching music…</p>}
               {searchError && <p role="alert" className="subtitle profile-music-status">{searchError}</p>}
               {!searchLoading && !searchError && tracks.length === 0 && (
