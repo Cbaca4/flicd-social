@@ -1,6 +1,5 @@
 import React from "react";
 import { ArrowLeft, Archive as ArchiveIcon, Bookmark } from "lucide-react";
-import { getDumpItemMediaUrl } from "../home/mediaUrl.js";
 import { getArchiveDumps } from "./archiveApi.js";
 
 function formatArchiveDate(value) {
@@ -56,7 +55,7 @@ export default function Archive({ onBack, onKeep }) {
                 </div>
                 <div className="archive-item-actions">
                   {dump.dump_items.map((item, index) => (
-                    <button key={item.id} type="button" className="btn" onClick={() => onKeep?.({ id: dump.id, authorId: dump.user_id, author: dump.user_id, mood: dump.mood || "", mode: dump.expiry, allowOthersToKeep: true, items: dump.dump_items.map((entry) => ({ id: entry.id, note: entry.note || "", imagePath: entry.image_path || null })) }, index)}><Bookmark size={14} /> Save frame {index + 1} to Board</button>
+                    <button key={item.id} type="button" className="btn" onClick={() => onKeep?.({ id: dump.id, authorId: dump.user_id, author: dump.user_id, mood: dump.mood || "", mode: dump.expiry, allowOthersToKeep: true, items: dump.dump_items.map((entry) => ({ id: entry.id, note: entry.note || "", imagePath: entry.image_path || null, archivePath: entry.archive_path || null, archiveUrl: entry.archiveUrl || null })) }, index)}><Bookmark size={14} /> Save frame {index + 1} to Board</button>
                   ))}
                 </div>
               </div>
