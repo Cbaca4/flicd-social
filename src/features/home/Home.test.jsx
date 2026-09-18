@@ -168,6 +168,33 @@ describe("Feed cards", () => {
     expect(container.querySelector(".post-conversation")).not.toBeInTheDocument();
   });
 
+  it("renders location and interactive music metadata directly over the feed photo", () => {
+    const post = {
+      id: "feed-metadata-1",
+      author: "baco",
+      mood: "late night",
+      mode: "dump",
+      likes: 0,
+      comments: [],
+      allowOthersToKeep: true,
+      location: { name: "Downtown Austin" },
+      musicTrack: {
+        title: "Nights",
+        artist: "Frank Ocean",
+        cover_url: "https://media.example.test/nights.jpg",
+      },
+      items: [{ id: "item-1", note: "one moment" }],
+    };
+
+    const { container } = render(<DumpCard post={post} onOpen={() => {}} />);
+
+    expect(container.querySelector(".post-metadata-overlay")).toBeInTheDocument();
+    expect(screen.getByText("Downtown Austin")).toBeInTheDocument();
+    expect(screen.getByText("Nights")).toBeInTheDocument();
+    expect(screen.getByText("Frank Ocean")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Play post music" })).toBeInTheDocument();
+  });
+
   it("keeps an already-viewed view-once post visible but locked", () => {
     const post = {
       id: "feed-once-1",
