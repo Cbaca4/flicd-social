@@ -61,7 +61,7 @@ describe("handheld profile layout", () => {
       screen.getByRole("button", { name: "Edit Profile" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
-    expect(screen.getByText("@baco")).toBeInTheDocument();
+    expect(document.querySelector(".profile-username-heading")).toHaveTextContent("@baco");
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
   });
 
