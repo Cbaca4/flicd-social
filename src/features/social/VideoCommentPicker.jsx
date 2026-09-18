@@ -125,7 +125,7 @@ export default function VideoCommentPicker({
             ref={deviceInputRef}
             id="comment-video-device-input"
             type="file"
-            accept="video/mp4,video/webm"
+            accept="video/mp4,video/webm,video/quicktime"
             aria-label="Choose a video from device"
             onChange={handleChange}
             style={{ display: "none" }}
