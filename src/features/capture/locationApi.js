@@ -81,6 +81,10 @@ export function getCurrentLocation() {
     return Promise.reject(new Error("Location services are not available in this browser."));
   }
 
+  if (typeof window !== "undefined" && window.isSecureContext === false) {
+    return Promise.reject(new Error("Current location requires HTTPS or localhost. On a phone, an HTTP address using your computer's IP cannot request location."));
+  }
+
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -91,8 +95,15 @@ export function getCurrentLocation() {
         }
       },
       (error) => {
-        if (error?.code === 1) reject(new Error("Location permission was denied."));
-        else reject(new Error("Could not determine your location."));
+        if (error?.code === 1) {
+          reject(new Error("Location access is blocked for this site. Allow Location in your browser's site permissions, then try again."));
+        } else if (error?.code === 2) {
+          reject(new Error("Your device could not determine a location. Check that Location Services are turned on."));
+        } else if (error?.code === 3) {
+          reject(new Error("Location lookup timed out. Try again."));
+        } else {
+          reject(new Error("Could not determine your location."));
+        }
       },
       {
         enableHighAccuracy: false,
