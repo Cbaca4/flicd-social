@@ -50,19 +50,14 @@ vi.mock("../features/auth/Auth.jsx", () => ({ default: () => <div>Auth</div> }))
 vi.mock("../features/profile/BoardStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/ProfileStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/EditProfile.jsx", () => ({ default: () => <div>Edit Profile</div> }));
-vi.mock("../features/discovery/Discovery.jsx", () => ({ default: () => <div>Discovery</div> }));
-vi.mock("../features/messages/Messages.jsx", () => ({ default: () => <div>Messages</div> }));
-vi.mock("../features/spaces/SpaceSwitcher.jsx", () => ({ default: () => <div>Spaces</div> }));
-vi.mock("../features/profile/Boards.jsx", () => ({ default: () => <div>Boards</div> }));
-vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => <div>Create</div> }));
-vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => <div>Dump</div>, RollBuilder: () => <div>Roll</div> }));
-vi.mock("../app/AppShell.jsx", () => ({ default: ({ children }) => <div>{children}</div> }));
-vi.mock("../features/profile/Profile.jsx", () => ({ default: () => <div>Profile</div> }));
-vi.mock("../features/home/UserSearch.jsx", () => ({
-  default: ({ onClose, onUserSelect }) => (
+vi.mock("../features/discovery/Discovery.jsx", () => ({
+  default: ({ onUserSelect }) => (
     <div>
+      <div>Discovery</div>
+      <div>People</div>
       <button
         type="button"
+        aria-label="Search people"
         onClick={() => onUserSelect?.({
           id: "profile-123",
           username: "maren_",
@@ -74,12 +69,27 @@ vi.mock("../features/home/UserSearch.jsx", () => ({
           profile_theme: null,
         })}
       >
-        Open Maren
+        Search people
       </button>
-      <button type="button" onClick={onClose}>Close Search</button>
     </div>
   ),
 }));
+vi.mock("../features/messages/Messages.jsx", () => ({ default: () => <div>Messages</div> }));
+vi.mock("../features/spaces/SpaceSwitcher.jsx", () => ({ default: () => <div>Spaces</div> }));
+vi.mock("../features/profile/Boards.jsx", () => ({ default: () => <div>Boards</div> }));
+vi.mock("../features/capture/CreateChoose.jsx", () => ({ default: () => <div>Create</div> }));
+vi.mock("../features/capture/CaptureBuilders.jsx", () => ({ DumpBuilder: () => <div>Dump</div>, RollBuilder: () => <div>Roll</div> }));
+vi.mock("../app/AppShell.jsx", () => ({
+  default: ({ children, onNavigate }) => (
+    <div>
+      <button type="button" onClick={() => onNavigate?.("home")}>Home</button>
+      <button type="button" onClick={() => onNavigate?.("discover")}>Discover</button>
+      {children}
+    </div>
+  ),
+}));
+vi.mock("../features/profile/Profile.jsx", () => ({ default: () => <div>Profile</div> }));
+
 vi.mock("../features/seasonal/SeasonalOverlay.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/PublicProfile.jsx", () => ({
   default: ({ profile, onBack }) => (
@@ -134,19 +144,18 @@ describe("FlicdApp public profile navigation", () => {
     expect(interactionMock.hydrateDumpInteractions).toHaveBeenCalled();
   });
 
-  it("opens the selected user as a public profile and returns home on back", async () => {
+  it("opens the selected user through Discover people search and returns home on back", async () => {
     render(<FlicdApp />);
 
-    const searchButton = await screen.findByRole("button", {
-      name: "Search users",
-    });
-    fireEvent.click(searchButton);
+    fireEvent.click(await screen.findByRole("button", { name: "Discover" }));
+    expect(await screen.findByText("Discovery")).toBeInTheDocument();
 
+    fireEvent.click(await screen.findByRole("button", { name: "Search people" }));
     fireEvent.click(await screen.findByRole("button", { name: "Open Maren" }));
 
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByRole("button", { name: "Search users" })).toBeTruthy();
+    expect(await screen.findByText("Flic'd")).toBeInTheDocument();
   });
 });
