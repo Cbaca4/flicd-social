@@ -125,7 +125,7 @@ export default function OnRepeat({
     }, 220);
 
     return () => clearTimeout(timer);
-  }, [pickerOpen, query]);
+  }, [editable, pickerOpen, songsOpen, query]);
 
   return (
     <div className={className} style={style}>
@@ -146,7 +146,17 @@ export default function OnRepeat({
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          {editable && pickerOpen && (
+          {editable && (
+            <button type="button" className="btn icon-btn" onClick={removeTrack} aria-label="Remove profile music">
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      ) : (
+        <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
+      )}
+
+      {editable && pickerOpen && (
         <div className="profile-music-picker">
           <div className="profile-music-search-shell">
             <Search size={14} aria-hidden="true" className="muted" />
@@ -202,6 +212,7 @@ export default function OnRepeat({
             </div>
           )}
         </div>
-      )}    </div>
+      )}
+    </div>
   );
 }
