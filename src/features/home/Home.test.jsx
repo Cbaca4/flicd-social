@@ -190,6 +190,7 @@ describe("Feed cards", () => {
     const { container } = render(<DumpCard post={post} onOpen={() => {}} />);
 
     expect(container.querySelector(".post-metadata-overlay")).toBeInTheDocument();
+    expect(container.querySelector(".post-feed-media")).toBeInTheDocument();
     expect(screen.getByText("Downtown Austin")).toBeInTheDocument();
     expect(screen.getByText("Nights")).toBeInTheDocument();
     expect(screen.getByText("Frank Ocean")).toBeInTheDocument();
