@@ -8,7 +8,8 @@
     "build": "vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "eslint . --ext js,jsx --max-warnings=0"
+    "lint": "eslint . --ext js,jsx --max-warnings=0",
+    "music:upload": "node scripts/upload-beta-music.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.116.0",
