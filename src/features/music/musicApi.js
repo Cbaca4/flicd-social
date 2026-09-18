@@ -18,28 +18,52 @@ export async function hydrateMusicTracks(tracks) {
 }
 
 export async function getMusicTracks({ search = "", limit = 50 } = {}) {
-  const cleanSearch = search.trim();
-  let query = supabase
+  const maxResults = Math.max(1, Math.min(limit, 100));
+  const cleanSearch = String(search || "").trim();
+
+  const buildBaseQuery = () => supabase
     .from("music_tracks")
     .select(TRACK_FIELDS)
     .eq("active", true)
-    .eq("approved", true)
-    .order("artist", { ascending: true })
-    .order("title", { ascending: true })
-    .limit(Math.max(1, Math.min(limit, 100)));
+    .eq("approved", true);
 
-  if (cleanSearch) {
-    const safe = cleanSearch.replace(/[%_]/g, "\\$&");
-    query = query.or(
-      "title.ilike.%" + safe + "%,artist.ilike.%" + safe + "%,genre.ilike.%" + safe + "%"
-    );
+  let tracks = [];
+
+  if (!cleanSearch) {
+    const { data, error } = await buildBaseQuery()
+      .order("artist", { ascending: true })
+      .order("title", { ascending: true })
+      .limit(maxResults);
+
+    if (error) throw error;
+    tracks = data || [];
+  } else {
+    const pattern = "%" + cleanSearch.replace(/[\\%_]/g, "\\\\$&") + "%";
+    const columns = ["title", "artist", "genre"];
+
+    const results = await Promise.all(columns.map(async (column) => {
+      const { data, error } = await buildBaseQuery()
+        .ilike(column, pattern)
+        .order("artist", { ascending: true })
+        .order("title", { ascending: true })
+        .limit(maxResults);
+
+      if (error) throw error;
+      return data || [];
+    }));
+
+    const byId = new Map();
+    results.flat().forEach((track) => byId.set(track.id, track));
+    tracks = Array.from(byId.values())
+      .sort((a, b) =>
+        String(a.artist || "").localeCompare(String(b.artist || "")) ||
+        String(a.title || "").localeCompare(String(b.title || ""))
+      )
+      .slice(0, maxResults);
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return withPlayableAudioList(data || []);
+  return withPlayableAudioList(tracks);
 }
-
 export async function getMusicTrack(trackId) {
   if (!trackId) return null;
   const { data, error } = await supabase
