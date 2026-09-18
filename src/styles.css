@@ -1624,3 +1624,196 @@ button.post-metadata-pill:focus-visible {
     bottom: calc(58px + env(safe-area-inset-bottom));
   }
 }
+
+
+/* Feed media uses the upload's natural aspect ratio.
+   The recommended 4:5 format is still supported, but no artificial frame
+   is forced around square or landscape photos. */
+.post-media.post-feed-media {
+  aspect-ratio: auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  display: block !important;
+}
+.post-media.post-feed-media.post-media-placeholder {
+  display: flex !important;
+  min-height: 280px !important;
+}
+.post-feed-media-image {
+  position: static !important;
+  inset: auto !important;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  object-fit: initial !important;
+  object-position: center !important;
+}
+.post-media.post-feed-media .post-feed-media-image {
+  border-radius: 0 !important;
+}
+.post-media.post-feed-media .view-once-locked,
+.post-media.post-feed-media .view-once-reveal {
+  position: absolute;
+}
+
+/* Personal-homepage profile layout: MySpace-style custom zones built with
+   responsive grid areas instead of fixed pixel coordinates. */
+.profile-space-layout .profile-content-layer {
+  gap: 12px;
+}
+.profile-space-hero {
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 18px 55px rgba(0,0,0,.18);
+}
+.profile-space-hero::before {
+  content: "my space";
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  z-index: 0;
+  padding: 3px 6px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(0,0,0,.16);
+  font: 500 8px/1 'IBM Plex Mono', monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.profile-space-hero > * {
+  position: relative;
+  z-index: 1;
+}
+.profile-space-hero .profile-username-heading {
+  padding-top: 6px;
+}
+.profile-space-grid {
+  grid-template-columns: minmax(0, 1.14fr) minmax(270px, .86fr);
+  grid-template-areas: "boards side";
+  align-items: stretch;
+}
+.profile-space-boards {
+  grid-area: boards;
+  min-width: 0;
+}
+.profile-space-side {
+  grid-area: side;
+  min-width: 0;
+  grid-template-rows: minmax(0, .88fr) minmax(0, 1.22fr) minmax(0, .9fr);
+}
+.profile-space-panel {
+  position: relative;
+  border-width: 1px !important;
+  box-shadow: 0 12px 30px rgba(0,0,0,.12);
+}
+.profile-space-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--profile-panel-accent, var(--cyan));
+  opacity: .72;
+  pointer-events: none;
+}
+.profile-space-boards::before {
+  background: var(--profile-panel-accent, var(--amber));
+}
+.profile-space-panel-heading {
+  min-width: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(255,255,255,.09);
+}
+.profile-space-panel-heading > .row {
+  min-width: 0;
+}
+.profile-space-active,
+.profile-space-repeat,
+.profile-space-customize {
+  overflow: hidden;
+}
+.profile-space-active .eyebrow,
+.profile-space-customize .eyebrow {
+  letter-spacing: .15em;
+}
+.profile-space-boards .profile-pinned-grid {
+  overflow: auto;
+  scrollbar-width: none;
+}
+.profile-space-boards .profile-pinned-grid::-webkit-scrollbar {
+  display: none;
+}
+.profile-space-boards .profile-pinned-grid .card {
+  box-shadow: none;
+}
+.profile-space-boards .board-cover {
+  transition: transform .18s ease, filter .18s ease;
+}
+.profile-space-boards .card:hover .board-cover {
+  transform: translateY(-2px);
+  filter: saturate(1.08);
+}
+.profile-space-customize .btn-primary {
+  letter-spacing: -.01em;
+}
+.profile-space-repeat .post-metadata-overlay,
+.profile-space-repeat .post-metadata-chip {
+  max-width: 100%;
+}
+
+@media (max-width: 900px) {
+  .profile-space-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(230px, .82fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .profile-space-layout .profile-content-layer {
+    gap: 8px;
+  }
+  .profile-space-hero::before {
+    top: 6px;
+    left: 9px;
+    font-size: 7px;
+  }
+  .profile-space-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "boards"
+      "side";
+    gap: 8px;
+    overflow: visible;
+  }
+  .profile-space-boards,
+  .profile-space-side {
+    overflow: visible;
+  }
+  .profile-space-side {
+    grid-template-rows: auto auto auto;
+  }
+  .profile-space-boards .profile-pinned-grid {
+    overflow: visible;
+  }
+  .profile-space-panel {
+    box-shadow: 0 8px 22px rgba(0,0,0,.1);
+  }
+}
+
+/* Keep immersive viewer behavior unchanged: its full-screen canvas still owns
+   its own aspect-independent media presentation. */
+.viewer-overlay .post-feed-media {
+  aspect-ratio: auto !important;
+  height: 100% !important;
+  display: flex !important;
+}
+.viewer-overlay .post-feed-media .post-feed-media-image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
