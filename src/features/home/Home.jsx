@@ -700,18 +700,13 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
         <button className="btn" type="button" disabled={!canKeep} onClick={()=>canKeep&&onKeep(post,index)} aria-label={canKeep ? "Keep" : "Keep unavailable"}><Bookmark size={16}/>{canKeep ? "Keep" : "Keep unavailable"}</button>
       </div>
-      {(post.location || post.taggedUsers?.length) && (
-        <div className="post-metadata-row">
-          {post.location && <div className="post-location-chip"><MapPin size={13} />{post.location.name}{viewerLocation && <span>· {formatDistanceKm(distanceKm(viewerLocation.latitude, viewerLocation.longitude, post.location.latitude, post.location.longitude))}</span>}</div>}
-          {post.taggedUsers?.length > 0 && (
-            <div className="post-tagged-users">
-              {post.taggedUsers.map((user) => (
-                onUserSelect
-                  ? <button key={user.id} type="button" className="tag" onClick={() => onUserSelect(user)}>@{user.username}</button>
-                  : <span key={user.id} className="tag">@{user.username}</span>
-              ))}
-            </div>
-          )}
+      {post.taggedUsers?.length > 0 && (
+        <div className="post-tagged-users post-tagged-users--below-media">
+          {post.taggedUsers.map((user) => (
+            onUserSelect
+              ? <button key={user.id} type="button" className="tag" onClick={() => onUserSelect(user)}>@{user.username}</button>
+              : <span key={user.id} className="tag">@{user.username}</span>
+          ))}
         </div>
       )}
       <section className="post-conversation" aria-label="Conversation">
