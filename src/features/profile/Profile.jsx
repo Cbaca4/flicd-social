@@ -177,7 +177,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const buttonStyle = theme?.buttonStyle || {};
 
   return (
-    <div className="screen profile-screen">
+    <div className="screen profile-screen profile-space-layout">
       {theme.backgroundMedia?.url && (
         <div className="profile-background-media" aria-hidden="true">
           {theme.backgroundMedia.type === "video" ? (
@@ -188,7 +188,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
         </div>
       )}
       <div className="profile-content-layer">
-        <section className="profile-hero profile-section-card" style={sectionStyle("hero")}>
+        <section className="profile-hero profile-section-card profile-space-hero" style={sectionStyle("hero")}>
           <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
           <div className="profile-username-heading">@{profile.handle}</div>
           <div className="profile-main-row">
@@ -212,16 +212,16 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
         </section>
 
-        <div className="profile-lower-grid">
-          <section className="card profile-section-card profile-pinned-card" style={sectionStyle("boards")}>
-            <div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Pinned Boards</div><h2 style={{ marginTop: 2 }}>Boards</h2></div><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div>
+        <div className="profile-lower-grid profile-space-grid">
+          <section className="card profile-section-card profile-pinned-card profile-space-panel profile-space-boards" style={sectionStyle("boards")}>
+            <div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Pinned Boards</div><h2 style={{ marginTop: 2 }}>Boards</h2></div><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div></div>
             {pinnedBoards.length > 0 ? <div className="profile-pinned-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="profile-empty-board" onClick={onCustomizeBoards || onOpenBoards}><Plus size={18} /><span>Pin a Board</span></button>}
           </section>
 
-          <div className="profile-right-stack">
-            <button type="button" className="card profile-section-card profile-compact-section" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="eyebrow">Active space</div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch spaces</p></div><ChevronRight size={17} className="muted" /></div></button>
-            {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card" style={sectionStyle("onRepeat")} />}
-            <div className="card profile-section-card profile-compact-section" style={sectionStyle("customize")}><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Profile Studio</div><strong style={{ display: "block", marginTop: 3 }}>Customize your page</strong></div><Palette size={17} /></div><button type="button" className="btn btn-primary" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
+          <div className="profile-right-stack profile-space-side">
+            <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="eyebrow">Active space</div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch spaces</p></div><ChevronRight size={17} className="muted" /></div></button>
+            {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} />}
+            <div className="card profile-section-card profile-compact-section profile-space-panel profile-space-customize" style={sectionStyle("customize")}><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Profile Studio</div><strong style={{ display: "block", marginTop: 3 }}>Customize your page</strong></div><Palette size={17} /></div><button type="button" className="btn btn-primary" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
           </div>
         </div>
       </div>
