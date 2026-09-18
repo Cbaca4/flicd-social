@@ -6,6 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Home, { DumpCard, Viewer } from "./Home.jsx";
 
+vi.mock("./mediaUrl.js", () => ({
+  getDumpItemMediaUrl: (imagePath) => imagePath ? `https://cdn.example.com/${imagePath}` : null,
+}));
+
 vi.mock("../seasonal/SeasonalOverlay.jsx", () => ({
   default: () => null,
 }));
@@ -214,7 +218,7 @@ describe("Post viewer", () => {
       />,
     );
 
-    const actions = container.querySelector(".post-actions");
+    const actions = container.querySelector(".viewer-actions-rail");
     const conversation = container.querySelector(".post-conversation");
     const composer = container.querySelector(".comment-composer");
 
