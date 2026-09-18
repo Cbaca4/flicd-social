@@ -46,7 +46,10 @@ export function createVoiceCommentRecorder({
     }
 
     stream = await getUserMedia({ audio: true });
-    const selectedMimeType = mimeType || getSupportedVoiceMimeType(MediaRecorder);\n    recorder = selectedMimeType ? new MediaRecorder(stream, { mimeType: selectedMimeType }) : new MediaRecorder(stream);
+    const selectedMimeType = mimeType || getSupportedVoiceMimeType(MediaRecorder);
+    recorder = selectedMimeType
+      ? new MediaRecorder(stream, { mimeType: selectedMimeType })
+      : new MediaRecorder(stream);
     chunks.length = 0;
     blob = null;
     cancelled = false;
