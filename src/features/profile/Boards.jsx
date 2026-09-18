@@ -207,14 +207,10 @@ function BoardDetail({
     Math.max(2, Number(style.columns || 3))
   );
 
-  const resolvedItems = items
-    .map((item) => ({
-      ...item,
-      dump: dumps.find(
-        (dump) => dump.id === item.dump_id
-      ),
-    }))
-    .filter((item) => item.dump);
+  const resolvedItems = items.map((item) => ({
+    ...item,
+    dump: dumps.find((dump) => dump.id === item.dump_id) || null,
+  }));
 
   const gridColumns =
     columns === 4
@@ -327,9 +323,11 @@ function BoardDetail({
         >
           {resolvedItems.map((item) => {
             const dump = item.dump;
-            const frame =
-              dump.items?.[item.item_position];
-
+            const frame = dump?.items?.[item.item_position];
+            const imagePath = frame?.imagePath || item.saved_image_path || null;
+            const mood = item.mood || dump?.mood || "Saved";
+            const note = item.note || frame?.note || "";
+            
             return (
               <div
                 key={item.id}
@@ -366,9 +364,9 @@ function BoardDetail({
                         : undefined,
                   }}
                 >
-                  {frame?.imagePath ? (
+                  {imagePath ? (
                     <img
-                      src={frame.imagePath}
+                      src={imagePath}
                       alt=""
                       style={{
                         width: "100%",
@@ -403,12 +401,10 @@ function BoardDetail({
                 >
                   <div style={{ minWidth: 0 }}>
                     <p className="subtitle">
-                      {item.mood ||
-                        dump.mood ||
-                        "Saved"}
+                      {mood}
                     </p>
 
-                    {item.note && (
+                    {note && (
                       <strong
                         style={{
                           display: "block",
