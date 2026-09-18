@@ -154,7 +154,6 @@ export function ProfilePreview({ theme, profile }) {
               whiteSpace: "pre-wrap",
             }}
           >
-            {theme.message}
           </p>
         </div>
 
@@ -175,7 +174,7 @@ export function ProfilePreview({ theme, profile }) {
                 overflowWrap: "anywhere",
               }}
             >
-              {theme.favoriteArtist || "Add your favorite artist"}
+              {profile.musicTrack?.title || "Choose a track from your profile"}
             </strong>
           </div>
         )}
@@ -520,7 +519,7 @@ export default function ProfileStudio({
           <div className="eyebrow">Profile Studio</div>
           <h1 className="title">Make it yours</h1>
           <p className="subtitle">
-            Customize presentation, privacy, and identity controls.
+            Customize presentation, layout, privacy, and profile sections.
           </p>
         </div>
 
