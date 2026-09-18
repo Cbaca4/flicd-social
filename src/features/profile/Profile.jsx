@@ -183,8 +183,17 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
   const sectionStyle = (name) => {
     const style = theme?.sectionStyles?.[name] || {};
+    const media = style.backgroundMedia;
+    const photo = media?.url
+      ? `linear-gradient(rgba(9,10,13,.38),rgba(9,10,13,.58)), url("${media.url}")`
+      : style.background;
     return {
-      background: style.background,
+      background: photo,
+      backgroundSize: media?.url ? "cover" : undefined,
+      backgroundPosition: media?.url
+        ? `${media.positionX ?? 50}% ${media.positionY ?? 50}%`
+        : undefined,
+      backgroundRepeat: "no-repeat",
       borderColor: style.border,
       borderRadius: `${style.radius || 20}px`,
     };
@@ -234,12 +243,12 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
       <div className="profile-content-layer">
       <div className="profile-hero profile-section-card" style={sectionStyle("hero")}>
         <div className="profile-heading">
-          <div className="avatar lg">
+          <div className="avatar lg profile-avatar">
             {profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
                 alt={`@${profile.handle} profile`}
-                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit", display: "block" }}
+                className="profile-avatar-image"
               />
             ) : (
               profile.handle[0].toUpperCase()
