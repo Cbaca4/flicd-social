@@ -300,6 +300,11 @@ export function DumpCard({
           setAudioMuted(true);
           setMusicMuted(true);
         });
+      } else if (activeAudio.paused) {
+        activeAudio.play().then(() => {
+          setMusicMuted(false);
+          setMusicPlaying(true);
+        }).catch(() => {});
       } else {
         setAudioMuted(true);
         setMusicMuted(true);
@@ -311,10 +316,6 @@ export function DumpCard({
     const audio = playAudioUrl(audioUrl, {
       loop: true,
       muted: false,
-      onFallbackToMuted: () => {
-        setMusicMuted(true);
-        setMusicPlaying(true);
-      },
     });
 
     if (!audio) return;
@@ -322,7 +323,7 @@ export function DumpCard({
     audio.addEventListener?.('play', () => setMusicPlaying(true));
     audio.addEventListener?.('pause', () => setMusicPlaying(false));
     setMusicMuted(false);
-    setMusicPlaying(true);
+    setMusicPlaying(!audio.paused);
   }, [post.id, post?.musicTrack?.audio_url]);
 
   React.useEffect(() => () => {
@@ -545,13 +546,10 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     }
 
     let active = true;
-    const audio = playAudioUrl(track.audio_url, {
-      loop: true,
-      muted: false,
-      onFallbackToMuted: () => {
-        if (active) setMusicMuted(true);
-      },
-    });
+    const existing = getActiveAudio();
+    const audio = existing?.src === track.audio_url
+      ? existing
+      : playAudioUrl(track.audio_url, { loop: true, muted: false });
 
     if (!audio) return () => { active = false; };
 
@@ -601,7 +599,14 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   const toggleMusic = () => {
     const audio = getActiveAudio();
-    if (!audio || !post.musicTrack?.audio_url) return;
+    const audioUrl = post.musicTrack?.audio_url;
+    if (!audioUrl) return;
+
+    if (!audio || audio.src !== audioUrl) {
+      const next = playAudioUrl(audioUrl, { loop: true, muted: false });
+      if (next) setMusicPlaying(!next.paused);
+      return;
+    }
 
     if (audio.muted) {
       audio.muted = false;
@@ -609,15 +614,21 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       audio.play().then(() => {
         setMusicMuted(false);
         setMusicPlaying(true);
-      }).catch(() => {
-        setAudioMuted(true);
-        setMusicMuted(true);
-      });
+      }).catch(() => {});
+      return;
+    }
+
+    if (audio.paused) {
+      audio.play().then(() => {
+        setMusicMuted(false);
+        setMusicPlaying(true);
+      }).catch(() => {});
       return;
     }
 
     setAudioMuted(true);
     setMusicMuted(true);
+    setMusicPlaying(false);
   };
 
   React.useEffect(()=>{
