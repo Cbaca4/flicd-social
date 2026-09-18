@@ -1,5 +1,5 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,Pause,Play} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,Pause,Play,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import UserSearch from './UserSearch.jsx';
 import PublicProfile from '../profile/PublicProfile.jsx';
@@ -11,7 +11,8 @@ import { getCurrentUserId } from '../social/socialApi.js';
 import { deleteComment, reportComment } from '../social/interactionsApi.js';
 import GifPicker from '../social/GifPicker.jsx';
 import VideoCommentPicker from '../social/VideoCommentPicker.jsx';
-import { playAudioUrl, stopAudio } from '../music/audioController.js';
+import { getActiveAudio, playAudioUrl, setAudioMuted, stopAudio } from '../music/audioController.js';
+import { distanceKm, formatDistanceKm } from './distance.js';
 import '../social/CommentComposer.css';
 
 function timeLeft(post){
@@ -22,16 +23,85 @@ function timeLeft(post){
 
 const gradients=['linear-gradient(145deg,#2f3a40,#12161b)','linear-gradient(145deg,#493221,#17120e)','linear-gradient(145deg,#293f39,#111816)','linear-gradient(145deg,#3b293d,#17121a)'];
 
-function MediaFrame({item,index,post,onUserSelect}){
-  const [failed,setFailed]=React.useState(false);
-  const imageUrl=item?.imageUrl||getDumpItemMediaUrl(item?.imagePath);
-  const openAuthor=()=>onUserSelect?.({id:post.authorId||post.author,username:post.authorName||post.author});
-  const authorLabel=post.authorName||post.author||'unknown';
-  const authorIdentity=onUserSelect?<button type="button" className="tag" onClick={(event)=>{event.stopPropagation();openAuthor();}} aria-label={`Open profile @${authorLabel}`}>@{authorLabel}</button>:<span className="tag">@{authorLabel}</span>;
-  if(imageUrl&&!failed){
-    return <div className="post-media" style={{background:gradients[(post.id+index)%gradients.length],aspectRatio:'1/1',position:'relative',overflow:'hidden'}}><img src={imageUrl} alt={item?.note||`Moment ${index+1}`} onError={()=>setFailed(true)} style={{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/><div style={{position:'absolute',left:12,right:12,bottom:12}}><span className="tag">{authorIdentity} · {post.mood}</span>{item?.note&&<div className="media-text" style={{marginTop:10}}>{item.note}</div>}</div></div>;
+function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "" }) {
+  const [failed, setFailed] = React.useState(false);
+  const imageUrl = item?.imageUrl || getDumpItemMediaUrl(item?.imagePath);
+  const openAuthor = () => onUserSelect?.({ id: post.authorId || post.author, username: post.authorName || post.author });
+  const authorLabel = post.authorName || post.author || "unknown";
+  const authorIdentity = onUserSelect
+    ? <button type="button" className="tag" onClick={(event) => { event.stopPropagation(); openAuthor(); }} aria-label={`Open profile @${authorLabel}`}>@{authorLabel}</button>
+    : <span className="tag">@{authorLabel}</span>;
+
+  const musicOverlay = post.musicTrack ? (
+    <>
+      <div className="post-music-overlay" aria-label="Post music">
+        {post.musicTrack.cover_url ? (
+          <img src={post.musicTrack.cover_url} alt="" className="post-music-art" />
+        ) : (
+          <span className="post-music-art post-music-art-fallback"><Music2 size={15} /></span>
+        )}
+        <div className="post-music-copy">
+          <strong>{post.musicTrack.title}</strong>
+          <span>{post.musicTrack.artist}</span>
+        </div>
+        {musicPlaying && <span className="post-music-live" aria-label="Music playing" />}
+      </div>
+      <button
+        type="button"
+        className="post-music-toggle"
+        onClick={(event) => { event.stopPropagation(); onToggleMusic?.(); }}
+        aria-label={musicMuted ? "Unmute post music" : "Mute post music"}
+        aria-pressed={musicMuted}
+      >
+        {musicMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+      </button>
+    </>
+  ) : null;
+
+  const locationMeta = post.location ? (
+    <div className="post-location-overlay" aria-label="Post location">
+      <MapPin size={13} />
+      <span>{post.location.name}</span>
+      {distanceLabel && <span className="post-location-distance">· {distanceLabel}</span>}
+    </div>
+  ) : null;
+
+  if (imageUrl && !failed) {
+    return (
+      <div
+        className="post-media"
+        style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1", position: "relative", overflow: "hidden" }}
+      >
+        <img
+          src={imageUrl}
+          alt={item?.note || `Moment ${index + 1}`}
+          onError={() => setFailed(true)}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+        />
+        {musicOverlay}
+        {locationMeta}
+        <div style={{ position: "absolute", left: 12, right: 12, bottom: 12 }}>
+          <span className="tag">{authorIdentity} · {post.mood}</span>
+          {item?.note && <div className="media-text" style={{ marginTop: 10 }}>{item.note}</div>}
+        </div>
+      </div>
+    );
   }
-  return <div className="post-media" style={{background:gradients[(post.id+index)%gradients.length],aspectRatio:'1/1'}}><div>{authorIdentity}<span className="tag"> · {post.mood}</span><div className="media-text" style={{marginTop:12}}>{item?.note||'a little piece of the day'}</div></div></div>;
+
+  return (
+    <div
+      className="post-media"
+      style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1" }}
+    >
+      {musicOverlay}
+      {locationMeta}
+      <div>
+        {authorIdentity}
+        <span className="tag"> · {post.mood}</span>
+        <div className="media-text" style={{ marginTop: 12 }}>{item?.note || "a little piece of the day"}</div>
+      </div>
+    </div>
+  );
 }
 
 export function DumpCard({post,onOpen}){
@@ -101,34 +171,6 @@ const REPORT_REASONS=[
   ['other','Other'],
 ];
 
-function PostMusic({track}) {
-  const [playing, setPlaying] = React.useState(false);
-  React.useEffect(() => () => stopAudio(), []);
-  if (!track) return null;
-  const toggle = () => {
-    if (!track.audio_url) {
-      if (track.provider_track_id) window.open(track.provider_track_id, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    if (playing) {
-      stopAudio();
-      setPlaying(false);
-    } else {
-      playAudioUrl(track.audio_url);
-      setPlaying(true);
-    }
-  };
-  return <div className="card" style={{marginTop:12}}>
-    <div className="row">
-      <Music2 size={16} />
-      <div style={{flex:1,minWidth:0}}><strong>{track.title}</strong><p className="subtitle">{track.artist}</p></div>
-      <button type="button" className="btn" onClick={toggle} aria-label={playing ? 'Pause post music' : track.audio_url ? 'Play post music' : 'Open music source'}>
-        {playing ? <Pause size={15}/> : track.audio_url ? <Play size={15}/> : 'Source'}
-      </button>
-    </div>
-  </div>;
-}
-
 export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect}){
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
@@ -144,6 +186,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [reportingCommentId,setReportingCommentId]=React.useState(null);
   const [reporting,setReporting]=React.useState(false);
   const [reportedCommentIds,setReportedCommentIds]=React.useState(()=>new Set());
+  const [musicMuted,setMusicMuted]=React.useState(false);
+  const [musicPlaying,setMusicPlaying]=React.useState(false);
+  const [viewerLocation,setViewerLocation]=React.useState(null);
   const [reportError,setReportError]=React.useState('');
   const [reportMessage,setReportMessage]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
@@ -152,6 +197,92 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const unsubscribeRef=React.useRef(null);
 
   React.useEffect(()=>{onMarkViewed?.(post.id)},[onMarkViewed,post.id]);
+
+  React.useEffect(() => {
+    const track = post.musicTrack;
+    setMusicMuted(false);
+    setMusicPlaying(false);
+
+    if (!track?.audio_url) {
+      stopAudio();
+      return undefined;
+    }
+
+    let active = true;
+    const audio = playAudioUrl(track.audio_url, {
+      loop: true,
+      muted: false,
+      onFallbackToMuted: () => {
+        if (active) setMusicMuted(true);
+      },
+    });
+
+    if (!audio) return () => { active = false; };
+
+    const handlePlay = () => active && setMusicPlaying(true);
+    const handlePause = () => active && setMusicPlaying(false);
+    audio.addEventListener?.("play", handlePlay);
+    audio.addEventListener?.("pause", handlePause);
+
+    return () => {
+      active = false;
+      audio.removeEventListener?.("play", handlePlay);
+      audio.removeEventListener?.("pause", handlePause);
+      stopAudio();
+    };
+  }, [post.id, post.musicTrack?.audio_url]);
+
+  React.useEffect(() => {
+    const location = post.location;
+    if (!location || !Number.isFinite(Number(location.latitude)) || !Number.isFinite(Number(location.longitude))) {
+      setViewerLocation(null);
+      return undefined;
+    }
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setViewerLocation(null);
+      return undefined;
+    }
+
+    let active = true;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        if (active) {
+          setViewerLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        }
+      },
+      () => {
+        if (active) setViewerLocation(null);
+      },
+      { enableHighAccuracy: false, maximumAge: 300000, timeout: 8000 },
+    );
+
+    return () => { active = false; };
+  }, [post.location?.latitude, post.location?.longitude]);
+
+  const toggleMusic = () => {
+    const audio = getActiveAudio();
+    if (!audio || !post.musicTrack?.audio_url) return;
+
+    if (audio.muted) {
+      audio.muted = false;
+      setAudioMuted(false);
+      audio.play().then(() => {
+        setMusicMuted(false);
+        setMusicPlaying(true);
+      }).catch(() => {
+        setAudioMuted(true);
+        setMusicMuted(true);
+      });
+      return;
+    }
+
+    setAudioMuted(true);
+    setMusicMuted(true);
+  };
 
   React.useEffect(()=>{
     if(currentUserId){
@@ -322,13 +453,44 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       <span className="tag flicd-mono">{timeLeft(post)}</span>
     </div>
     <div className="card">
-      <MediaFrame item={post.items[index]} index={index} post={post} onUserSelect={onUserSelect}/>
+      <MediaFrame
+        item={post.items[index]}
+        index={index}
+        post={post}
+        onUserSelect={onUserSelect}
+        musicMuted={musicMuted}
+        musicPlaying={musicPlaying}
+        onToggleMusic={toggleMusic}
+        distanceLabel={
+          viewerLocation && post.location
+            ? formatDistanceKm(distanceKm(
+                viewerLocation.latitude,
+                viewerLocation.longitude,
+                post.location.latitude,
+                post.location.longitude,
+              ))
+            : ""
+        }
+      />
       {post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}
       <div className="post-actions">
         <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
         <button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button>
       </div>
-      <PostMusic track={post.musicTrack} />
+      {(post.location || post.taggedUsers?.length) && (
+        <div className="post-metadata-row">
+          {post.location && <div className="post-location-chip"><MapPin size={13} />{post.location.name}{viewerLocation && <span>· {formatDistanceKm(distanceKm(viewerLocation.latitude, viewerLocation.longitude, post.location.latitude, post.location.longitude))}</span>}</div>}
+          {post.taggedUsers?.length > 0 && (
+            <div className="post-tagged-users">
+              {post.taggedUsers.map((user) => (
+                onUserSelect
+                  ? <button key={user.id} type="button" className="tag" onClick={() => onUserSelect(user)}>@{user.username}</button>
+                  : <span key={user.id} className="tag">@{user.username}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <section className="post-conversation" aria-label="Conversation">
         <div className="stack">
           {visibleComments.length?visibleComments.map(c=><div key={c.id} className="comment-row">
