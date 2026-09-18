@@ -17,10 +17,7 @@ export function setAudioMuted(muted) {
   return activeAudio;
 }
 
-export function playAudioUrl(
-  url,
-  { loop = true, muted = false, onFallbackToMuted } = {},
-) {
+export function playAudioUrl(url, { loop = true, muted = false, onPlaybackBlocked } = {}) {
   stopAudio();
   if (!url) return null;
 
@@ -28,30 +25,17 @@ export function playAudioUrl(
   audio.preload = "auto";
   audio.loop = loop;
   audio.muted = Boolean(muted);
+  audio.playsInline = true;
   activeAudio = audio;
 
-  const play = () => {
-    const promise = audio.play();
-    if (!promise?.catch) return;
-    promise.catch(() => {
-      if (activeAudio !== audio) return;
+  const promise = audio.play();
+  promise?.catch?.(() => {
+    if (activeAudio !== audio) return;
+    onPlaybackBlocked?.(audio);
+  });
 
-      if (!audio.muted) {
-        audio.muted = true;
-        onFallbackToMuted?.(audio);
-        audio.play().catch(() => {
-          if (activeAudio === audio) activeAudio = null;
-        });
-      } else {
-        activeAudio = null;
-      }
-    });
-  };
-
-  play();
   return audio;
 }
-
 
 export function pauseAudio() {
   if (!activeAudio) return null;
