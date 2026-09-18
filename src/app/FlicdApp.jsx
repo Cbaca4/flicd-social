@@ -48,7 +48,7 @@ import EditProfile from "../features/profile/EditProfile.jsx";
 import Discovery from "../features/discovery/Discovery.jsx";
 import PublicProfile from "../features/profile/PublicProfile.jsx";
 import Archive from "../features/profile/Archive.jsx";
-import { archiveDump, syncExpiredArchive } from "../features/profile/archiveApi.js";
+import { syncExpiredArchive } from "../features/profile/archiveApi.js";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
 import { getMusicTrack } from "../features/music/musicApi.js";
 import {
@@ -705,8 +705,8 @@ export default function FlicdApp() {
     content = activePost ? <Viewer post={activePost} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
           setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
           markDumpViewed(dumpId)
-            .then(() => archiveDump(dumpId, "view_once"))
-            .catch((error) => console.error("Failed to archive view-once post:", error));
+            .then(() => syncExpiredArchive())
+            .catch((error) => console.error("Failed to finish view-once archive:", error));
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
