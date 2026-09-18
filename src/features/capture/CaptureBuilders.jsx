@@ -78,18 +78,19 @@ export function DumpBuilder({ activeSpaceId, onCancel, onPost }) {
 <PostMetadataPicker location={location} onLocationChange={setLocation} taggedUsers={taggedUsers} onTaggedUsersChange={setTaggedUsers} disabled={posting} />
 <div className="card">
   <p className="eyebrow">Board keeps</p>
-  <p className="subtitle" style={{ marginTop: 4 }}>
-    Let other people save this Flic'd to one of their private Boards.
-  </p>
-  <div className="wrap" style={{ marginTop: 10 }}>
-    <Pill active={expiry === "24h" && allowOthersToKeep} onClick={() => expiry === "24h" && setAllowOthersToKeep(true)}>
-      Allow
-    </Pill>
-    <Pill active={expiry === "24h" && !allowOthersToKeep} onClick={() => expiry === "24h" && setAllowOthersToKeep(false)}>
-      Don't allow
-    </Pill>
-  </div>
-  {expiry === "once" && <p className="subtitle" style={{ marginTop: 8 }}>View once Flic'ds cannot be kept.</p>}
+  {expiry === "24h" ? (
+    <>
+      <p className="subtitle" style={{ marginTop: 4 }}>
+        Let other people save this Flic'd to one of their private Boards.
+      </p>
+      <div className="wrap" style={{ marginTop: 10 }}>
+        <Pill active={allowOthersToKeep} onClick={() => setAllowOthersToKeep(true)}>Allow</Pill>
+        <Pill active={!allowOthersToKeep} onClick={() => setAllowOthersToKeep(false)}>Don't allow</Pill>
+      </div>
+    </>
+  ) : (
+    <p className="subtitle" style={{ marginTop: 4 }}>View once Flic'ds cannot be kept.</p>
+  )}
 </div>
 <div className="card">
   <p className="eyebrow">Expires</p>
@@ -151,18 +152,19 @@ export function RollBuilder({ activeSpaceId, onCancel, onPost }) {
 <PostMetadataPicker location={location} onLocationChange={setLocation} taggedUsers={taggedUsers} onTaggedUsersChange={setTaggedUsers} disabled={posting} />
 <div className="card">
   <p className="eyebrow">Board keeps</p>
-  <p className="subtitle" style={{ marginTop: 4 }}>
-    Let other people save this roll to one of their private Boards.
-  </p>
-  <div className="wrap" style={{ marginTop: 10 }}>
-    <Pill active={expiry === "24h" && allowOthersToKeep} onClick={() => expiry === "24h" && setAllowOthersToKeep(true)}>
-      Allow
-    </Pill>
-    <Pill active={expiry === "24h" && !allowOthersToKeep} onClick={() => expiry === "24h" && setAllowOthersToKeep(false)}>
-      Don't allow
-    </Pill>
-  </div>
-  {expiry === "once" && <p className="subtitle" style={{ marginTop: 8 }}>View once rolls cannot be kept.</p>}
+  {expiry === "24h" ? (
+    <>
+      <p className="subtitle" style={{ marginTop: 4 }}>
+        Let other people save this roll to one of their private Boards.
+      </p>
+      <div className="wrap" style={{ marginTop: 10 }}>
+        <Pill active={allowOthersToKeep} onClick={() => setAllowOthersToKeep(true)}>Allow</Pill>
+        <Pill active={!allowOthersToKeep} onClick={() => setAllowOthersToKeep(false)}>Don't allow</Pill>
+      </div>
+    </>
+  ) : (
+    <p className="subtitle" style={{ marginTop: 4 }}>View once rolls cannot be kept.</p>
+  )}
 </div>
 <div className="card">
   <p className="eyebrow">Expires</p>
