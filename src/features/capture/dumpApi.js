@@ -148,13 +148,14 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     const trackById = new Map(hydratedTracks.map((track) => [track.id, track]));
     const viewedIds = new Set((viewsResult.data || []).map((row) => row.dump_id));
 
-    return data.map((dump) => ({
-      ...dump,
-      ...(dump.music_tracks
-        ? { music_tracks: trackById.get(dump.music_tracks.id) || dump.music_tracks }
-        : {}),
-      ...(viewedIds.has(dump.id) ? { viewed: true } : {}),
-    }));
+    return data
+      .filter((dump) => !(dump.expiry === "once" && viewedIds.has(dump.id)))
+      .map((dump) => ({
+        ...dump,
+        ...(dump.music_tracks
+          ? { music_tracks: trackById.get(dump.music_tracks.id) || dump.music_tracks }
+          : {}),
+      }));
   }
 
   return data || [];
@@ -249,9 +250,12 @@ export async function getDumpById(dumpId) {
     .eq("user_id", await getCurrentUserId())
     .maybeSingle();
 
+  if (data.expiry === "once" && view) {
+    return null;
+  }
+
   return {
     ...data,
-    ...(view ? { viewed: true } : {}),
     ...(data.music_tracks
       ? { music_tracks: hydratedTracks[0] || data.music_tracks }
       : {}),
