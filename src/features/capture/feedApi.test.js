@@ -24,6 +24,7 @@ function createQuery(result) {
     eq: vi.fn(),
     order: vi.fn(),
     limit: vi.fn(),
+    maybeSingle: vi.fn(),
     then: (resolve, reject) => Promise.resolve(result).then(resolve, reject),
   };
   query.select.mockReturnValue(query);
@@ -47,18 +48,41 @@ describe("getFeedDumps", () => {
 
   it("loads the current user and accepted follows while excluding pending follows", async () => {
     const query = createQuery({
-      data: [{ id: "dump-1", user_id: "friend" }],
+      data: [{ id: "dump-1", user_id: "friend", expiry: "24h" }],
       error: null,
     });
-    from.mockReturnValue(query);
+    const viewsQuery = createQuery({ data: [], error: null });
+    from.mockImplementationOnce(() => query).mockImplementationOnce(() => viewsQuery);
 
     const result = await getFeedDumps({ limit: 25, spaceId: "main" });
 
-    expect(result).toEqual([{ id: "dump-1", user_id: "friend" }]);
-    expect(from).toHaveBeenCalledWith("dumps");
+    expect(result).toEqual([{ id: "dump-1", user_id: "friend", expiry: "24h" }]);
+    expect(from).toHaveBeenNthCalledWith(1, "dumps");
+    expect(from).toHaveBeenNthCalledWith(2, "dump_views");
     expect(query.in).toHaveBeenCalledWith("user_id", ["me", "friend", "privateFriend"]);
     expect(query.eq).toHaveBeenCalledWith("space_id", "main");
     expect(query.limit).toHaveBeenCalledWith(25);
+  });
+
+  it("filters consumed view-once dumps from the feed", async () => {
+    const query = createQuery({
+      data: [
+        { id: "once-seen", user_id: "friend", expiry: "once" },
+        { id: "once-new", user_id: "friend", expiry: "once" },
+        { id: "normal", user_id: "friend", expiry: "24h" },
+      ],
+      error: null,
+    });
+    const viewsQuery = createQuery({
+      data: [{ dump_id: "once-seen" }],
+      error: null,
+    });
+    from.mockImplementationOnce(() => query).mockImplementationOnce(() => viewsQuery);
+
+    await expect(getFeedDumps()).resolves.toEqual([
+      { id: "once-new", user_id: "friend", expiry: "once" },
+      { id: "normal", user_id: "friend", expiry: "24h" },
+    ]);
   });
 
   it("returns a useful error when the feed query fails", async () => {
