@@ -619,6 +619,23 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   React.useEffect(()=>()=>{unsubscribeRef.current?.();recorderRef.current?.cancel();},[]);
 
+  React.useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   React.useEffect(()=>{
     if(!voiceReviewBlob){
       setVoiceReviewUrl('');
@@ -769,108 +786,333 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const openCommentAuthor=(comment)=>onUserSelect?.({id:comment.user_id,username:comment.from});
 
   const canKeep = post.mode !== "once" && post.allowOthersToKeep !== false;
-  return <div className="screen viewer-screen">
-    <div className="topbar">
-      <button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button>
-      <span className="tag flicd-mono">{timeLeft(post)}</span>
-    </div>
-    <div className="viewer-post">
-      <SwipeMediaCarousel
-        post={post}
-        index={index}
-        onIndexChange={setIndex}
-        onUserSelect={onUserSelect}
-        musicMuted={musicMuted}
-        musicPlaying={musicPlaying}
-        onToggleMusic={toggleMusic}
-        distanceLabel={
-          viewerLocation && post.location
-            ? formatDistanceKm(distanceKm(
-                viewerLocation.latitude,
-                viewerLocation.longitude,
-                post.location.latitude,
-                post.location.longitude,
-              ))
-            : ""
-        }
-        revealedOnce={revealedOnce}
-        onceViewedAtOpen={onceViewedAtOpenRef.current}
-        onReveal={() => {
-          if (post.mode !== "once" || revealedOnce) return;
-          setRevealedOnce(true);
-          onMarkViewed?.(post.id);
-        }}
-      />
-      {(post.caption || post.items?.[0]?.note) && (
-        <section className="post-caption-section" aria-label="Caption">
-          <div className="eyebrow">Caption</div>
-          <p>{post.caption || post.items?.[0]?.note}</p>
-        </section>
-      )}
-      <div className="post-actions">
-        <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
-        <button className="btn" type="button" disabled={!canKeep} onClick={()=>canKeep&&onKeep(post,index)} aria-label={canKeep ? "Keep" : "Keep unavailable"}><Bookmark size={16}/>{canKeep ? "Keep" : "Keep unavailable"}</button>
-      </div>
-      {post.taggedUsers?.length > 0 && (
-        <div className="post-tagged-users post-tagged-users--below-media">
-          {post.taggedUsers.map((user) => (
-            onUserSelect
-              ? <button key={user.id} type="button" className="tag" onClick={() => onUserSelect(user)}>@{user.username}</button>
-              : <span key={user.id} className="tag">@{user.username}</span>
-          ))}
+  const distanceLabel = viewerLocation && post.location
+    ? formatDistanceKm(distanceKm(
+        viewerLocation.latitude,
+        viewerLocation.longitude,
+        post.location.latitude,
+        post.location.longitude,
+      ))
+    : "";
+
+  const authorLabel = post.authorName || post.author || "unknown";
+  const hasCaption = Boolean(post.caption || post.items?.[0]?.note);
+  const mediaCount = post.items?.length || 1;
+
+  return (
+    <div
+      className="screen viewer-screen viewer-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Viewing @${authorLabel}`}
+    >
+      <div className="viewer-surface">
+        <div className="viewer-media-layer">
+          <SwipeMediaCarousel
+            post={post}
+            index={index}
+            onIndexChange={setIndex}
+            onUserSelect={onUserSelect}
+            musicMuted={musicMuted}
+            musicPlaying={musicPlaying}
+            onToggleMusic={toggleMusic}
+            distanceLabel={distanceLabel}
+            revealedOnce={revealedOnce}
+            onceViewedAtOpen={onceViewedAtOpenRef.current}
+            onReveal={() => {
+              if (post.mode !== "once" || revealedOnce) return;
+              setRevealedOnce(true);
+              onMarkViewed?.(post.id);
+            }}
+          />
         </div>
-      )}
-      {commentsOpen && <button type="button" className="comment-sheet-scrim" aria-label="Close comments" onClick={() => setCommentsOpen(false)} />}
-      <section className={"post-conversation" + (commentsOpen ? " comment-sheet" : "")} aria-label="Conversation">
-        {commentsOpen && <div className="comment-sheet-header"><div className="comment-sheet-handle" aria-hidden="true" /><strong>Comments</strong><button type="button" className="btn icon-btn" aria-label="Close comments" onClick={() => setCommentsOpen(false)}>×</button></div>}
-        <div className="post-comment-summary">
-          {visibleComments.length === 0 && <p className="subtitle">No comments yet.</p>}
-          {visibleComments.length > 1 && (
+
+        <div className="viewer-scrim-layer" aria-hidden="true" />
+
+        <div className="viewer-top-layer">
+          <div className="viewer-top-status">
+            <span className="tag flicd-mono">{timeLeft(post)}</span>
+          </div>
+
+          <div
+            className="viewer-progress"
+            role="progressbar"
+            aria-label={`Media ${index + 1} of ${mediaCount}`}
+            aria-valuemin={1}
+            aria-valuemax={mediaCount}
+            aria-valuenow={index + 1}
+          >
+            {(post.items || [null]).map((_, itemIndex) => (
+              <span
+                key={`progress-${itemIndex}`}
+                className={`viewer-progress-segment${itemIndex === index ? " is-active" : ""}`}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+
+          <button
+            className="btn icon-btn viewer-close-button"
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="viewer-actions-rail" aria-label="Post actions">
+          <button
+            className="viewer-action"
+            type="button"
+            disabled={likePending}
+            aria-label={post.liked ? "Unlike" : "Like"}
+            aria-pressed={Boolean(post.liked)}
+            onClick={() => onLike?.(post.id)}
+          >
+            <span className="viewer-action-icon">
+              <Heart size={21} fill={post.liked ? "var(--amber)" : "none"} color={post.liked ? "var(--amber)" : "currentColor"} />
+            </span>
+            <span className="viewer-action-count">{post.likes}</span>
+          </button>
+
+          <button
+            className="viewer-action"
+            type="button"
+            aria-label={`Open comments${post.comments?.length ? ` (${post.comments.length})` : ""}`}
+            aria-expanded={commentsOpen}
+            onClick={() => setCommentsOpen(true)}
+          >
+            <span className="viewer-action-icon"><MessageCircle size={21} /></span>
+            <span className="viewer-action-count">{post.comments?.length || 0}</span>
+          </button>
+
+          <button
+            className="viewer-action"
+            type="button"
+            disabled={!canKeep}
+            aria-label={canKeep ? "Keep" : "Keep unavailable"}
+            onClick={() => canKeep && onKeep?.(post, index)}
+          >
+            <span className="viewer-action-icon"><Bookmark size={21} /></span>
+            <span className="viewer-action-count">{canKeep ? "Keep" : "Locked"}</span>
+          </button>
+
+          {post.musicTrack?.audio_url && (
             <button
               type="button"
-              className="post-comments-toggle"
-              onClick={() => setCommentsOpen((open) => !open)}
-              aria-expanded={commentsOpen}
+              className="viewer-action"
+              data-media-interactive="true"
+              onClick={(event) => {
+                event.stopPropagation();
+                toggleMusic();
+              }}
+              aria-label={musicMuted ? "Unmute post music" : "Mute post music"}
+              aria-pressed={musicMuted}
             >
-              {commentsOpen ? "Close comments" : "Open comments"}
-              <span className="flicd-mono">{visibleComments.length}</span>
+              <span className="viewer-action-icon">
+                {musicMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </span>
+              <span className="viewer-action-count">{musicPlaying ? "Music on" : "Music"}</span>
             </button>
           )}
-          {(visibleComments.length === 1 || commentsOpen) && (
-            <div className="stack post-comment-list">
-              {visibleComments.map(c=><div key={c.id} className="comment-row">
-                {(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia comment={c}/>:<p className="subtitle">{onUserSelect?<button type="button" className="comment-author-link" onClick={()=>openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>:<strong style={{color:'var(--text)'}}>@{c.from}</strong>} {c.text}</p>}
-                {resolvedCurrentUserId&&c.user_id===resolvedCurrentUserId&&<button className="btn comment-delete-btn" type="button" aria-label="Delete comment" disabled={deletingCommentId===c.id} onClick={()=>handleDeleteComment(c.id)}>{deletingCommentId===c.id?'Deleting…':'Delete'}</button>}
-                {resolvedCurrentUserId&&c.user_id&&c.user_id!==resolvedCurrentUserId&&!reportedCommentIds.has(c.id)&&<button className="btn comment-report-btn" type="button" aria-label="Report comment" disabled={reporting} onClick={()=>{setReportMessage('');setReportError('');setReportingCommentId(c.id);}}>Report</button>}
-                {resolvedCurrentUserId&&reportedCommentIds.has(c.id)&&<span className="tag" aria-label="Comment reported">Reported</span>}
-              </div>)}
+        </div>
+
+        <div className="viewer-bottom-layer">
+          <div className="viewer-identity-row">
+            {onUserSelect ? (
+              <button
+                type="button"
+                className="viewer-author"
+                onClick={() => onUserSelect({ id: post.authorId || post.author, username: authorLabel })}
+              >
+                @{authorLabel}
+              </button>
+            ) : (
+              <span className="viewer-author">@{authorLabel}</span>
+            )}
+            <span className="viewer-mood">· {post.mood}</span>
+          </div>
+
+          {hasCaption && (
+            <section className="post-caption-section" aria-label="Caption">
+              <div className="eyebrow">Caption</div>
+              <p>{post.caption || post.items?.[0]?.note}</p>
+            </section>
+          )}
+        </div>
+
+        {commentsOpen && (
+          <button
+            type="button"
+            className="comment-sheet-scrim"
+            aria-label="Close comments"
+            onClick={() => setCommentsOpen(false)}
+          />
+        )}
+
+        <section
+          className={`post-conversation viewer-comments${commentsOpen ? " comment-sheet" : ""}`}
+          aria-label="Conversation"
+        >
+          {commentsOpen && (
+            <div className="comment-sheet-header">
+              <div className="comment-sheet-handle" aria-hidden="true" />
+              <strong>Comments</strong>
+              <button
+                type="button"
+                className="btn icon-btn"
+                aria-label="Close comments"
+                onClick={() => setCommentsOpen(false)}
+              >
+                ×
+              </button>
             </div>
           )}
-          {reportMessage&&<p className="subtitle" role="status">{reportMessage}</p>}
-        </div>
-        {reportingCommentId&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Report comment" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!reporting)setReportingCommentId(null);}}>
-          <div className="modal" style={{width:'100%',maxWidth:520}}>
-            <div className="row" style={{justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div>
-                <div className="eyebrow">Report comment</div>
-                <h2 style={{marginTop:4}}>Report this comment</h2>
-                <p className="subtitle" style={{marginTop:5}}>Choose the reason that best describes the problem.</p>
+
+          <div className="post-comment-summary">
+            {visibleComments.length === 0 && <p className="subtitle">No comments yet.</p>}
+            {visibleComments.length > 1 && (
+              <button
+                type="button"
+                className="post-comments-toggle"
+                onClick={() => setCommentsOpen((open) => !open)}
+                aria-expanded={commentsOpen}
+              >
+                {commentsOpen ? "Close comments" : "Open comments"}
+                <span className="flicd-mono">{visibleComments.length}</span>
+              </button>
+            )}
+            {(visibleComments.length === 1 || commentsOpen) && (
+              <div className="stack post-comment-list">
+                {visibleComments.map(c => (
+                  <div key={c.id} className="comment-row">
+                    {(c.media_type === "audio" || c.media_type === "video" || c.media_type === "gif")
+                      ? <SavedCommentMedia comment={c} />
+                      : (
+                        <p className="subtitle">
+                          {onUserSelect
+                            ? <button type="button" className="comment-author-link" onClick={() => openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>
+                            : <strong style={{color:"var(--text)"}}>@{c.from}</strong>
+                          } {c.text}
+                        </p>
+                      )}
+                    {resolvedCurrentUserId && c.user_id === resolvedCurrentUserId && (
+                      <button
+                        className="btn comment-delete-btn"
+                        type="button"
+                        aria-label="Delete comment"
+                        disabled={deletingCommentId === c.id}
+                        onClick={() => handleDeleteComment(c.id)}
+                      >
+                        {deletingCommentId === c.id ? "Deleting…" : "Delete"}
+                      </button>
+                    )}
+                    {resolvedCurrentUserId && c.user_id && c.user_id !== resolvedCurrentUserId && !reportedCommentIds.has(c.id) && (
+                      <button
+                        className="btn comment-report-btn"
+                        type="button"
+                        aria-label="Report comment"
+                        disabled={reporting}
+                        onClick={() => {
+                          setReportMessage("");
+                          setReportError("");
+                          setReportingCommentId(c.id);
+                        }}
+                      >
+                        Report
+                      </button>
+                    )}
+                    {resolvedCurrentUserId && reportedCommentIds.has(c.id) && (
+                      <span className="tag" aria-label="Comment reported">Reported</span>
+                    )}
+                  </div>
+                ))}
               </div>
-              <button type="button" className="btn icon-btn" aria-label="Close report" disabled={reporting} onClick={()=>setReportingCommentId(null)}>×</button>
-            </div>
-            <div className="stack" style={{marginTop:16}}>
-              {REPORT_REASONS.map(([value,label])=><button key={value} type="button" className="card" disabled={reporting} onClick={()=>handleReportComment(value)} style={{width:'100%',textAlign:'left',cursor:reporting?'wait':'pointer',opacity:reporting?0.65:1}}>{label}</button>)}
-            </div>
-            {reportError&&<p className="subtitle" role="status" style={{marginTop:10,color:'var(--danger, #ff6b6b)'}}>{reportError}</p>}
-            <div className="row" style={{justifyContent:'flex-end',marginTop:16}}><button type="button" className="btn" disabled={reporting} onClick={()=>setReportingCommentId(null)}>Cancel</button></div>
+            )}
+            {reportMessage && <p className="subtitle" role="status">{reportMessage}</p>}
           </div>
-        </div>}
-        {voiceReviewBlob?<div className="comment-composer row" aria-label="Voice comment review"><audio aria-label="Voice comment preview" controls src={voiceReviewUrl||undefined}/><button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button><button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button></div>:<>
-          {pendingComment&&<div className="comment-pending" aria-label={pendingType==='gif'?'Pending GIF attachment':pendingType==='video'?'Pending video attachment':''}>{pendingType==='gif'&&<img src={pendingComment.media_url} alt={pendingComment.media_metadata?.title||'GIF attachment'}/>} {pendingType==='video'&&<div className="comment-pending__video-wrap">{pendingVideoUrl?<video aria-label="Pending video preview" controls src={pendingVideoUrl}/>:<span className="subtitle">Preparing video preview…</span>}{Number.isFinite(Number(pendingComment.media_metadata?.duration_seconds))&&<span className="tag flicd-mono comment-pending__duration">{Math.round(Number(pendingComment.media_metadata.duration_seconds))}s</span>}</div>}<button className="btn icon-btn" type="button" aria-label="Remove attachment" onClick={removeAttachment}>×</button></div>}
-          <div className="comment-composer row"><input className="input" value={text} onChange={e=>setText(e.target.value)} placeholder="Add a comment" disabled={Boolean(pendingComment)||commentSending}/><button className="btn" type="button" aria-label="Choose GIF" onClick={()=>openAttachmentPicker('gif')} disabled={commentSending}>GIF</button><button className="btn icon-btn" type="button" aria-label="Choose video" onClick={()=>openAttachmentPicker('video')} disabled={commentSending}><Video size={16}/></button><button className="btn icon-btn" type="button" aria-label={recording?'Stop voice recording':'Record voice comment'} onClick={handleVoice} disabled={commentSending}><Mic size={16}/></button><button className="btn btn-primary" aria-label="Send comment" disabled={(!text.trim()&&!pendingComment)||commentSending} onClick={sendComment}>{commentSending?'Sending…':'Send'}</button></div>
-        </>}
-        {gifPickerOpen&&<GifPicker onSelect={handleGifSelect} onClose={()=>setGifPickerOpen(false)}/>} {videoPickerOpen&&<VideoCommentPicker onSelect={handleVideoSelect} onClose={()=>setVideoPickerOpen(false)}/>} 
-      </section>
+
+          {reportingCommentId && (
+            <div
+              className="modal-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Report comment"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget && !reporting) setReportingCommentId(null);
+              }}
+            >
+              <div className="modal" style={{width:"100%",maxWidth:520}}>
+                <div className="row" style={{justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div className="eyebrow">Report comment</div>
+                    <h2 style={{marginTop:4}}>Report this comment</h2>
+                    <p className="subtitle" style={{marginTop:5}}>Choose the reason that best describes the problem.</p>
+                  </div>
+                  <button type="button" className="btn icon-btn" aria-label="Close report" disabled={reporting} onClick={() => setReportingCommentId(null)}>×</button>
+                </div>
+                <div className="stack" style={{marginTop:16}}>
+                  {REPORT_REASONS.map(([value,label]) => (
+                    <button key={value} type="button" className="card" disabled={reporting} onClick={() => handleReportComment(value)} style={{width:"100%",textAlign:"left",cursor:reporting?"wait":"pointer",opacity:reporting?0.65:1}}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {reportError && <p className="subtitle" role="status" style={{marginTop:10,color:"var(--danger, #ff6b6b)"}}>{reportError}</p>}
+                <div className="row" style={{justifyContent:"flex-end",marginTop:16}}>
+                  <button type="button" className="btn" disabled={reporting} onClick={() => setReportingCommentId(null)}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {voiceReviewBlob ? (
+            <div className="comment-composer row" aria-label="Voice comment review">
+              <audio aria-label="Voice comment preview" controls src={voiceReviewUrl || undefined} />
+              <button className="btn" type="button" aria-label="Cancel voice comment" onClick={cancelVoice}>Cancel</button>
+              <button className="btn btn-primary" type="button" aria-label="Send voice comment" onClick={sendVoice}>Send</button>
+            </div>
+          ) : (
+            <>
+              {pendingComment && (
+                <div className="comment-pending" aria-label={pendingType === "gif" ? "Pending GIF attachment" : pendingType === "video" ? "Pending video attachment" : ""}>
+                  {pendingType === "gif" && <img src={pendingComment.media_url} alt={pendingComment.media_metadata?.title || "GIF attachment"} />}
+                  {pendingType === "video" && (
+                    <div className="comment-pending__video-wrap">
+                      {pendingVideoUrl ? <video aria-label="Pending video preview" controls src={pendingVideoUrl} /> : <span className="subtitle">Preparing video preview…</span>}
+                      {Number.isFinite(Number(pendingComment.media_metadata?.duration_seconds)) && (
+                        <span className="tag flicd-mono comment-pending__duration">
+                          {Math.round(Number(pendingComment.media_metadata.duration_seconds))}s
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <button className="btn icon-btn" type="button" aria-label="Remove attachment" onClick={removeAttachment}>×</button>
+                </div>
+              )}
+              <div className="comment-composer row">
+                <input
+                  className="input"
+                  value={text}
+                  onChange={e => setText(e.target.value)}
+                  placeholder="Add a comment"
+                  disabled={Boolean(pendingComment) || commentSending}
+                />
+                <button className="btn" type="button" aria-label="Choose GIF" onClick={() => openAttachmentPicker("gif")} disabled={commentSending}>GIF</button>
+                <button className="btn icon-btn" type="button" aria-label="Choose video" onClick={() => openAttachmentPicker("video")} disabled={commentSending}><Video size={16} /></button>
+                <button className="btn icon-btn" type="button" aria-label={recording ? "Stop voice recording" : "Record voice comment"} onClick={handleVoice} disabled={commentSending}><Mic size={16} /></button>
+                <button className="btn btn-primary" aria-label="Send comment" disabled={(!text.trim() && !pendingComment) || commentSending} onClick={sendComment}>
+                  {commentSending ? "Sending…" : "Send"}
+                </button>
+              </div>
+            </>
+          )}
+
+          {gifPickerOpen && <GifPicker onSelect={handleGifSelect} onClose={() => setGifPickerOpen(false)} />}
+          {videoPickerOpen && <VideoCommentPicker onSelect={handleVideoSelect} onClose={() => setVideoPickerOpen(false)} />}
+        </section>
+      </div>
     </div>
-  </div>;
+  );
 }
