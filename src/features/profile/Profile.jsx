@@ -115,15 +115,6 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
         </div>
       </div>
     </div>
-      {relationshipList && (
-        <RelationshipList
-          profileId={profile.id}
-          type={relationshipList}
-          onClose={() => setRelationshipList(null)}
-          onUserSelect={onUserSelect}
-        />
-      )}
-    </div>
   );
 }
 
@@ -265,6 +256,14 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
         </div>
       </div>
+      {relationshipList && (
+        <RelationshipList
+          profileId={profile.id}
+          type={relationshipList}
+          onClose={() => setRelationshipList(null)}
+          onUserSelect={onUserSelect}
+        />
+      )}
     </div>
   );
 }
