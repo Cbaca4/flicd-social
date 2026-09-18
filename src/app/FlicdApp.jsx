@@ -605,6 +605,7 @@ export default function FlicdApp() {
         setScreen("viewer");
       }}
       onLike={toggleLike}
+      onKeep={keep}
       pendingLikeIds={pendingLikeIds}
       onUserSelect={openPublicProfile}
       onNotifications={() => setScreen("notifications")}
