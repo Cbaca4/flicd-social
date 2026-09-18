@@ -132,6 +132,8 @@ export default function PublicProfile({ profile, onBack, onUserSelect }) {
               background: sectionStyles.hero?.background,
               borderColor: sectionStyles.hero?.border,
               borderRadius: String(sectionStyles.hero?.radius || 20) + "px",
+              overflow: "hidden",
+              minWidth: 0,
             }}
           >
             <div className="row" style={{ alignItems: "flex-start" }}>
@@ -148,8 +150,16 @@ export default function PublicProfile({ profile, onBack, onUserSelect }) {
                   </div>
                   <FollowButton userId={resolvedProfile?.id} compact onChange={handleFollowChange} />
                 </div>
-                {resolvedProfile?.bio && <p className="subtitle" style={{ marginTop: 8 }}>{resolvedProfile.bio}</p>}
-                {theme.status && <p style={{ marginTop: 8, color: sectionStyles.hero?.accent || theme.accent || undefined, fontSize: 12 }}>{theme.statusEmoji || "✦"} {theme.status}</p>}
+                {resolvedProfile?.bio && <p className="profile-bio" style={{ marginTop: 8 }}>{resolvedProfile.bio}</p>}
+                {theme.profileLinks?.length > 0 && (
+                  <div className="profile-links" aria-label="Profile links" style={{ marginTop: 10 }}>
+                    {theme.profileLinks.map((link, index) => (
+                      <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">
+                        {link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
