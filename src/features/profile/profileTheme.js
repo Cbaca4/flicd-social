@@ -21,6 +21,7 @@ export const DEFAULT_THEME = {
   showInterests: true,
   showMusic: true,
   sectionOrder: ["featured", "boards", "about"],
+  profileLinks: [],
   favoriteArtist: "",
   statusEmoji: "✦",
   sectionStyles: {
@@ -77,6 +78,29 @@ function normalizeSectionStyle(value, fallback) {
   return next;
 }
 
+export function sanitizeProfileLinks(input = []) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((value) => value && typeof value === "object")
+    .slice(0, 3)
+    .map((value) => {
+      const rawUrl = String(value.url || "").trim();
+      if (!rawUrl) return null;
+      const url = /^https?:\/\//i.test(rawUrl) ? rawUrl : "https://" + rawUrl;
+      try {
+        const parsed = new URL(url);
+        if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname) return null;
+      } catch {
+        return null;
+      }
+      return {
+        label: String(value.label || "").trim().slice(0, 40),
+        url: url.slice(0, 500),
+      };
+    })
+    .filter(Boolean);
+}
+
 export function sanitizeProfileTheme(input = {}) {
   const t = {
     ...DEFAULT_THEME,
@@ -106,6 +130,7 @@ export function sanitizeProfileTheme(input = {}) {
   t.showBoards = Boolean(t.showBoards);
   t.showInterests = Boolean(t.showInterests);
   t.showMusic = Boolean(t.showMusic);
+  t.profileLinks = sanitizeProfileLinks(t.profileLinks);
 
   t.backgroundMedia = normalizeBackgroundMedia(t.backgroundMedia);
 
