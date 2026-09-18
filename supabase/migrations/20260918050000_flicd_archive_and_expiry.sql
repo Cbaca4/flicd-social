@@ -52,20 +52,37 @@ create policy "Users can delete their own Flicd archive media" on storage.object
 using (bucket_id = 'flicd-archive' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 create schema if not exists private;
+create schema if not exists private;
 create or replace function private.handle_dump_view_archive()
 returns trigger language plpgsql security definer set search_path = public, pg_catalog
 as $$
+declare
+  dump_owner uuid;
 begin
+  select d.user_id into dump_owner
+    from public.dumps d
+   where d.id = new.dump_id
+     and d.expiry = 'once'
+     and d.once_viewed_at is null
+     and (
+       d.user_id = new.user_id
+       or exists (
+         select 1 from public.follows f
+          where f.follower_id = new.user_id
+            and f.following_id = d.user_id
+            and f.status = 'accepted'
+       )
+     );
+  if dump_owner is null then return new; end if;
   update public.dumps set once_viewed_at = coalesce(once_viewed_at, now())
-  where id = new.dump_id and expiry = 'once' and once_viewed_at is null;
+   where id = new.dump_id and expiry = 'once' and once_viewed_at is null;
   insert into public.flicd_archive (user_id, dump_id, reason)
-  select d.user_id, d.id, 'view_once' from public.dumps d
-  where d.id = new.dump_id and d.expiry = 'once'
+  values (dump_owner, new.dump_id, 'view_once')
   on conflict (user_id, dump_id) do nothing;
   return new;
 end;
 $$;
-revoke all on function private.handle_dump_view_archive() from public, anon, authenticated;
+
 drop trigger if exists dump_views_archive_once on public.dump_views;
 create trigger dump_views_archive_once after insert on public.dump_views for each row execute function private.handle_dump_view_archive();
 create index if not exists dumps_once_viewed_at_idx on public.dumps(once_viewed_at) where expiry = 'once';
