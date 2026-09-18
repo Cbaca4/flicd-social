@@ -95,7 +95,7 @@ export default function VideoCommentPicker({
     clearPreview();
   };
 
-  const sheet = (return (
+  const sheet = (
     <div className="comment-media-sheet" role="dialog" aria-modal="true" aria-label="Choose a video">
       <div className="comment-media-sheet__header">
         <strong>{pendingVideo ? "Preview video" : "Choose a video"}</strong>
@@ -153,8 +153,8 @@ export default function VideoCommentPicker({
 
       <div className="subtitle">Videos must be {MAX_COMMENT_VIDEO_DURATION} seconds or shorter and {Math.round(MAX_COMMENT_VIDEO_SIZE / (1024 * 1024))} MB or smaller.</div>
       {error && <div className="subtitle" role="alert">{error}</div>}
-    </div>);
+    </div>
+  );
 
   return typeof document !== "undefined" ? createPortal(sheet, document.body) : sheet;
-  );
 }
