@@ -9,6 +9,7 @@ import { getCurrentUserId } from '../social/socialApi.js';
 import { deleteComment, reportComment } from '../social/interactionsApi.js';
 import GifPicker from '../social/GifPicker.jsx';
 import VideoCommentPicker from '../social/VideoCommentPicker.jsx';
+import PostMetadataOverlay from './PostMetadataOverlay.jsx';
 import { getActiveAudio, playAudioUrl, setAudioMuted, stopAudio } from '../music/audioController.js';
 import { distanceKm, formatDistanceKm } from './distance.js';
 import '../social/CommentComposer.css';
@@ -20,41 +21,6 @@ function timeLeft(post){
 }
 
 const gradients=['linear-gradient(145deg,#2f3a40,#12161b)','linear-gradient(145deg,#493221,#17120e)','linear-gradient(145deg,#293f39,#111816)','linear-gradient(145deg,#3b293d,#17121a)'];
-
-function PostMetadataCarousel({ post, distanceLabel = "" }) {
-  const hasMusic = Boolean(post?.musicTrack?.title || post?.musicTrack?.artist);
-  const hasLocation = Boolean(post?.location?.name);
-
-  if (!hasMusic && !hasLocation) return null;
-
-  return (
-    <div className="post-metadata-carousel" data-media-interactive="true" aria-label="Post details">
-      <div className="post-metadata-carousel-track">
-        {hasMusic && (
-          <div className="post-metadata-chip post-metadata-chip--music">
-            {post.musicTrack.cover_url ? (
-              <img src={post.musicTrack.cover_url} alt="" className="post-metadata-art" />
-            ) : (
-              <span className="post-metadata-art post-metadata-art-fallback"><Music2 size={13} /></span>
-            )}
-            <span className="post-metadata-copy">
-              <strong>{post.musicTrack.title || "On repeat"}</strong>
-              {post.musicTrack.artist && <span>{post.musicTrack.artist}</span>}
-            </span>
-          </div>
-        )}
-
-        {hasLocation && (
-          <div className="post-metadata-chip">
-            <MapPin size={13} />
-            <span>{post.location.name}</span>
-            {distanceLabel && <span className="post-metadata-distance">· {distanceLabel}</span>}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal }) {
   const [failed, setFailed] = React.useState(false);
@@ -96,7 +62,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
             transform: blurred ? "scale(1.08)" : "none",
           }}
         />
-        <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
+        <PostMetadataOverlay post={post} distanceLabel={distanceLabel} onToggleMusic={onToggleMusic} musicMuted={musicMuted} musicPlaying={musicPlaying} />
         {musicToggle}
         {blurred && (
           alreadyViewed ? (
@@ -130,7 +96,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
 
   return (
     <div className="post-media post-media-placeholder" style={{ background: gradients[((Number(post.id) || 0) + index) % gradients.length] }}>
-      <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
+      <PostMetadataOverlay post={post} distanceLabel={distanceLabel} onToggleMusic={onToggleMusic} musicMuted={musicMuted} musicPlaying={musicPlaying} />
       {musicToggle}
       {blurred && (
         alreadyViewed ? (
@@ -313,6 +279,57 @@ export function DumpCard({
   onKeep,
   likePending = false,
 }) {
+  const [musicMuted, setMusicMuted] = React.useState(false);
+  const [musicPlaying, setMusicPlaying] = React.useState(false);
+
+  const toggleFeedMusic = React.useCallback(() => {
+    const audioUrl = post?.musicTrack?.audio_url;
+    if (!audioUrl) return;
+
+    const activeAudio = getActiveAudio();
+    const isOwnAudio = activeAudio?.dataset?.flicdPostId === String(post.id);
+
+    if (isOwnAudio) {
+      if (activeAudio.muted) {
+        activeAudio.muted = false;
+        setAudioMuted(false);
+        activeAudio.play().then(() => {
+          setMusicMuted(false);
+          setMusicPlaying(true);
+        }).catch(() => {
+          setAudioMuted(true);
+          setMusicMuted(true);
+        });
+      } else {
+        setAudioMuted(true);
+        setMusicMuted(true);
+        setMusicPlaying(false);
+      }
+      return;
+    }
+
+    const audio = playAudioUrl(audioUrl, {
+      loop: true,
+      muted: false,
+      onFallbackToMuted: () => {
+        setMusicMuted(true);
+        setMusicPlaying(true);
+      },
+    });
+
+    if (!audio) return;
+    audio.dataset.flicdPostId = String(post.id);
+    audio.addEventListener?.('play', () => setMusicPlaying(true));
+    audio.addEventListener?.('pause', () => setMusicPlaying(false));
+    setMusicMuted(false);
+    setMusicPlaying(true);
+  }, [post.id, post?.musicTrack?.audio_url]);
+
+  React.useEffect(() => () => {
+    const audio = getActiveAudio();
+    if (audio?.dataset?.flicdPostId === String(post.id)) stopAudio();
+  }, [post.id]);
+
   const expired = timeLeft(post) === "expired";
   const viewOnceLocked = post.mode === "once";
   const alreadyViewed = viewOnceLocked && Boolean(post.viewed);
@@ -353,7 +370,7 @@ export function DumpCard({
               }}
             />
           )}
-          <PostMetadataCarousel post={post} />
+          <PostMetadataOverlay post={post} onToggleMusic={toggleFeedMusic} musicMuted={musicMuted} musicPlaying={musicPlaying} />
           {viewOnceLocked && (
             <div className="view-once-feed-overlay" aria-label={alreadyViewed ? "Already viewed once" : "View once"}>
               <Eye size={20} />
