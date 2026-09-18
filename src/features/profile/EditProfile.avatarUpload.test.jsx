@@ -63,8 +63,8 @@ describe("EditProfile gallery photo upload", () => {
     const input = screen.getByLabelText("Profile photo");
     fireEvent.change(input, { target: { files: [file] } });
 
-    expect(screen.getByRole("dialog", { name: "Crop profile photo" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Use this crop" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Crop profile photo" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Use this crop" })).toBeTruthy();
     expect(validateProfilePhoto).toHaveBeenCalledWith(file);
     expect(uploadProfilePhoto).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
