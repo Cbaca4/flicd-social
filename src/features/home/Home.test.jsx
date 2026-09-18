@@ -4,7 +4,7 @@ import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import Home, { Viewer } from "./Home.jsx";
+import Home, { DumpCard, Viewer } from "./Home.jsx";
 
 vi.mock("../seasonal/SeasonalOverlay.jsx", () => ({
   default: () => null,
@@ -118,6 +118,70 @@ describe("Home feed states", () => {
     );
 
     expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
+  });
+});
+
+describe("Feed cards", () => {
+  it("keeps like, comments, and keep directly under the photo", () => {
+    const onLike = vi.fn();
+    const onCommentOpen = vi.fn();
+    const onKeep = vi.fn();
+    const post = {
+      id: "feed-1",
+      author: "baco",
+      mood: "late night",
+      mode: "24h",
+      likes: 7,
+      liked: false,
+      comments: [{ id: "c1" }],
+      allowOthersToKeep: true,
+      items: [{ id: "item-1", note: "caption" }],
+    };
+
+    const { container } = render(
+      <DumpCard
+        post={post}
+        onOpen={() => {}}
+        onLike={onLike}
+        onCommentOpen={onCommentOpen}
+        onKeep={onKeep}
+      />,
+    );
+
+    const actions = container.querySelector(".post-feed-actions");
+    expect(actions).toBeInTheDocument();
+    expect(actions?.querySelector('[aria-label="Like"]')).toBeInTheDocument();
+    expect(actions?.querySelector('[aria-label^="Open comments"]')).toBeInTheDocument();
+    expect(actions?.querySelector('[aria-label="Keep"]')).toBeInTheDocument();
+
+    fireEvent.click(actions.querySelector('[aria-label="Like"]'));
+    fireEvent.click(actions.querySelector('[aria-label^="Open comments"]'));
+    fireEvent.click(actions.querySelector('[aria-label="Keep"]'));
+
+    expect(onLike).toHaveBeenCalledWith("feed-1");
+    expect(onCommentOpen).toHaveBeenCalledWith(post);
+    expect(onKeep).toHaveBeenCalledWith(post, 0);
+    expect(container.querySelector(".post-conversation")).not.toBeInTheDocument();
+  });
+
+  it("keeps an already-viewed view-once post visible but locked", () => {
+    const post = {
+      id: "feed-once-1",
+      author: "baco",
+      mood: "private",
+      mode: "once",
+      viewed: true,
+      likes: 0,
+      liked: false,
+      comments: [],
+      items: [{ id: "item-1", imagePath: "private.jpg" }],
+    };
+
+    render(<DumpCard post={post} onOpen={() => {}} />);
+
+    expect(screen.getByLabelText("Already viewed once")).toBeInTheDocument();
+    expect(screen.getByText("Already viewed once")).toBeInTheDocument();
+    expect(screen.getByText("This image stays blurred.")).toBeInTheDocument();
   });
 });
 
