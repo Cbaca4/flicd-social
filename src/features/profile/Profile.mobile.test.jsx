@@ -62,6 +62,10 @@ describe("handheld profile layout", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(document.querySelector(".profile-username-heading")).toHaveTextContent("@baco");
+    expect(document.querySelector(".profile-space-layout")).toBeTruthy();
+    expect(document.querySelector(".profile-space-grid")).toBeTruthy();
+    expect(document.querySelector(".profile-space-boards")).toBeTruthy();
+    expect(document.querySelector(".profile-space-side")).toBeTruthy();
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
   });
 
