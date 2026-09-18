@@ -27,21 +27,6 @@
   pointer-events: none;
 }
 
-.companion-path {
-  position: absolute;
-  left: 5%;
-  right: 5%;
-  bottom: 1px;
-  height: 3px;
-  border-radius: 99px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.16),
-    transparent
-  );
-  box-shadow: 0 0 7px rgba(255, 255, 255, 0.06);
-}
 
 .companion-walker {
   --companion-width: 96px;
