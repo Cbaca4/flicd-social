@@ -317,6 +317,14 @@ export default function FlicdApp() {
 
   const activeSpace = spaces.find((space) => space.id === activeSpaceId) || spaces[0];
   const activePost = dumps.find((dump) => dump.id === activePostId);
+
+  const closeViewer = React.useCallback(() => {
+    if (activePost?.mode === "once" && activePost.viewed) {
+      setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
+    }
+    setActivePostId(null);
+    setScreen("home");
+  }, [activePost?.id, activePost?.mode, activePost?.viewed]);
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
   const openPublicProfile = React.useCallback((user) => {
@@ -329,6 +337,11 @@ export default function FlicdApp() {
   const openDumpById = React.useCallback(async (dumpId) => {
     const existing = dumps.find((dump) => dump.id === dumpId);
     if (existing) {
+      if (existing.mode === "once" && existing.viewed) {
+        setDumps((current) => current.filter((dump) => dump.id !== dumpId));
+        onToast("That view-once Flic'd has already been opened.");
+        return;
+      }
       setActivePostId(dumpId);
       setScreen("viewer");
       return;
@@ -599,7 +612,7 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
+    content = activePost ? <Viewer post={activePost} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
           setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
           markDumpViewed(dumpId).catch((error) => console.error("Failed to record view-once post:", error));
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
@@ -614,6 +627,10 @@ export default function FlicdApp() {
         screen={navigationScreen}
         onNavigate={(key) => {
           setPublicProfile(null);
+          if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
+            setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
+            setActivePostId(null);
+          }
           if (!PROFILE_SCREENS.has(key)) {
             stopAudio();
             setProfileMusicPlaying(false);
