@@ -3,7 +3,7 @@ import { ExternalLink, Pause, Play, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
 import { playAudioUrl, stopAudio } from "./audioController.js";
 
-export default function OnRepeat({ track: initialTrack = null, onTrackChange }) {
+export default function OnRepeat({ track: initialTrack = null, onTrackChange, editable = true }) {
   const [track, setTrack] = React.useState(initialTrack);
   const [pickerOpen, setPickerOpen] = React.useState(false);
   const [tracks, setTracks] = React.useState([]);
@@ -66,18 +66,18 @@ export default function OnRepeat({ track: initialTrack = null, onTrackChange }) 
           <button type="button" className="btn icon-btn" onClick={togglePlay} aria-label={playing ? "Pause music" : "Play music"}>
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          <button type="button" className="btn icon-btn" onClick={removeTrack} aria-label="Remove profile music"><X size={16} /></button>
+          {editable && <button type="button" className="btn icon-btn" onClick={removeTrack} aria-label="Remove profile music"><X size={16} /></button>}
         </div>
       ) : (
         <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
       )}
 
-      <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setPickerOpen((current) => !current)}>
+      {editable && <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setPickerOpen((current) => !current)}>
         {pickerOpen ? "Close" : track ? "Change song" : "Choose song"}
-      </button>
+      </button>}
 
       {pickerOpen && (
-        <div className="stack" style={{ marginTop: 12 }}>
+        {editable && <div className="stack" style={{ marginTop: 12 }}>
           <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the verified catalog…" aria-label="Search profile music" />
           {tracks.map((candidate) => (
             <button key={candidate.id} type="button" className="card" style={{ textAlign: "left", width: "100%" }} onClick={() => selectTrack(candidate)}>
@@ -87,7 +87,7 @@ export default function OnRepeat({ track: initialTrack = null, onTrackChange }) 
               </div>
             </button>
           ))}
-        </div>
+        </div>}
       )}
     </div>
   );
