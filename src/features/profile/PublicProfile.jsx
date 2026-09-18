@@ -83,13 +83,35 @@ export default function PublicProfile({ profile, onBack, onUserSelect }) {
           "--profile-button-text": buttonStyle.text,
           "--profile-button-accent": buttonStyle.accent,
           "--profile-button-radius": String(buttonStyle.radius || 14) + "px",
+          fontFamily: theme.font || undefined,
         }}
       >
         {theme.backgroundMedia?.url && (
           <div className="profile-background-media" aria-hidden="true">
             {theme.backgroundMedia.type === "video"
-              ? <video src={theme.backgroundMedia.url} autoPlay loop muted playsInline />
-              : <img src={theme.backgroundMedia.url} alt="" />
+              ? (
+                <video
+                  src={theme.backgroundMedia.url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  style={{
+                    objectPosition: `${theme.backgroundMedia.positionX ?? 50}% ${theme.backgroundMedia.positionY ?? 50}%`,
+                    transform: `scale(${theme.backgroundMedia.scale ?? 1})`,
+                  }}
+                />
+              )
+              : (
+                <img
+                  src={theme.backgroundMedia.url}
+                  alt=""
+                  style={{
+                    objectPosition: `${theme.backgroundMedia.positionX ?? 50}% ${theme.backgroundMedia.positionY ?? 50}%`,
+                    transform: `scale(${theme.backgroundMedia.scale ?? 1})`,
+                  }}
+                />
+              )
             }
           </div>
         )}
