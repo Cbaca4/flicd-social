@@ -83,7 +83,7 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, 
         {row(Pencil, "Edit Profile", "Change your username, name, bio, and profile details.", onEditProfile)}
         {row(Palette, "Profile Studio", "Customize your profile's look, sections, and theme.", onCustomize)}
         {row(LayoutGrid, "Boards", "Manage your saved Boards and pinned profile Boards.", onBoards)}
-        {row(ArchiveIcon, "Archive", "Only you can access Flic&apos;d posts after they expire.", onArchive)}
+        {row(ArchiveIcon, "Archive", "Only you can access Flic'd posts after they expire.", onArchive)}
         {row(Users, "Spaces", "Switch between your Flic'd spaces and identities.", onSpaces)}
 
         <div className="settings-section-label" style={{ marginTop: 12 }}>
