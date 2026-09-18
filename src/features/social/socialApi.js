@@ -149,3 +149,22 @@ export async function declineFollowRequest(followerId) {
   const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", userId).eq("status", "pending");
   if (error) throw error;
 }
+
+
+export async function getProfileFollowers(profileId) {
+  if (!profileId) return [];
+  const { data, error } = await supabase.rpc("get_profile_followers", {
+    target_profile_id: profileId,
+  });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getProfileFollowing(profileId) {
+  if (!profileId) return [];
+  const { data, error } = await supabase.rpc("get_profile_following", {
+    target_profile_id: profileId,
+  });
+  if (error) throw error;
+  return data || [];
+}
