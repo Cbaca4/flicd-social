@@ -83,6 +83,7 @@ export function ProfilePreview({ theme, profile }) {
         style={{
           background: bg,
           borderRadius: theme.radius,
+          "--profile-preview-radius": String(Number(theme.radius) || 22) + "px",
           border:
             theme.borderStyle === "none"
               ? "none"
@@ -97,6 +98,7 @@ export function ProfilePreview({ theme, profile }) {
           style={{
             padding: 14,
             borderRadius: hero.radius || 20,
+            overflow: "hidden",
             background: hero.background || "rgba(255,255,255,.03)",
             border:
               "1px solid " +
@@ -117,15 +119,23 @@ export function ProfilePreview({ theme, profile }) {
 
           <div style={{ minWidth: 0 }}>
             <h2 style={{ overflowWrap: "anywhere" }}>@{profile.handle}</h2>
-            <p
-              style={{
-                marginTop: 4,
-                color: hero.accent || theme.accent,
-                overflowWrap: "anywhere",
-              }}
-            >
-              {theme.statusEmoji} {theme.status}
-            </p>
+            {profile.displayName ? (
+              <p style={{ marginTop: 3, fontSize: 13, overflowWrap: "anywhere" }}>
+                {profile.displayName}
+              </p>
+            ) : null}
+            {profile.bio ? (
+              <p
+                style={{
+                  marginTop: 4,
+                  color: "var(--muted)",
+                  overflowWrap: "anywhere",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {profile.bio}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -702,85 +712,6 @@ export default function ProfileStudio({
                 </button>
               </div>
             )}
-          </section>
-
-          <section className="profile-studio-section">
-            <div className="eyebrow">Text & identity</div>
-            <div className="profile-studio-field">
-              <label htmlFor="profile-font" className="eyebrow">
-                Profile font
-              </label>
-              <select
-                id="profile-font"
-                className="input profile-studio-text-control"
-                value={draft.font}
-                onChange={(eventValue) =>
-                  update("font", eventValue.target.value)
-                }
-              >
-                <option value="Space Grotesk">Space Grotesk</option>
-                <option value="IBM Plex Mono">IBM Plex Mono</option>
-              </select>
-            </div>
-
-            <div className="profile-studio-field">
-              <label htmlFor="profile-status" className="eyebrow">
-                Status
-              </label>
-              <input
-                id="profile-status"
-                className="input profile-studio-text-control"
-                value={draft.status}
-                onChange={(eventValue) =>
-                  update("status", eventValue.target.value)
-                }
-                placeholder="What are you up to?"
-                maxLength={60}
-              />
-              <div className="profile-studio-count">
-                {draft.status.length}/60
-              </div>
-            </div>
-
-            <div className="profile-studio-field">
-              <label htmlFor="profile-message" className="eyebrow">
-                Profile message
-              </label>
-              <textarea
-                id="profile-message"
-                className="input profile-studio-text-control"
-                value={draft.message}
-                onChange={(eventValue) =>
-                  update("message", eventValue.target.value)
-                }
-                placeholder="Write a little note for people visiting your profile…"
-                maxLength={180}
-                rows={5}
-              />
-              <div className="profile-studio-count">
-                {draft.message.length}/180
-              </div>
-            </div>
-
-            <div className="profile-studio-field">
-              <label htmlFor="profile-artist" className="eyebrow">
-                Favorite artist
-              </label>
-              <input
-                id="profile-artist"
-                aria-label="Favorite artist"
-                className="input profile-studio-text-control"
-                value={draft.favoriteArtist}
-                onChange={(eventValue) =>
-                  update("favoriteArtist", eventValue.target.value)
-                }
-                placeholder="Artist, band, or composer"
-                maxLength={80}
-              />
-              <div className="profile-studio-count">
-                {draft.favoriteArtist.length}/80
-              </div>
-            </div>
           </section>
 
           {event && (
