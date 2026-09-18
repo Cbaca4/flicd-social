@@ -841,6 +841,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             aria-valuemin={1}
             aria-valuemax={mediaCount}
             aria-valuenow={index + 1}
+            style={{ "--viewer-segments": mediaCount }}
           >
             {(post.items || [null]).map((_, itemIndex) => (
               <span
@@ -879,7 +880,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
           <button
             className="viewer-action"
             type="button"
-            aria-label={`Open comments${post.comments?.length ? ` (${post.comments.length})` : ""}`}
+            aria-label="Comments"
             aria-expanded={commentsOpen}
             onClick={() => setCommentsOpen(true)}
           >
