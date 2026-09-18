@@ -205,7 +205,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             </div>
           </div>
           {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
-          {profile.links?.length > 0 && <div className="profile-links" aria-label="Profile links">{profile.links.map((link, index) => <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">{link.label || link.url.replace(/^https?:\\/\\//i, "").replace(/\/$/, "")}</a>)}</div>}
+          {profile.links?.length > 0 && <div className="profile-links" aria-label="Profile links">{profile.links.map((link, index) => <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">{link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</a>)}</div>}
           <div className="profile-hero-actions">
             <button type="button" className="btn btn-primary" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
             {onNotifications && <button type="button" className="btn icon-btn profile-notifications-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}><Bell size={18} />{notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}</button>}
