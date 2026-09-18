@@ -45,7 +45,7 @@ const allowed = {
   backgroundStyle: ["solid", "gradient"],
   borderStyle: ["soft", "bold", "none"],
   font: ["Space Grotesk", "IBM Plex Mono"],
-  radius: [14, 18, 22, 28, 34],
+  radius: [],
 };
 
 
@@ -120,7 +120,10 @@ export function sanitizeProfileTheme(input = {}) {
   if (!allowed.backgroundStyle.includes(t.backgroundStyle)) t.backgroundStyle = DEFAULT_THEME.backgroundStyle;
   if (!allowed.borderStyle.includes(t.borderStyle)) t.borderStyle = DEFAULT_THEME.borderStyle;
   if (!allowed.font.includes(t.font)) t.font = DEFAULT_THEME.font;
-  if (!allowed.radius.includes(Number(t.radius))) t.radius = DEFAULT_THEME.radius;
+  const themeRadius = Number(t.radius);
+  t.radius = Number.isFinite(themeRadius)
+    ? Math.min(36, Math.max(12, themeRadius))
+    : DEFAULT_THEME.radius;
 
   t.cardOpacity = Math.min(1, Math.max(0.72, Number(t.cardOpacity) || DEFAULT_THEME.cardOpacity));
   t.message = String(t.message || "").slice(0, 180);
@@ -147,7 +150,7 @@ export function sanitizeProfileTheme(input = {}) {
   if (!/^#[0-9a-fA-F]{6}$/.test(button.border)) button.border = DEFAULT_THEME.buttonStyle.border;
   if (!/^#[0-9a-fA-F]{6}$/.test(button.text)) button.text = DEFAULT_THEME.buttonStyle.text;
   if (!/^#[0-9a-fA-F]{6}$/.test(button.accent)) button.accent = DEFAULT_THEME.buttonStyle.accent;
-  button.radius = Math.min(24, Math.max(8, Number(button.radius) || DEFAULT_THEME.buttonStyle.radius));
+  button.radius = Math.min(36, Math.max(12, Number(button.radius) || DEFAULT_THEME.buttonStyle.radius));
   button.filled = Boolean(button.filled);
   t.buttonStyle = button;
 
