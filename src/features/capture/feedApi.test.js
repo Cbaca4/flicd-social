@@ -38,6 +38,7 @@ function createQuery(result) {
 describe("getFeedDumps", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    from.mockReset();
     getCurrentUserId.mockResolvedValue("me");
     getFollowingIds.mockResolvedValue({
       friend: "accepted",
