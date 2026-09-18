@@ -1817,3 +1817,47 @@ button.post-metadata-pill:focus-visible {
   height: 100% !important;
   object-fit: contain !important;
 }
+
+
+/* Phone-safe MySpace-inspired composition: keep both zones visible rather than
+   turning the profile into a long vertical page. */
+@media (max-width: 620px) {
+  .profile-space-grid {
+    grid-template-columns: minmax(0, .94fr) minmax(0, 1.06fr) !important;
+    grid-template-areas: "boards side" !important;
+    gap: 7px !important;
+    overflow: hidden !important;
+  }
+  .profile-space-boards,
+  .profile-space-side {
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden !important;
+  }
+  .profile-space-side {
+    grid-template-rows: minmax(0, .88fr) minmax(0, 1.22fr) minmax(0, .9fr) !important;
+    gap: 6px !important;
+  }
+  .profile-space-panel {
+    padding: 9px !important;
+  }
+  .profile-space-panel-heading {
+    padding-bottom: 6px;
+  }
+  .profile-space-panel-heading h2 {
+    font-size: 14px;
+  }
+  .profile-space-boards .profile-pinned-grid {
+    gap: 4px;
+  }
+  .profile-space-boards .profile-pinned-grid .card {
+    padding: 5px !important;
+  }
+  .profile-space-boards .profile-pinned-grid .card > strong {
+    font-size: 9px;
+  }
+  .profile-space-active .profile-compact-row,
+  .profile-space-customize .row {
+    gap: 5px !important;
+  }
+}
