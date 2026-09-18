@@ -436,7 +436,7 @@ export default function FlicdApp() {
   let content;
 
   if (publicProfile) {
-    content = <PublicProfile profile={publicProfile} onBack={() => setPublicProfile(null)} />;
+    content = <PublicProfile profile={publicProfile} onBack={() => setPublicProfile(null)} onUserSelect={openPublicProfile} />;
   } else if (screen === "notifications") {
     content = (
       <Notifications
