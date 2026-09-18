@@ -36,3 +36,22 @@ describe("profile theme background framing", () => {
     expect(theme.backgroundMedia.scale).toBe(1.6);
   });
 });
+
+
+describe("profile presentation controls", () => {
+  it("accepts a continuous global roundness value", () => {
+    const theme = sanitizeProfileTheme({ ...DEFAULT_THEME, radius: 31 });
+    expect(theme.radius).toBe(31);
+    expect(theme.profileLinks).toEqual([]);
+  });
+
+  it("sanitizes clickable profile links", () => {
+    const theme = sanitizeProfileTheme({
+      profileLinks: [
+        { label: "Site", url: "example.com" },
+        { label: "Bad", url: "javascript:alert(1)" },
+      ],
+    });
+    expect(theme.profileLinks).toEqual([{ label: "Site", url: "https://example.com" }]);
+  });
+});
