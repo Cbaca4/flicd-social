@@ -29,6 +29,7 @@ import {
   getFeedDumps,
   getDumpById,
   markDumpViewed,
+  getPostingLimitStatus,
 } from "../features/capture/dumpApi.js";
 import {
   removeDumpImages,
@@ -231,11 +232,23 @@ export default function FlicdApp() {
   }, [profileMusicTrack?.audio_url, publicProfile, screen, session]);
 
   const toggleProfileMusic = React.useCallback(async () => {
+    const audioUrl = profileMusicTrack?.audio_url;
+    if (!audioUrl) return;
+
     const audio = getActiveAudio();
-    if (!audio || audio.src !== profileMusicTrack?.audio_url) {
-      if (profileMusicTrack?.audio_url) {
-        playAudioUrl(profileMusicTrack.audio_url, { loop: true, muted: false });
+    if (!audio || audio.src !== audioUrl) {
+      const next = playAudioUrl(audioUrl, { loop: true, muted: false });
+      if (next) setProfileMusicPlaying(!next.paused);
+      return;
+    }
+
+    if (audio.muted) {
+      audio.muted = false;
+      try {
+        await audio.play();
         setProfileMusicPlaying(true);
+      } catch {
+        setProfileMusicPlaying(false);
       }
       return;
     }
@@ -355,6 +368,19 @@ export default function FlicdApp() {
 
   const activeSpace = spaces.find((space) => space.id === activeSpaceId) || spaces[0];
   const activePost = dumps.find((dump) => dump.id === activePostId);
+
+  const primePostAudio = React.useCallback((post) => {
+    const audioUrl = post?.musicTrack?.audio_url;
+    if (!audioUrl) return;
+
+    const existing = getActiveAudio();
+    if (existing?.src === audioUrl) {
+      existing.play().catch(() => {});
+      return;
+    }
+
+    playAudioUrl(audioUrl, { loop: true, muted: false });
+  }, []);
 
   const closeViewer = React.useCallback(() => {
     setViewerCommentsOpen(false);
@@ -501,6 +527,10 @@ export default function FlicdApp() {
 
   const postDump = async ({ mood, expiry, channel, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
     let uploadedPaths = [];
+    const quota = await getPostingLimitStatus();
+    if (!quota.remaining) {
+      throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
+    }
     try {
       const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
       uploadedPaths = await uploadDumpImages(imageFiles);
@@ -555,6 +585,10 @@ export default function FlicdApp() {
 
   const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
     let uploadedPaths = [];
+    const quota = await getPostingLimitStatus();
+    if (!quota.remaining) {
+      throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
+    }
     try {
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
       uploadedPaths = await uploadDumpImages(imageFiles);
@@ -639,11 +673,13 @@ export default function FlicdApp() {
       error={feedState.status === "error" ? feedState.error : ""}
       onRetry={loadDumps}
       onOpen={(post) => {
+        primePostAudio(post);
         setViewerCommentsOpen(false);
         setActivePostId(post.id);
         setScreen("viewer");
       }}
       onCommentOpen={(post) => {
+        primePostAudio(post);
         setViewerCommentsOpen(true);
         setActivePostId(post.id);
         setScreen("viewer");
@@ -660,6 +696,7 @@ export default function FlicdApp() {
       onToast={onToast}
       onUserSelect={openPublicProfile}
       onOpenPost={(post) => {
+        primePostAudio(post);
         setViewerCommentsOpen(false);
         setActivePostId(post.id);
         setScreen("viewer");
