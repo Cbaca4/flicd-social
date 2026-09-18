@@ -54,12 +54,15 @@ describe("handheld profile layout", () => {
     expect(screen.getByText("Building flic'd one piece at a time.")).toHaveClass(
       "profile-bio",
     );
-    expect(document.querySelector(".profile-heading")).toBeTruthy();
-    expect(document.querySelector(".profile-actions")).toBeTruthy();
+    expect(document.querySelector(".profile-username-heading")).toBeTruthy();
+    expect(document.querySelector(".profile-main-row")).toBeTruthy();
+    expect(document.querySelector(".profile-mini-stats")).toBeTruthy();
     expect(
       screen.getByRole("button", { name: "Edit Profile" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
+    expect(screen.getByText("@baco")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
   });
 
   it("renders the saved profile photo instead of the fallback initial", () => {
