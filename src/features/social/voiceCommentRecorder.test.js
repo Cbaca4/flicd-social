@@ -1,6 +1,29 @@
 import { describe, expect, it, vi } from "vitest";
 
 describe("voice comment recorder", () => {
+  it("selects a browser-supported mobile audio MIME type", async () => {
+    const { createVoiceCommentRecorder } = await import("./voiceCommentRecorder.js");
+    const stream = { getTracks: () => [{ stop: vi.fn() }] };
+    const getUserMedia = vi.fn().mockResolvedValue(stream);
+    const recorder = {
+      start: vi.fn(),
+      stop: vi.fn(),
+      ondataavailable: null,
+      onstop: null,
+      mimeType: "audio/mp4",
+    };
+    function MediaRecorder() {
+      return recorder;
+    }
+    MediaRecorder.isTypeSupported = vi.fn((type) => type === "audio/mp4");
+
+    const controller = createVoiceCommentRecorder({ getUserMedia, MediaRecorder });
+    await controller.start();
+
+    expect(MediaRecorder.isTypeSupported).toHaveBeenCalled();
+    expect(controller.getState()).toBe("recording");
+  });
+
   it("starts recording with microphone input and exposes recording state", async () => {
     const { createVoiceCommentRecorder } = await import("./voiceCommentRecorder.js");
     const stream = { getTracks: () => [{ stop: vi.fn() }] };
