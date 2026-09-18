@@ -138,19 +138,41 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
   }
 
   if (data?.length) {
-    const hydratedTracks = await hydrateMusicTracks(
-      data.map((dump) => dump.music_tracks).filter(Boolean),
-    );
+    const [hydratedTracks, viewsResult] = await Promise.all([
+      hydrateMusicTracks(data.map((dump) => dump.music_tracks).filter(Boolean)),
+      supabase.from("dump_views").select("dump_id").eq("user_id", userId).in("dump_id", data.map((dump) => dump.id)),
+    ]);
+
+    if (viewsResult.error) throw viewsResult.error;
+
     const trackById = new Map(hydratedTracks.map((track) => [track.id, track]));
+    const viewedIds = new Set((viewsResult.data || []).map((row) => row.dump_id));
+
     return data.map((dump) => ({
       ...dump,
       ...(dump.music_tracks
         ? { music_tracks: trackById.get(dump.music_tracks.id) || dump.music_tracks }
         : {}),
+      ...(viewedIds.has(dump.id) ? { viewed: true } : {}),
     }));
   }
 
   return data || [];
+}
+
+export async function markDumpViewed(dumpId) {
+  const userId = await getCurrentUserId();
+  if (!dumpId) return false;
+
+  const { error } = await supabase
+    .from("dump_views")
+    .upsert(
+      { dump_id: dumpId, user_id: userId },
+      { onConflict: "dump_id,user_id", ignoreDuplicates: true },
+    );
+
+  if (error) throw error;
+  return true;
 }
 
 export async function getDumps() {
@@ -220,8 +242,18 @@ export async function getDumpById(dumpId) {
     ? await hydrateMusicTracks([data.music_tracks])
     : [];
 
+  const { data: view } = await supabase
+    .from("dump_views")
+    .select("dump_id")
+    .eq("dump_id", dumpId)
+    .eq("user_id", await getCurrentUserId())
+    .maybeSingle();
+
   return {
     ...data,
-    music_tracks: hydratedTracks[0] || data.music_tracks || null,
+    ...(view ? { viewed: true } : {}),
+    ...(data.music_tracks
+      ? { music_tracks: hydratedTracks[0] || data.music_tracks }
+      : {}),
   };
 }
