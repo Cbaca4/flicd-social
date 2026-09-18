@@ -421,7 +421,7 @@ export default function ProfileStudio({
         ),
         buttonStyle: {
           ...current.buttonStyle,
-          radius: Math.min(24, radius),
+          radius,
         },
       }),
     );
