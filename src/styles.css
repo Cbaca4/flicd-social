@@ -1126,25 +1126,6 @@
   pointer-events: none !important;
 }
 
-.viewer-progress:has(.viewer-progress-segment:nth-child(2)) {
-  --viewer-segments: 2;
-}
-
-.viewer-progress:has(.viewer-progress-segment:nth-child(3)) {
-  --viewer-segments: 3;
-}
-
-.viewer-progress:has(.viewer-progress-segment:nth-child(4)) {
-  --viewer-segments: 4;
-}
-
-.viewer-progress:has(.viewer-progress-segment:nth-child(5)) {
-  --viewer-segments: 5;
-}
-
-.viewer-progress:has(.viewer-progress-segment:nth-child(6)) {
-  --viewer-segments: 6;
-}
 
 .viewer-progress-segment {
   display: block;
