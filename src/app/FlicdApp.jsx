@@ -46,6 +46,7 @@ import EditProfile from "../features/profile/EditProfile.jsx";
 import Discovery from "../features/discovery/Discovery.jsx";
 import PublicProfile from "../features/profile/PublicProfile.jsx";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
+import { getMusicTrack } from "../features/music/musicApi.js";
 
 import {
   DEFAULT_THEME,
@@ -82,6 +83,7 @@ export default function FlicdApp() {
   const [chats, setChats] = React.useState([]);
   const [theme, setTheme] = React.useState(() => sanitizeProfileTheme(DEFAULT_THEME));
   const [supabaseProfile, setSupabaseProfile] = React.useState(null);
+  const [profileMusicTrack, setProfileMusicTrack] = React.useState(null);
   const [publicProfile, setPublicProfile] = React.useState(null);
   const [toast, setToast] = React.useState("");
 
@@ -115,6 +117,7 @@ export default function FlicdApp() {
       if (data) {
         setSupabaseProfile(data);
         if (data.profile_theme) setTheme(sanitizeProfileTheme(data.profile_theme));
+        setProfileMusicTrack(data.profile_music_track_id ? await getMusicTrack(data.profile_music_track_id) : null);
       }
     }
     loadProfile();
@@ -138,6 +141,7 @@ export default function FlicdApp() {
         comments: [],
         items: (dump.dump_items || []).sort((a, b) => a.position - b.position).map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
         context: dump.context || "",
+        musicTrack: dump.music_tracks || null,
       }));
       setDumps(await hydrateDumpInteractions(formattedDumps));
       setFeedState({ status: "ready", error: "" });
@@ -285,7 +289,7 @@ export default function FlicdApp() {
     }
   };
 
-  const postDump = async ({ mood, expiry, channel, items }) => {
+  const postDump = async ({ mood, expiry, channel, items, musicTrack = null }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
@@ -296,8 +300,8 @@ export default function FlicdApp() {
         imagePath: item.imageFile ? uploadedPaths[uploadIndex++] : null,
       }));
 
-      const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: itemsWithPaths[0]?.note || "new dump", frameCount: itemsWithPaths.length, items: itemsWithPaths });
-      const newDump = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump" };
+      const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: itemsWithPaths[0]?.note || "new dump", frameCount: itemsWithPaths.length, items: itemsWithPaths, musicTrackId: musicTrack?.id || null });
+      const newDump = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump", musicTrack };
       setDumps((currentDumps) => [newDump, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -309,14 +313,14 @@ export default function FlicdApp() {
     }
   };
 
-  const postRoll = async ({ mood, expiry, channel, frameCount, items }) => {
+  const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
       uploadedPaths = await uploadDumpImages(imageFiles);
       const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null }));
-      const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items: itemsWithPaths });
-      const newRoll = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll` };
+      const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items: itemsWithPaths, musicTrackId: musicTrack?.id || null });
+      const newRoll = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll`, musicTrack };
       setDumps((currentDumps) => [newRoll, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -338,6 +342,7 @@ export default function FlicdApp() {
     avatarUrl: supabaseProfile?.avatar_url || "",
     followers: activeSpace.followers,
     following: activeSpace.following,
+    musicTrack: profileMusicTrack,
   };
 
   let content;
@@ -351,7 +356,7 @@ export default function FlicdApp() {
   } else if (screen === "messages") {
     content = <Messages requests={requests} setRequests={setRequests} chats={chats} setChats={setChats} onToast={onToast} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} />;
+    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio profile={profile} theme={theme} onClose={() => setScreen("profile")} onChangeTheme={setTheme} onSaved={(updatedTheme) => { setTheme(updatedTheme); setScreen("profile"); onToast("Profile saved"); }} />;
   } else if (screen === "boards") {
