@@ -92,6 +92,7 @@ function formatDumpRecord(dump) {
     mode: dump.expiry,
     allowOthersToKeep: Boolean(dump.allow_others_to_keep),
     postedMinutesAgo: Math.floor((Date.now() - new Date(dump.created_at).getTime()) / 60000),
+    expiresAt: dump.expiry === "24h" ? new Date(dump.created_at).getTime() + 24 * 60 * 60 * 1000 : null,
     likes: 0,
     liked: false,
     viewed: Boolean(dump.viewed),
@@ -336,6 +337,21 @@ export default function FlicdApp() {
     }
     loadBoards();
   }, [session]);
+
+  React.useEffect(() => {
+    const nextExpiry = dumps
+      .map((dump) => Number(dump.expiresAt))
+      .filter((value) => Number.isFinite(value) && value > Date.now())
+      .sort((a, b) => a - b)[0];
+
+    if (!nextExpiry) return undefined;
+
+    const timer = setTimeout(() => {
+      loadDumps();
+    }, Math.max(100, nextExpiry - Date.now() + 100));
+
+    return () => clearTimeout(timer);
+  }, [dumps, loadDumps]);
 
   const activeSpace = spaces.find((space) => space.id === activeSpaceId) || spaces[0];
   const activePost = dumps.find((dump) => dump.id === activePostId);
