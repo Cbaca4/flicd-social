@@ -327,6 +327,8 @@ export default function ProfileStudio({
   const [privacySaving, setPrivacySaving] = React.useState(false);
   const [backgroundSaving, setBackgroundSaving] = React.useState(false);
   const [backgroundError, setBackgroundError] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState("");
   const event = getActiveSeasonalEvent();
 
   React.useEffect(() => {
@@ -468,11 +470,23 @@ export default function ProfileStudio({
     }
   };
 
-  const saveTheme = (nextTheme) => {
+  const saveTheme = async (nextTheme) => {
+    if (saving) return;
     const normalized = sanitizeProfileTheme(nextTheme);
     setDraft(normalized);
     (onChangeTheme || setTheme)?.(normalized);
-    (onSaved || onSave)?.(normalized);
+    const persist = onSaved || onSave;
+    if (!persist) return;
+
+    setSaveError("");
+    try {
+      setSaving(true);
+      await persist(normalized);
+    } catch (error) {
+      setSaveError(error?.message || "Could not save your profile.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const togglePrivacy = async () => {
@@ -1029,6 +1043,12 @@ export default function ProfileStudio({
             </label>
           </section>
 
+          {saveError && (
+            <p className="subtitle" role="alert" style={{ color: "var(--danger)", marginTop: 4 }}>
+              {saveError}
+            </p>
+          )}
+
           <div className="wrap">
             <button
               type="button"
@@ -1037,6 +1057,7 @@ export default function ProfileStudio({
                 setDraft(
                   sanitizeProfileTheme({
                     ...DEFAULT_THEME,
+                    profileLinks: draft.profileLinks || [],
                     backgroundMedia: null,
                   }),
                 )
@@ -1050,9 +1071,10 @@ export default function ProfileStudio({
               type="button"
               className="btn btn-primary"
               onClick={() => saveTheme(draft)}
+              disabled={saving}
             >
               <Save size={15} />
-              Save Profile
+              {saving ? "Saving…" : "Save Profile"}
             </button>
           </div>
 
