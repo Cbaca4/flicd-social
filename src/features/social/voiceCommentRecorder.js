@@ -8,7 +8,7 @@ export const MAX_VOICE_COMMENT_DURATION = 30;
 
 export function getSupportedVoiceMimeType(MediaRecorderCtor = globalThis.MediaRecorder) {
   if (!MediaRecorderCtor) return "";
-  if (typeof MediaRecorderCtor.isTypeSupported !== "function") return MIME_TYPE_CANDIDATES[0];
+  if (typeof MediaRecorderCtor.isTypeSupported !== "function") return "";
   return MIME_TYPE_CANDIDATES.find((type) => MediaRecorderCtor.isTypeSupported(type)) || "";
 }
 
