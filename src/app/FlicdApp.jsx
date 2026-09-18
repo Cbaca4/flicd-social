@@ -329,10 +329,14 @@ export default function FlicdApp() {
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
   const openPublicProfile = React.useCallback((user) => {
     if (!user?.id) return;
+    if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
+      setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
+      setActivePostId(null);
+    }
     stopAudio();
     setProfileMusicPlaying(false);
     setPublicProfile(user);
-  }, []);
+  }, [activePost?.id, activePost?.mode, activePost?.viewed, screen]);
 
   const openDumpById = React.useCallback(async (dumpId) => {
     const existing = dumps.find((dump) => dump.id === dumpId);
@@ -639,6 +643,10 @@ export default function FlicdApp() {
         }}
         onCapture={() => {
           setPublicProfile(null);
+          if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
+            setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
+            setActivePostId(null);
+          }
           stopAudio();
           setProfileMusicPlaying(false);
           setScreen("create-choose");
