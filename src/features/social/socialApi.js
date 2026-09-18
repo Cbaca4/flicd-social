@@ -23,7 +23,7 @@ export async function getPublicProfile(profileId) {
   if (!profileId) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,username,display_name,bio,avatar_url,profile_theme,is_private")
+    .select("id,username,display_name,bio,avatar_url,profile_theme,is_private,profile_music_track_id")
     .eq("id", profileId)
     .maybeSingle();
   if (error) throw error;
