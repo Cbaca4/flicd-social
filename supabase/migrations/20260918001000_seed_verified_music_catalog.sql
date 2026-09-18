@@ -20,7 +20,17 @@ insert into public.music_tracks (
   title, artist, audio_url, genre, duration, provider, provider_track_id,
   license_id, active, approved
 )
-select *
+select
+  t.title,
+  t.artist,
+  t.audio_url,
+  t.genre,
+  t.duration,
+  t.provider,
+  t.provider_track_id,
+  l.id,
+  true,
+  true
 from (
   values
     ('The Road','Ketsa',null,'Soul-RnB / Hip-Hop Beats / Instrumental',174,'Free Music Archive','https://freemusicarchive.org/music/Ketsa/cc-by-free-to-use-for-anything/the-road-1/'),
@@ -33,12 +43,13 @@ from (
     ('All Out','Ketsa',null,'Jazz / Hip-Hop Beats / Instrumental',188,'Free Music Archive','https://freemusicarchive.org/music/Ketsa/cc-by-free-to-use-for-anything/all-out/'),
     ('Around the Corner','Ketsa',null,'Soundtrack / Ambient Electronic / Instrumental',192,'Free Music Archive','https://freemusicarchive.org/music/Ketsa/cc-by-free-to-use-for-anything/around-the-corner/'),
     ('This Life','Ketsa',null,'Soundtrack / Electroacoustic / Instrumental',197,'Free Music Archive','https://freemusicarchive.org/music/Ketsa/cc-by-free-to-use-for-anything/this-life/')
-) as t(title,artist,audio_url,genre,duration,provider,provider_track_id)
+ ) as t(title,artist,audio_url,genre,duration,provider,provider_track_id)
 cross join lateral (
   select id from public.music_licenses
   where provider = t.provider and license_id = 'CC-BY-4.0'
   limit 1
 ) l
+where true
 on conflict (provider, provider_track_id) do update
 set title = excluded.title,
     artist = excluded.artist,
