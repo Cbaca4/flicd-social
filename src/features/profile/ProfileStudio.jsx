@@ -8,7 +8,33 @@ import {getSeasonalProfileTheme} from '../seasonal/seasonalProfileTheme.js';
 import {getCurrentProfile,setPrivateAccount} from '../social/socialApi.js';
 import FollowRequests from '../social/FollowRequests.jsx';
 
-export function ProfilePreview({theme,profile}){const bg=theme.backgroundStyle==='gradient'?`linear-gradient(145deg,${theme.background},#0f1e22)`:theme.background;return <div className="preview-shell"><div className="eyebrow">Live preview</div><div className="preview-card" style={{background:bg,borderRadius:theme.radius,border:theme.borderStyle==='none'?'none':`1px solid ${theme.accent}55`,fontFamily:theme.font}}><div className="row"><div className="avatar lg" style={{boxShadow:`0 0 0 3px ${theme.accent}55`}}>{profile.handle[0].toUpperCase()}</div><div><h2>@{profile.handle}</h2><p style={{marginTop:4,color:theme.accent}}>{theme.statusEmoji} {theme.status}</p></div></div><div className="mini-sect" style={{background:`rgba(0,0,0,${1-theme.cardOpacity})`}}><p style={{fontSize:13,lineHeight:1.55}}>{theme.message}</p></div>{theme.showMusic&&<div className="mini-sect"><span className="eyebrow">On repeat</span><strong style={{display:'block',marginTop:5}}>{theme.favoriteArtist||'Add your favorite artist'}</strong></div>}<div className="mini-sect"><span className="eyebrow">Featured</span><div className="grid grid-3" style={{marginTop:8}}>{[1,2,3].map(i=><div key={i} className="board-cover" style={{aspectRatio:'1/1'}}><span style={{position:'absolute',inset:0,display:'grid',placeItems:'center',fontSize:11}}>flic'd</span></div>)}</div></div>{theme.showBoards&&<div className="mini-sect"><span className="eyebrow">Boards</span><div className="wrap" style={{marginTop:8}}><span className="pill">memories</span><span className="pill">gym</span><span className="pill">late nights</span></div></div>}</div></div>}
+export function ProfilePreview({theme,profile}){
+  const hero=theme.sectionStyles?.hero||{};
+  const boards=theme.sectionStyles?.boards||{};
+  const onRepeat=theme.sectionStyles?.onRepeat||{};
+  const bg=theme.backgroundStyle==='gradient'
+    ? `linear-gradient(145deg,${theme.background},#0f1e22)`
+    : theme.background;
+
+  return <div className="preview-shell profile-customize-preview">
+    <div className="eyebrow">Live preview</div>
+    {theme.backgroundMedia?.url&&<div className="profile-background-media" aria-hidden="true">
+      {theme.backgroundMedia.type==='video'
+        ? <video src={theme.backgroundMedia.url} autoPlay loop muted playsInline />
+        : <img src={theme.backgroundMedia.url} alt="" />}
+    </div>}
+    <div className="preview-card" style={{background:bg,borderRadius:theme.radius,border:theme.borderStyle==='none'?'none':`1px solid ${hero.border||theme.accent}55`,fontFamily:theme.font,position:'relative',zIndex:1}}>
+      <div className="row" style={{padding:14,borderRadius:hero.radius||20,background:hero.background||'rgba(255,255,255,.03)',border:`1px solid ${hero.border||'rgba(255,255,255,.08)'}`}}>
+        <div className="avatar lg" style={{boxShadow:`0 0 0 3px ${hero.accent||theme.accent}55`}}>{profile.handle[0].toUpperCase()}</div>
+        <div><h2>@{profile.handle}</h2><p style={{marginTop:4,color:hero.accent||theme.accent}}>{theme.statusEmoji} {theme.status}</p></div>
+      </div>
+      <div className="mini-sect" style={{background:hero.background||'rgba(0,0,0,.14)',borderColor:hero.border||undefined}}><p style={{fontSize:13,lineHeight:1.55}}>{theme.message}</p></div>
+      {theme.showMusic&&<div className="mini-sect" style={{background:onRepeat.background||undefined,borderColor:onRepeat.border||undefined,borderRadius:onRepeat.radius||16}}><span className="eyebrow">On repeat</span><strong style={{display:'block',marginTop:5}}>{theme.favoriteArtist||'Add your favorite artist'}</strong></div>}
+      <div className="mini-sect" style={{background:boards.background||undefined,borderColor:boards.border||undefined,borderRadius:boards.radius||16}}><span className="eyebrow">Featured</span><div className="grid grid-3" style={{marginTop:8}}>{[1,2,3].map(i=><div key={i} className="board-cover" style={{aspectRatio:'1/1'}}><span style={{position:'absolute',inset:0,display:'grid',placeItems:'center',fontSize:11}}>flic'd</span></div>)}</div></div>
+      {theme.showBoards&&<div className="mini-sect"><span className="eyebrow">Boards</span><div className="wrap" style={{marginTop:8}}><span className="pill">memories</span><span className="pill">gym</span><span className="pill">late nights</span></div></div>}
+    </div>
+  </div>;
+}
 
 export default function ProfileStudio({theme,setTheme,onClose,onSave,profile={handle:'you'},onChangeTheme,onSaved}){const [draft,setDraft]=React.useState(()=>sanitizeProfileTheme(theme));const [isPrivate,setIsPrivate]=React.useState(false);const [privacyLoading,setPrivacyLoading]=React.useState(true);const [privacySaving,setPrivacySaving]=React.useState(false);const [backgroundSaving,setBackgroundSaving]=React.useState(false);const [backgroundError,setBackgroundError]=React.useState('');const event=getActiveSeasonalEvent();React.useEffect(()=>{let cancelled=false;getCurrentProfile().then(p=>{if(!cancelled)setIsPrivate(Boolean(p?.is_private));}).catch(e=>console.error('Failed to load privacy:',e)).finally(()=>{if(!cancelled)setPrivacyLoading(false)});return()=>{cancelled=true}},[]);const update=(key,value)=>setDraft(d=>sanitizeProfileTheme({...d,[key]:value}));const move=(section,dir)=>setDraft(d=>{const a=[...d.sectionOrder],i=a.indexOf(section),j=i+dir;if(j<0||j>=a.length)return d;[a[i],a[j]]=[a[j],a[i]];return {...d,sectionOrder:a}});const applySeasonal=()=>setDraft(d=>sanitizeProfileTheme(getSeasonalProfileTheme(d)));
 const setSectionStyle=(section,key,value)=>setDraft(d=>sanitizeProfileTheme({...d,sectionStyles:{...d.sectionStyles,[section]:{...d.sectionStyles?.[section],[key]:value}}}));
