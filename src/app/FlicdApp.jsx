@@ -28,6 +28,7 @@ import {
   createDump,
   getFeedDumps,
   getDumpById,
+  markDumpViewed,
 } from "../features/capture/dumpApi.js";
 import {
   removeDumpImages,
@@ -90,7 +91,7 @@ function formatDumpRecord(dump) {
     postedMinutesAgo: Math.floor((Date.now() - new Date(dump.created_at).getTime()) / 60000),
     likes: 0,
     liked: false,
-    viewed: false,
+    viewed: Boolean(dump.viewed),
     comments: [],
     items: (dump.dump_items || [])
       .sort((a, b) => a.position - b.position)
@@ -408,7 +409,7 @@ export default function FlicdApp() {
     try {
       setSavingKeep(true);
       const saved = await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition: index, note: post.items[index]?.note || "", mood: post.mood || "" });
-      setKept((current) => current.some((item) => item.id === saved.id) ? current : [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: post.author, note: saved.note || "", mood: saved.mood || "", seed: saved.item_position }]);
+      setKept((current) => current.some((item) => item.id === saved.id) ? current : [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: saved.saved_author_username || post.author, note: saved.note || "", mood: saved.mood || "", imagePath: saved.saved_image_path || post.items[index]?.imagePath || "", seed: saved.item_position }]);
       setBoards(await getBoards());
       setPendingKeep(null);
       setCreatingKeepBoard(false);
@@ -598,7 +599,10 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => { setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item)); }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
+    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
+          setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
+          markDumpViewed(dumpId).catch((error) => console.error("Failed to record view-once post:", error));
+        }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
   const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? "profile" : "home") : screen;
