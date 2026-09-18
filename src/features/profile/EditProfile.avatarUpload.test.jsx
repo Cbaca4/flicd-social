@@ -40,6 +40,9 @@ vi.mock("../../lib/supabase", () => ({
 
 import EditProfile from "./EditProfile.jsx";
 
+if (!URL.createObjectURL) URL.createObjectURL = vi.fn(() => "blob:profile-test");
+if (!URL.revokeObjectURL) URL.revokeObjectURL = vi.fn();
+
 describe("EditProfile gallery photo upload", () => {
   it("uploads a selected gallery image and saves its URL to the profile", async () => {
     uploadProfilePhoto.mockResolvedValue("https://cdn.example/avatar.jpg");
