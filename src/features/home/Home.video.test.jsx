@@ -69,6 +69,7 @@ describe("Viewer video composer", () => {
   it("opens the video picker from the comment composer", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -87,6 +88,7 @@ describe("Viewer video composer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -117,6 +119,7 @@ describe("Viewer video composer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
