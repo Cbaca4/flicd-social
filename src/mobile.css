@@ -281,3 +281,29 @@ body { overflow-x: hidden; }
     margin-top: 12px;
   }
 }
+
+.profile-screen .profile-layout {
+  align-items: start;
+}
+.profile-screen .profile-layout > .stack:last-child > .profile-section-card {
+  width: 100%;
+  box-sizing: border-box;
+}
+@media (max-width: 620px) {
+  .profile-screen .profile-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .profile-screen .profile-layout > .stack {
+    width: 100%;
+    min-width: 0;
+  }
+  .profile-screen .profile-layout > .stack:last-child {
+    margin-top: 0;
+  }
+  .profile-screen .profile-layout > .stack:last-child .profile-section-card {
+    width: 100%;
+    min-width: 0;
+  }
+}
