@@ -6,7 +6,7 @@ import {
   MAX_COMMENT_VIDEO_SIZE,
 } from "./commentMediaUpload.js";
 
-const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
 const createPreviewObjectUrl = (file) => URL.createObjectURL(file);
 const revokePreviewObjectUrl = (url) => URL.revokeObjectURL(url);
 
@@ -63,7 +63,7 @@ export default function VideoCommentPicker({
 
     try {
       if (!ALLOWED_VIDEO_TYPES.has(file.type)) {
-        throw new Error("Please choose an MP4 or WebM video.");
+        throw new Error("Please choose an MP4, WebM, or MOV video.");
       }
 
       validateCommentMediaFile(file, "video");
@@ -110,7 +110,7 @@ export default function VideoCommentPicker({
             ref={cameraInputRef}
             id="comment-video-camera-input"
             type="file"
-            accept="video/mp4,video/webm"
+            accept="video/mp4,video/webm,video/quicktime"
             capture="user"
             aria-label="Record a video"
             onChange={handleChange}
