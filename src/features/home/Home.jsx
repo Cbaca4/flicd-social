@@ -302,6 +302,7 @@ export function DumpCard({
   onOpen,
   onLike,
   onCommentOpen,
+  onKeep,
   likePending = false,
 }) {
   const expired = timeLeft(post) === "expired";
@@ -389,7 +390,7 @@ export function DumpCard({
             className="post-feed-action"
             disabled={!post.allowOthersToKeep}
             aria-label={post.allowOthersToKeep ? "Keep" : "Keep unavailable"}
-            onClick={() => onOpen?.(post)}
+            onClick={() => onKeep?.(post, 0)}
           >
             <Bookmark size={18} />
           </button>
@@ -403,7 +404,7 @@ export function DumpCard({
     </article>
   );
 }
-export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
+export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKeep,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
   const visible=dumps.filter(d=>d.channel===activeSpace.id);
 
   if(loading){
@@ -423,7 +424,7 @@ export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,pend
         {notificationsUnread>0&&<span className="nav-unread-badge">{notificationsUnread>9?"9+":notificationsUnread}</span>}
       </button>
     </div>
-    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} likePending={pendingLikeIds.has(p.id)}/>)}</div>
+    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} onKeep={onKeep} likePending={pendingLikeIds.has(p.id)}/>)}</div>
   </div>;
 }
 
