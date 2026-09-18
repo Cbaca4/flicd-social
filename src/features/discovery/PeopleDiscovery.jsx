@@ -67,8 +67,24 @@ export default function PeopleDiscovery({ onUserSelect }) {
         {!searchLoading && !searchError && searchResults.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />)}
       </div>}
     </div>
-    {!query.trim() && <section><div className="eyebrow">Suggested for you</div><h2 style={{ marginTop: 4 }}>People who fit your interests</h2><div className="stack" style={{ marginTop: 12 }}>{suggested.length ? suggested.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />) : <div className="card subtitle">More people will appear as Flic’d grows.</div>}</div></section>
-    <section style={{ marginTop: 10 }}><div className="eyebrow">People you may know</div><h2 style={{ marginTop: 4 }}>Keep building your circle</h2><div className="stack" style={{ marginTop: 12 }}>{mayKnow.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />)}</div></section>
-    <section style={{ marginTop: 10 }}><div className="eyebrow">Global</div><h2 style={{ marginTop: 4 }}>Meet the wider Flic’d community</h2><div className="stack" style={{ marginTop: 12 }}>{global.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />)}</div></section>}
+    {!query.trim() && (
+      <>
+        <section>
+          <div className="eyebrow">Suggested for you</div>
+          <h2 style={{ marginTop: 4 }}>People who fit your interests</h2>
+          <div className="stack" style={{ marginTop: 12 }}>{suggested.length ? suggested.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />) : <div className="card subtitle">More people will appear as Flic’d grows.</div>}</div>
+        </section>
+        <section style={{ marginTop: 10 }}>
+          <div className="eyebrow">People you may know</div>
+          <h2 style={{ marginTop: 4 }}>Keep building your circle</h2>
+          <div className="stack" style={{ marginTop: 12 }}>{mayKnow.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />)}</div>
+        </section>
+        <section style={{ marginTop: 10 }}>
+          <div className="eyebrow">Global</div>
+          <h2 style={{ marginTop: 4 }}>Meet the wider Flic’d community</h2>
+          <div className="stack" style={{ marginTop: 12 }}>{global.map((person) => <PersonCard key={person.id} person={person} onUserSelect={onUserSelect} />)}</div>
+        </section>
+      </>
+    )}
   </div>;
 }
