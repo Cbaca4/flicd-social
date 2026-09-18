@@ -166,33 +166,30 @@ export default function OnRepeat({
           </div>
 
           <div className="profile-music-dropdown" role="listbox" aria-label="Profile music tracks">
-              {searchLoading && <p className="subtitle profile-music-status">Searching music…</p>}
-              {searchError && <p role="alert" className="subtitle profile-music-status">{searchError}</p>}
-              {!searchLoading && !searchError && tracks.length === 0 && (
-                <p className="subtitle profile-music-status">No verified tracks found.</p>
-              )}
-              {!searchLoading && !searchError && tracks.map((candidate) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  role="option"
-                  aria-selected={track?.id === candidate.id}
-                  className={`profile-music-option${track?.id === candidate.id ? " is-selected" : ""}`}
-                  onClick={() => selectTrack(candidate)}
-                >
-                  <div className="profile-music-option-copy">
-                    <strong>{candidate.title}</strong>
-                    <span>{candidate.artist}</span>
-                  </div>
-                  {track?.id === candidate.id ? (
-                    <Play size={13} aria-hidden="true" />
-                  ) : !candidate.audio_url ? (
-                    <ExternalLink size={14} className="muted" aria-hidden="true" />
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          )}
+            {searchLoading && <p className="subtitle profile-music-status">Searching music…</p>}
+            {searchError && <p role="alert" className="subtitle profile-music-status">{searchError}</p>}
+            {!searchLoading && !searchError && tracks.length === 0 && (
+              <p className="subtitle profile-music-status">No verified tracks found.</p>
+            )}
+            {!searchLoading && !searchError && tracks.map((candidate) => (
+              <button
+                key={candidate.id}
+                type="button"
+                role="option"
+                aria-selected={track?.id === candidate.id}
+                className={`profile-music-option${track?.id === candidate.id ? " is-selected" : ""}`}
+                onClick={() => selectTrack(candidate)}
+              >
+                <div className="profile-music-option-copy">
+                  <strong>{candidate.title}</strong>
+                  <span>{candidate.artist}</span>
+                </div>
+                {!candidate.audio_url && (
+                  <ExternalLink size={14} className="muted" aria-hidden="true" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
