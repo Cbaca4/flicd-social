@@ -238,6 +238,7 @@ describe("Post viewer", () => {
 
     const { container } = render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={onLike}
@@ -264,6 +265,7 @@ describe("Post viewer", () => {
   it("disables only the like action while a like request is pending", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -282,6 +284,7 @@ describe("Post viewer", () => {
   it("shows a voice comment control in the composer", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -297,6 +300,7 @@ describe("Post viewer", () => {
   it("starts voice recording when the voice control is pressed", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -313,6 +317,7 @@ describe("Post viewer", () => {
   it("shows a stop control after recording starts", async () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -330,6 +335,7 @@ describe("Post viewer", () => {
   it("shows voice review controls after recording stops", async () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -353,6 +359,7 @@ describe("Post viewer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -375,6 +382,7 @@ describe("Post viewer", () => {
   it("shows Delete only for the current user's comment", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [
@@ -392,7 +400,6 @@ describe("Post viewer", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /open comments/i }));
     expect(screen.getByRole("button", { name: "Delete comment" })).toBeInTheDocument();
   });
 
@@ -401,6 +408,7 @@ describe("Post viewer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [{ id: "own", user_id: "me", from: "baco", text: "my comment" }],
@@ -426,6 +434,7 @@ describe("Post viewer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [{ id: "other", user_id: "friend-id", from: "mia", text: "their comment" }],
@@ -452,6 +461,7 @@ describe("Post viewer", () => {
   it("renders a saved audio comment with a signed storage URL", async () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [{
@@ -479,6 +489,7 @@ describe("Post viewer", () => {
   it("renders a saved video comment with a signed storage URL and controls", async () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [{
@@ -508,6 +519,7 @@ describe("Post viewer", () => {
   it("renders a saved GIF comment as an image tile", async () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           ...post,
           comments: [{
