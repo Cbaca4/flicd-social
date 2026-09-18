@@ -959,18 +959,18 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         </div>
 
         {commentsOpen && (
-          <button
-            type="button"
-            className="comment-sheet-scrim"
-            aria-label="Close comments"
-            onClick={() => setCommentsOpen(false)}
-          />
-        )}
+          <>
+            <button
+              type="button"
+              className="comment-sheet-scrim"
+              aria-label="Close comments"
+              onClick={() => setCommentsOpen(false)}
+            />
 
-        <section
-          className={`post-conversation viewer-comments${commentsOpen ? " comment-sheet" : ""}`}
-          aria-label="Conversation"
-        >
+            <section
+              className="post-conversation viewer-comments comment-sheet"
+              aria-label="Conversation"
+            >
           {commentsOpen && (
             <div className="comment-sheet-header">
               <div className="comment-sheet-handle" aria-hidden="true" />
@@ -988,18 +988,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
           <div className="post-comment-summary">
             {visibleComments.length === 0 && <p className="subtitle">No comments yet.</p>}
-            {visibleComments.length > 1 && (
-              <button
-                type="button"
-                className="post-comments-toggle"
-                onClick={() => setCommentsOpen((open) => !open)}
-                aria-expanded={commentsOpen}
-              >
-                {commentsOpen ? "Close comments" : "Open comments"}
-                <span className="flicd-mono">{visibleComments.length}</span>
-              </button>
-            )}
-            {(visibleComments.length === 1 || commentsOpen) && (
+            {commentsOpen && (
               <div className="stack post-comment-list">
                 {visibleComments.map(c => (
                   <div key={c.id} className="comment-row">
@@ -1127,7 +1116,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
           {gifPickerOpen && <GifPicker onSelect={handleGifSelect} onClose={() => setGifPickerOpen(false)} />}
           {videoPickerOpen && <VideoCommentPicker onSelect={handleVideoSelect} onClose={() => setVideoPickerOpen(false)} />}
-        </section>
+            </section>
+          </>
+        )}
       </div>
     </div>
   );
