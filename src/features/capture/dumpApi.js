@@ -138,11 +138,12 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
   }
 
   const expiryCutoff = Date.now() - 24 * 60 * 60 * 1000;
-  const liveDumps = (data || []).filter(
-    (dump) =>
-      dump.expiry !== "24h" ||
-      new Date(dump.created_at || 0).getTime() > expiryCutoff,
-  );
+  const liveDumps = (data || []).filter((dump) => {
+    if (dump.expiry !== "24h") return true;
+    if (!dump.created_at) return true;
+    const createdAt = new Date(dump.created_at).getTime();
+    return Number.isNaN(createdAt) || createdAt > expiryCutoff;
+  });
 
   if (liveDumps.length) {
     const [hydratedTracks, viewsResult] = await Promise.all([
