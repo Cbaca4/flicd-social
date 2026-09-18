@@ -2,7 +2,7 @@ import React from "react";
 import { Bell, Check, Image as ImageIcon } from "lucide-react";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "./notificationsApi.js";
 
-export default function Notifications({ onBack, onOpenDump }) {
+export default function Notifications({ onBack, onOpenDump, onChanged }) {
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -30,6 +30,7 @@ export default function Notifications({ onBack, onOpenDump }) {
     try {
       await markAllNotificationsRead();
       setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+      onChanged?.();
     } catch (markError) {
       setError(markError.message || "Could not update notifications.");
     } finally {
@@ -45,6 +46,7 @@ export default function Notifications({ onBack, onOpenDump }) {
         // The notification can still open even when the read update fails.
       }
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry));
+      onChanged?.();
     }
 
     if (item.dump_id) onOpenDump?.(item.dump_id);
