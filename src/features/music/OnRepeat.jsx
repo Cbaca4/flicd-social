@@ -1,5 +1,5 @@
 import React from "react";
-import { ExternalLink, Pause, Play, X } from "lucide-react";
+import { ChevronDown, ExternalLink, Pause, Play, Search, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
 import { getActiveAudio, pauseAudio, playAudioUrl, resumeAudio, stopAudio } from "./audioController.js";
 
@@ -13,12 +13,13 @@ export default function OnRepeat({
   style,
 }) {
   const [track, setTrack] = React.useState(initialTrack);
-  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerOpen, setPickerOpen] = React.useState(true);
   const [tracks, setTracks] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [localPlaying, setLocalPlaying] = React.useState(false);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
+  const [songsOpen, setSongsOpen] = React.useState(false);
   const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
@@ -57,7 +58,9 @@ export default function OnRepeat({
     setLocalPlaying(false);
     setTrack(nextTrack);
     onTrackChange?.(nextTrack);
-    setPickerOpen(false);
+    setPickerOpen(true);
+    setSongsOpen(false);
+    setQuery("");
   };
 
   const removeTrack = async () => {
@@ -97,7 +100,7 @@ export default function OnRepeat({
   };
 
   React.useEffect(() => {
-    if (!pickerOpen) {
+    if (!editable || !pickerOpen || !songsOpen) {
       searchRequestRef.current += 1;
       setSearchLoading(false);
       return undefined;
@@ -109,7 +112,7 @@ export default function OnRepeat({
 
     const timer = setTimeout(async () => {
       try {
-        const data = await getMusicTracks({ search: query, limit: 30 });
+        const data = await getMusicTracks({ search: query, limit: 100 });
         if (requestId !== searchRequestRef.current) return;
         setTracks(data);
       } catch (error) {
@@ -143,58 +146,62 @@ export default function OnRepeat({
           >
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          {editable && (
-            <button type="button" className="btn icon-btn" onClick={removeTrack} aria-label="Remove profile music">
-              <X size={16} />
+          {editable && pickerOpen && (
+        <div className="profile-music-picker">
+          <div className="profile-music-search-shell">
+            <Search size={14} aria-hidden="true" className="muted" />
+            <input
+              className="input profile-music-search-input"
+              value={query}
+              onFocus={() => setSongsOpen(true)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setSongsOpen(true);
+              }}
+              placeholder="Search artist, song, or genre…"
+              aria-label="Search profile music"
+            />
+            <button
+              type="button"
+              className="btn icon-btn profile-music-dropdown-toggle"
+              aria-label={songsOpen ? "Hide songs" : "Show all songs"}
+              aria-expanded={songsOpen}
+              onClick={() => setSongsOpen((current) => !current)}
+            >
+              <ChevronDown size={15} aria-hidden="true" />
             </button>
+          </div>
+
+          {songsOpen && (
+            <div className="profile-music-dropdown" role="listbox" aria-label="Profile music tracks">
+              {searchLoading && <p className="subtitle profile-music-status">Searching music…</p>}
+              {searchError && <p role="alert" className="subtitle profile-music-status">{searchError}</p>}
+              {!searchLoading && !searchError && tracks.length === 0 && (
+                <p className="subtitle profile-music-status">No verified tracks found.</p>
+              )}
+              {!searchLoading && !searchError && tracks.map((candidate) => (
+                <button
+                  key={candidate.id}
+                  type="button"
+                  role="option"
+                  aria-selected={track?.id === candidate.id}
+                  className={`profile-music-option${track?.id === candidate.id ? " is-selected" : ""}`}
+                  onClick={() => selectTrack(candidate)}
+                >
+                  <div className="profile-music-option-copy">
+                    <strong>{candidate.title}</strong>
+                    <span>{candidate.artist}</span>
+                  </div>
+                  {track?.id === candidate.id ? (
+                    <Play size={13} aria-hidden="true" />
+                  ) : !candidate.audio_url ? (
+                    <ExternalLink size={14} className="muted" aria-hidden="true" />
+                  ) : null}
+                </button>
+              ))}
+            </div>
           )}
         </div>
-      ) : (
-        <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
-      )}
-
-      {editable && (
-        <button
-          type="button"
-          className="btn btn-primary"
-          style={{ marginTop: 12 }}
-          onClick={() => setPickerOpen((current) => !current)}
-        >
-          {pickerOpen ? "Close" : track ? "Change song" : "Choose song"}
-        </button>
-      )}
-
-      {pickerOpen && editable && (
-        <div className="stack" style={{ marginTop: 12 }}>
-          <input
-            className="input"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search artist, song, or genre…"
-            aria-label="Search profile music"
-          />
-          {searchLoading && <p className="subtitle">Searching music…</p>}
-          {searchError && <p role="alert" className="subtitle">{searchError}</p>}
-          {!searchLoading && !searchError && tracks.length === 0 && <p className="subtitle">No verified tracks found.</p>}
-          {tracks.map((candidate) => (
-            <button
-              key={candidate.id}
-              type="button"
-              className="card"
-              style={{ textAlign: "left", width: "100%" }}
-              onClick={() => selectTrack(candidate)}
-            >
-              <div className="row">
-                <div style={{ flex: 1 }}>
-                  <strong>{candidate.title}</strong>
-                  <p className="subtitle">{candidate.artist}</p>
-                </div>
-                {!candidate.audio_url && <ExternalLink size={15} className="muted" aria-hidden="true" />}
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      )}    </div>
   );
 }
