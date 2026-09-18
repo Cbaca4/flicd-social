@@ -900,3 +900,91 @@
   .profile-right-stack { gap: 6px; }
   .profile-compact-section { padding: 9px !important; }
 }
+
+/* Final profile composition: same hierarchy on every viewport, with the lower
+   content compressed into the left/right layout rather than requiring a scroll. */
+.profile-screen .profile-content-layer {
+  height: 100%;
+  min-height: 0;
+}
+.profile-screen .profile-hero {
+  flex-shrink: 0;
+}
+.profile-screen .profile-main-row,
+.profile-screen .profile-main-identity {
+  min-width: 0;
+}
+.profile-screen .profile-pinned-card {
+  min-width: 0;
+}
+.profile-screen .profile-right-stack {
+  min-width: 0;
+}
+.profile-screen .profile-right-stack .profile-section-card {
+  overflow: hidden;
+}
+.profile-screen .profile-right-stack .profile-section-card .btn,
+.profile-screen .profile-right-stack .profile-section-card strong,
+.profile-screen .profile-right-stack .profile-section-card p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.archive-screen {
+  overflow-y: auto !important;
+}
+.archive-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.archive-card {
+  min-width: 0;
+  overflow: hidden;
+}
+.archive-card-media {
+  aspect-ratio: 4 / 5;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  background: rgba(255,255,255,.025);
+}
+.archive-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  scroll-snap-align: start;
+  background: rgba(0,0,0,.12);
+}
+.archive-card-copy {
+  min-width: 0;
+  padding-top: 9px;
+}
+.archive-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+.archive-item-actions .btn {
+  min-height: 34px;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+.archive-empty {
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  text-align: center;
+}
+.archive-skeleton {
+  height: 170px;
+  background: linear-gradient(90deg, rgba(255,255,255,.025), rgba(255,255,255,.06), rgba(255,255,255,.025));
+}
+@media (max-width: 620px) {
+  .archive-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
