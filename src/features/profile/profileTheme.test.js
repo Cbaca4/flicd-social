@@ -42,6 +42,7 @@ describe("profile presentation controls", () => {
   it("accepts a continuous global roundness value", () => {
     const theme = sanitizeProfileTheme({ ...DEFAULT_THEME, radius: 31 });
     expect(theme.radius).toBe(31);
+    expect(theme.sectionStyles.hero.radius).toBeGreaterThanOrEqual(12);
     expect(theme.profileLinks).toEqual([]);
   });
 
