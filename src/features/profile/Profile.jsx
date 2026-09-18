@@ -1,5 +1,5 @@
 import React from "react";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog } from "lucide-react";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -10,7 +10,7 @@ import OnRepeat from "../music/OnRepeat.jsx";
 import MusicCredits from "../music/MusicCredits.jsx";
 import RelationshipList from "../social/RelationshipList.jsx";
 
-function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
+function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, onArchive }) {
   const [companionUserId, setCompanionUserId] = React.useState("");
   const [companionSettings, setCompanionSettings] = React.useState(() => loadCompanionSettings(""));
   const [musicCreditsOpen, setMusicCreditsOpen] = React.useState(false);
@@ -83,6 +83,7 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
         {row(Pencil, "Edit Profile", "Change your username, name, bio, and profile details.", onEditProfile)}
         {row(Palette, "Profile Studio", "Customize your profile's look, sections, and theme.", onCustomize)}
         {row(LayoutGrid, "Boards", "Manage your saved Boards and pinned profile Boards.", onBoards)}
+        {row(ArchiveIcon, "Archive", "Only you can access Flic&apos;d posts after they expire.", onArchive)}
         {row(Users, "Spaces", "Switch between your Flic'd spaces and identities.", onSpaces)}
 
         <div className="settings-section-label" style={{ marginTop: 12 }}>
@@ -138,42 +139,29 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [relationshipList, setRelationshipList] = React.useState(null);
-  const [relationshipCounts, setRelationshipCounts] = React.useState(() => ({
-    followers: profile?.followers ?? 0,
-    following: profile?.following ?? 0,
-  }));
+  const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
 
   React.useEffect(() => {
-    setRelationshipCounts({
-      followers: profile?.followers ?? 0,
-      following: profile?.following ?? 0,
-    });
+    setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
     if (!profile?.id) return undefined;
     let active = true;
-    getRelationshipCounts(profile.id)
-      .then((counts) => {
-        if (active) setRelationshipCounts(counts);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
+    getRelationshipCounts(profile.id).then((counts) => { if (active) setRelationshipCounts(counts); }).catch(() => {});
+    return () => { active = false; };
   }, [profile?.id, profile?.followers, profile?.following]);
 
   if (settingsOpen) {
-    return (
-      <SettingsList
-        onBack={() => setSettingsOpen(false)}
-        onEditProfile={() => { setSettingsOpen(false); onEditProfile?.(); }}
-        onCustomize={() => { setSettingsOpen(false); onCustomize?.(); }}
-        onBoards={() => { setSettingsOpen(false); onOpenBoards?.(); }}
-        onSpaces={() => { setSettingsOpen(false); onSwitchSpaces?.(); }}
-      />
-    );
+    return <SettingsList
+      onBack={() => setSettingsOpen(false)}
+      onEditProfile={() => { setSettingsOpen(false); onEditProfile?.(); }}
+      onCustomize={() => { setSettingsOpen(false); onCustomize?.(); }}
+      onBoards={() => { setSettingsOpen(false); onOpenBoards?.(); }}
+      onSpaces={() => { setSettingsOpen(false); onSwitchSpaces?.(); }}
+      onArchive={() => { setSettingsOpen(false); onArchive?.(); }}
+    />;
   }
 
   const openSettings = () => {
@@ -183,150 +171,61 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
   const sectionStyle = (name) => {
     const style = theme?.sectionStyles?.[name] || {};
-    const radius = Math.max(12, Number(style.radius) || 20);
-    return {
-      background: style.background,
-      borderColor: style.border,
-      borderRadius: `${radius}px`,
-      overflow: "hidden",
-      minWidth: 0,
-    };
+    const radius = Math.max(12, Number(theme?.radius) || Number(style.radius) || 20);
+    return { background: style.background, borderColor: style.border, borderRadius: radius + "px", overflow: "hidden", minWidth: 0 };
   };
-
   const buttonStyle = theme?.buttonStyle || {};
 
   return (
-    <div
-      className="screen profile-screen"
-      style={{
-        background: theme.background,
-        "--profile-button-bg": buttonStyle.filled ? buttonStyle.accent : buttonStyle.background,
-        "--profile-button-border": buttonStyle.border,
-        "--profile-button-text": buttonStyle.text,
-        "--profile-button-accent": buttonStyle.accent,
-        "--profile-button-radius": `${buttonStyle.radius || 14}px`,
-        fontFamily: theme.font || undefined,
-      }}
-    >
+    <div className="screen profile-screen">
       {theme.backgroundMedia?.url && (
         <div className="profile-background-media" aria-hidden="true">
           {theme.backgroundMedia.type === "video" ? (
-            <video
-              src={theme.backgroundMedia.url}
-              autoPlay
-              loop
-              muted
-              playsInline
-              style={{
-                objectPosition: `${theme.backgroundMedia.positionX ?? 50}% ${theme.backgroundMedia.positionY ?? 50}%`,
-                transform: `scale(${theme.backgroundMedia.scale ?? 1})`,
-              }}
-            />
+            <video src={theme.backgroundMedia.url} autoPlay loop muted playsInline style={{ objectPosition: (theme.backgroundMedia.positionX ?? 50) + "% " + (theme.backgroundMedia.positionY ?? 50) + "%", transform: "scale(" + (theme.backgroundMedia.scale ?? 1) + ")" }} />
           ) : (
-            <img
-              src={theme.backgroundMedia.url}
-              alt=""
-              style={{
-                objectPosition: `${theme.backgroundMedia.positionX ?? 50}% ${theme.backgroundMedia.positionY ?? 50}%`,
-                transform: `scale(${theme.backgroundMedia.scale ?? 1})`,
-              }}
-            />
+            <img src={theme.backgroundMedia.url} alt="" style={{ objectPosition: (theme.backgroundMedia.positionX ?? 50) + "% " + (theme.backgroundMedia.positionY ?? 50) + "%", transform: "scale(" + (theme.backgroundMedia.scale ?? 1) + ")" }} />
           )}
         </div>
       )}
       <div className="profile-content-layer">
-      <div className="profile-hero profile-section-card" style={sectionStyle("hero")}>
-        <div className="profile-heading">
-          <div className="avatar lg">
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={`@${profile.handle} profile`}
-                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit", display: "block" }}
-              />
-            ) : (
-              profile.handle[0].toUpperCase()
-            )}
-          </div>
-          <div className="profile-identity">
-            <div className="profile-title-row">
-              <div>
-                <div className="eyebrow">{activeSpace.label} space</div>
-                {profile.displayName ? (
-                  <div className="profile-display-name">{profile.displayName}</div>
-                ) : null}
-                <h1 className="title" style={{ fontSize: 28, marginTop: profile.displayName ? 2 : 0 }}>@{profile.handle}</h1>
-              </div>
-              <div className="profile-actions">
-                {onNotifications && <button type="button" className="btn icon-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}>
-                  <Bell size={18} />
-                  {notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}
-                </button>}
-                <button type="button" className="btn" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
-                <button type="button" className="btn icon-btn" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
+        <section className="profile-hero profile-section-card" style={sectionStyle("hero")}>
+          <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
+          <div className="profile-username-heading">@{profile.handle}</div>
+          <div className="profile-main-row">
+            <div className="avatar lg">
+              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit", display: "block" }} /> : profile.handle[0].toUpperCase()}
+            </div>
+            <div className="profile-main-identity">
+              {profile.displayName ? <div className="profile-display-name">{profile.displayName}</div> : null}
+              <div className="profile-mini-stats">
+                <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span></button>
+                <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{relationshipCounts.following}</strong><span className="subtitle">following</span></button>
+                <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
               </div>
             </div>
-            {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
-            {profile.links?.length > 0 && (
-              <div className="profile-links" aria-label="Profile links">
-                {profile.links.map((link, index) => (
-                  <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">
-                    {link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
-                  </a>
-                ))}
-              </div>
-            )}
           </div>
-        </div>
+          {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
+          {profile.links?.length > 0 && <div className="profile-links" aria-label="Profile links">{profile.links.map((link, index) => <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">{link.label || link.url.replace(/^https?:///i, "").replace(/\/$/, "")}</a>)}</div>}
+          <div className="profile-hero-actions">
+            <button type="button" className="btn btn-primary" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} />Edit Profile</button>
+            {onNotifications && <button type="button" className="btn icon-btn profile-notifications-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}><Bell size={18} />{notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}</button>}
+          </div>
+        </section>
 
-        <div className="row" style={{ gap: 10, marginTop: 22, flexWrap: "wrap" }}>
-          <button type="button" className="profile-stat" onClick={() => setRelationshipList("followers")} aria-label="View followers">
-            <strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span>
-          </button>
-          <button type="button" className="profile-stat" onClick={() => setRelationshipList("following")} aria-label="View following">
-            <strong>{relationshipCounts.following}</strong><span className="subtitle">following</span>
-          </button>
-          <div className="profile-stat" aria-label="Board count">
-            <strong>{boards.length}</strong><span className="subtitle">boards</span>
+        <div className="profile-lower-grid">
+          <section className="card profile-section-card profile-pinned-card" style={sectionStyle("boards")}>
+            <div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Pinned Boards</div><h2 style={{ marginTop: 2 }}>Boards</h2></div><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div>
+            {pinnedBoards.length > 0 ? <div className="profile-pinned-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="profile-empty-board" onClick={onCustomizeBoards || onOpenBoards}><Plus size={18} /><span>Pin a Board</span></button>}
+          </section>
+
+          <div className="profile-right-stack">
+            <button type="button" className="card profile-section-card profile-compact-section" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="eyebrow">Active space</div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch spaces</p></div><ChevronRight size={17} className="muted" /></div></button>
+            {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card" style={sectionStyle("onRepeat")} />}
+            <div className="card profile-section-card profile-compact-section" style={sectionStyle("customize")}><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><div><div className="eyebrow">Profile Studio</div><strong style={{ display: "block", marginTop: 3 }}>Customize your page</strong></div><Palette size={17} /></div><button type="button" className="btn btn-primary" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
           </div>
         </div>
       </div>
-
-      <div className="profile-layout" style={{ marginTop: 14 }}>
-        <div className="stack">
-          {theme.showBoards && <div className="card profile-section-card" style={sectionStyle("boards")}>
-            <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div><div className="eyebrow">Pinned Boards</div><h2 style={{ marginTop: 3 }}>Your corners of the internet</h2><p className="subtitle" style={{ marginTop: 4 }}>{pinnedBoards.length} of 3 pinned to your profile.</p></div>
-              <button type="button" className="btn" onClick={onCustomizeBoards}><LayoutGrid size={15} />Manage</button>
-            </div>
-            {pinnedBoards.length > 0 ? <div className="grid" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))", marginTop: 14 }}>{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="card" onClick={onCustomizeBoards || onOpenBoards} style={{ width: "100%", marginTop: 14, minHeight: 150, display: "grid", placeItems: "center", textAlign: "center", borderStyle: "dashed", cursor: "pointer" }}><div><Plus size={22} /><strong style={{ display: "block", marginTop: 8 }}>Pin a Board to your profile</strong><span className="subtitle" style={{ display: "block", marginTop: 4 }}>Choose up to three Boards to feature here.</span></div></button>}
-            <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}><button type="button" className="btn" onClick={onOpenBoards}>View all Boards<ChevronRight size={15} /></button></div>
-          </div>}
-          {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card" style={sectionStyle("onRepeat")} />}
-        </div>
-
-        <div className="stack">
-          <button type="button" className="card profile-section-card" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}>
-            <div className="eyebrow">Active space</div>
-            <div className="row" style={{ marginTop: 7 }}><div style={{ flex: 1 }}><strong>@{activeSpace.handle}</strong><p className="subtitle">Switch between your identities.</p></div><ChevronRight size={18} className="muted" /></div>
-          </button>
-          <div className="card profile-section-card" style={sectionStyle("customize")}>
-            <div className="eyebrow">Profile Studio</div>
-            <h3 style={{ marginTop: 5 }}>Build your page your way</h3>
-            <p className="subtitle" style={{ marginTop: 5 }}>Nostalgic customization, with modern controls and privacy intact.</p>
-            <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={onCustomize}><Settings size={15} />Customize profile</button>
-          </div>
-        </div>
-      </div>
-      </div>
-      {relationshipList && (
-        <RelationshipList
-          profileId={profile.id}
-          type={relationshipList}
-          onClose={() => setRelationshipList(null)}
-          onUserSelect={onUserSelect}
-        />
-      )}
+      {relationshipList && <RelationshipList profileId={profile.id} type={relationshipList} onClose={() => setRelationshipList(null)} onUserSelect={onUserSelect} />}
     </div>
   );
 }
