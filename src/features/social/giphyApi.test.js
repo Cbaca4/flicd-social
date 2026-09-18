@@ -52,6 +52,30 @@ describe("GIPHY API", () => {
     expect(requestUrl.searchParams.get("rating")).toBe("pg-13");
   });
 
+  it("reports a rejected API key clearly", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+    }));
+
+    await expect(searchGifs("cats", { apiKey: "bad-key" })).rejects.toThrow(
+      /rejected this API key/i,
+    );
+  });
+
+  it("reports rate limiting clearly", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({}),
+    }));
+
+    await expect(searchGifs("cats", { apiKey: "test" })).rejects.toThrow(
+      /rate limit/i,
+    );
+  });
+
   it("fails clearly when no API key is configured", async () => {
     await expect(searchGifs("cats", { apiKey: "" })).rejects.toThrow(/GIPHY is not configured/i);
   });
