@@ -1,5 +1,6 @@
 import { supabase } from "../../lib/supabase";
 import { getCurrentUserId, getFollowingIds } from "../social/socialApi.js";
+import { hydrateMusicTracks } from "../music/musicApi.js";
 
 export async function createDump({
   type = "dump",
@@ -132,6 +133,17 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
 
   if (error) {
     throw error;
+  }
+
+  if (data?.length) {
+    const hydratedTracks = await hydrateMusicTracks(
+      data.map((dump) => dump.music_tracks).filter(Boolean),
+    );
+    const trackById = new Map(hydratedTracks.map((track) => [track.id, track]));
+    return data.map((dump) => ({
+      ...dump,
+      music_tracks: dump.music_tracks ? trackById.get(dump.music_tracks.id) || dump.music_tracks : null,
+    }));
   }
 
   return data || [];
