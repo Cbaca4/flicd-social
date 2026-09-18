@@ -56,7 +56,7 @@ function PostMetadataCarousel({ post, distanceLabel = "" }) {
   );
 }
 
-function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, onReveal }) {
+function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal }) {
   const [failed, setFailed] = React.useState(false);
   const imageUrl = item?.imageUrl || getDumpItemMediaUrl(item?.imagePath);
   const openAuthor = () => onUserSelect?.({ id: post.authorId || post.author, username: post.authorName || post.author });
@@ -99,17 +99,25 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
         <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
         {musicToggle}
         {blurred && (
-          <button
-            type="button"
-            className="view-once-reveal"
-            data-media-interactive="true"
-            onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
-            aria-label="Tap to view once"
-          >
-            <Eye size={20} />
-            <strong>Tap to view once</strong>
-            <span>You'll only get one look.</span>
-          </button>
+          alreadyViewed ? (
+            <div className="view-once-locked" aria-label="Already viewed once">
+              <Eye size={20} />
+              <strong>Already viewed once</strong>
+              <span>This image stays blurred.</span>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="view-once-reveal"
+              data-media-interactive="true"
+              onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
+              aria-label="Tap to view once"
+            >
+              <Eye size={20} />
+              <strong>Tap to view once</strong>
+              <span>You'll only get one look.</span>
+            </button>
+          )
         )}
         <div className="post-media-context">
           <span className="tag">
@@ -146,7 +154,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
   );
 }
 
-function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMuted, musicPlaying, onToggleMusic, distanceLabel, revealedOnce, onReveal }) {
+function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMuted, musicPlaying, onToggleMusic, distanceLabel, revealedOnce, onceViewedAtOpen, onReveal }) {
   const [dragX, setDragX] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const viewportRef = React.useRef(null);
@@ -270,7 +278,8 @@ function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMut
               musicPlaying={musicPlaying}
               onToggleMusic={onToggleMusic}
               distanceLabel={distanceLabel}
-              blurred={post.mode === "once" && itemIndex === index && !revealedOnce}
+              blurred={post.mode === "once" && (onceViewedAtOpen || (itemIndex === index && !revealedOnce))}
+              alreadyViewed={post.mode === "once" && onceViewedAtOpen}
               onReveal={() => {
                 if (itemIndex !== index || post.mode !== "once" || revealedOnce) return;
                 onReveal?.();
@@ -463,10 +472,11 @@ const REPORT_REASONS=[
   ['other','Other'],
 ];
 
-export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect}){
+export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
-  const [commentsOpen,setCommentsOpen]=React.useState(false);
+  const [commentsOpen,setCommentsOpen]=React.useState(Boolean(initialCommentsOpen));
+  const onceViewedAtOpenRef=React.useRef(Boolean(post.mode === "once" && post.viewed));
   const [recording,setRecording]=React.useState(false);
   const [voiceReviewBlob,setVoiceReviewBlob]=React.useState(null);
   const [voiceReviewUrl,setVoiceReviewUrl]=React.useState('');
@@ -496,8 +506,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   React.useEffect(() => {
     setIndex(0);
-    setCommentsOpen(false);
-  }, [post.id]);
+    setCommentsOpen(Boolean(initialCommentsOpen));
+    onceViewedAtOpenRef.current = Boolean(post.mode === "once" && post.viewed);
+  }, [post.id, initialCommentsOpen]);
 
   React.useEffect(() => {
     const track = post.musicTrack;
@@ -774,6 +785,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             : ""
         }
         revealedOnce={revealedOnce}
+        onceViewedAtOpen={onceViewedAtOpenRef.current}
         onReveal={() => {
           if (post.mode !== "once" || revealedOnce) return;
           setRevealedOnce(true);
@@ -799,7 +811,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
           ))}
         </div>
       )}
-      <section className="post-conversation" aria-label="Conversation">
+      {commentsOpen && <button type="button" className="comment-sheet-scrim" aria-label="Close comments" onClick={() => setCommentsOpen(false)} />}
+      <section className={"post-conversation" + (commentsOpen ? " comment-sheet" : "")} aria-label="Conversation">
+        {commentsOpen && <div className="comment-sheet-header"><div className="comment-sheet-handle" aria-hidden="true" /><strong>Comments</strong><button type="button" className="btn icon-btn" aria-label="Close comments" onClick={() => setCommentsOpen(false)}>×</button></div>}
         <div className="post-comment-summary">
           {visibleComments.length === 0 && <p className="subtitle">No comments yet.</p>}
           {visibleComments.length > 1 && (
