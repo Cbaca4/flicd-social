@@ -156,7 +156,7 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     const viewedIds = new Set((viewsResult.data || []).map((row) => row.dump_id));
 
     return liveDumps
-      .filter((dump) => !(dump.expiry === "once" && viewedIds.has(dump.id)))
+      .filter((dump) => !(dump.expiry === "once" && (viewedIds.has(dump.id) || dump.once_viewed_at)))
       .map((dump) => ({
         ...dump,
         ...(dump.music_tracks
@@ -258,7 +258,7 @@ export async function getDumpById(dumpId) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (data.expiry === "once" && view) {
+  if (data.expiry === "once" && (view || data.once_viewed_at)) {
     return null;
   }
 
