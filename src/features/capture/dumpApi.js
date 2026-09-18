@@ -2,6 +2,28 @@ import { supabase } from "../../lib/supabase";
 import { getCurrentUserId, getFollowingIds } from "../social/socialApi.js";
 import { hydrateMusicTracks } from "../music/musicApi.js";
 
+
+export const MAX_POSTS_PER_24_HOURS = 3;
+
+export async function getPostingLimitStatus() {
+  const userId = await getCurrentUserId();
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("dumps")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gt("created_at", cutoff);
+
+  if (error) throw error;
+
+  const used = Number(count || 0);
+  return {
+    used,
+    limit: MAX_POSTS_PER_24_HOURS,
+    remaining: Math.max(0, MAX_POSTS_PER_24_HOURS - used),
+  };
+}
+
 export async function createDump({
   type = "dump",
   spaceId,
