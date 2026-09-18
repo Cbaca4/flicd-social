@@ -356,3 +356,300 @@
   gap: 6px;
   margin-top: 12px;
 }
+
+
+/* flic'd polish: compact mobile feed, square media, sleek rounded surfaces, transparent dock */
+.post-card {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-width: 0;
+}
+
+.post-media-button {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.post-media-button:disabled { cursor: default; }
+.post-media-button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 4px; }
+
+.post-media,
+.post-media-viewport {
+  aspect-ratio: 1 / 1 !important;
+}
+
+.post-media {
+  width: 100%;
+  min-height: 0 !important;
+  height: auto;
+  max-height: none;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.post-media > img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
+
+.post-media-slide,
+.post-media-slide > .post-media {
+  height: 100%;
+  min-height: 0;
+}
+
+.post-feed-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 5px 2px 0;
+}
+
+.post-feed-action {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  min-height: 40px;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 12px;
+}
+
+.post-feed-action:hover { background: rgba(255,255,255,.05); }
+.post-feed-action:disabled { opacity: .45; cursor: default; }
+
+.post-feed-meta {
+  min-width: 0;
+  padding: 1px 4px 0;
+}
+
+.post-feed-context {
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.view-once-locked {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px;
+  text-align: center;
+  background: rgba(7,8,10,.66);
+  backdrop-filter: blur(11px);
+  -webkit-backdrop-filter: blur(11px);
+  pointer-events: none;
+}
+
+.view-once-locked strong { font-size: 14px; }
+.view-once-locked span { color: var(--muted); font-size: 11px; }
+
+.comment-sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 68;
+  border: 0;
+  background: rgba(0,0,0,.36);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.comment-sheet {
+  position: fixed !important;
+  left: 50%;
+  bottom: calc(68px + env(safe-area-inset-bottom));
+  z-index: 70;
+  width: min(calc(100vw - 20px), 680px);
+  max-height: min(72dvh, 620px);
+  margin: 0 !important;
+  padding: 0 14px 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 26px 26px 18px 18px;
+  background: rgba(14,15,18,.86);
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transform: translateX(-50%);
+  animation: commentSheetUp .24s cubic-bezier(.22,.7,.2,1);
+}
+
+.comment-sheet .post-comment-summary {
+  max-height: min(52dvh, 420px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-top: 2px;
+}
+
+.comment-sheet .comment-composer {
+  position: sticky !important;
+  bottom: 0 !important;
+  margin: 0 -14px -12px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(14,15,18,.08), rgba(14,15,18,.98) 35%);
+}
+
+.comment-sheet-header {
+  position: relative;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.comment-sheet-handle {
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 38px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.23);
+  transform: translateX(-50%);
+}
+
+.comment-sheet-header strong { padding-top: 7px; }
+.comment-sheet-header .btn { margin-left: auto; }
+
+@keyframes commentSheetUp {
+  from { opacity: 0; transform: translate(-50%, 24px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Large corner radii clip every nested item instead of letting text or controls seep out. */
+.profile-screen .profile-section-card,
+.profile-screen .profile-section-card > *,
+.profile-screen .profile-section-card .card,
+.profile-customize-preview .preview-card,
+.profile-customize-preview .preview-card > .row,
+.profile-customize-preview .preview-card > .mini-sect {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.profile-customize-preview .preview-card {
+  --profile-preview-inner-radius: max(10px, calc(var(--profile-preview-radius, 22px) - 7px));
+}
+
+.profile-customize-preview .preview-card > .row,
+.profile-customize-preview .preview-card > .mini-sect {
+  border-radius: var(--profile-preview-inner-radius) !important;
+}
+
+.profile-screen .profile-section-card p,
+.profile-screen .profile-section-card h1,
+.profile-screen .profile-section-card h2,
+.profile-screen .profile-section-card h3,
+.profile-screen .profile-section-card strong,
+.profile-screen .profile-section-card span,
+.profile-screen .profile-section-card a {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.profile-screen .profile-section-card .row,
+.profile-screen .profile-section-card .grid,
+.profile-screen .profile-section-card .wrap {
+  min-width: 0;
+}
+
+.profile-display-name {
+  margin-top: 2px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.profile-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  min-width: 0;
+}
+
+.profile-links a {
+  max-width: 100%;
+  padding: 6px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(70,218,200,.22);
+  background: rgba(70,218,200,.06);
+  color: var(--cyan);
+  font-size: 11px;
+  line-height: 1.2;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.profile-links a:hover { background: rgba(70,218,200,.1); }
+.profile-link-editor { min-width: 0; overflow: hidden; }
+
+@media (max-width: 620px) {
+  .screen {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .home-screen .stack { gap: 12px; }
+  .post-feed-action { min-height: 36px; padding: 7px; }
+
+  .profile-screen .profile-content-layer { padding-bottom: 4px; }
+  .profile-screen .profile-hero,
+  .profile-screen .profile-section-card { padding: 14px !important; }
+
+  .profile-screen .profile-heading .avatar.lg { width: 62px; height: 62px; }
+
+  .bottom-dock {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 8px !important;
+    padding: 5px !important;
+    border-radius: 20px !important;
+    background: rgba(20,22,27,.66) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.28) !important;
+  }
+
+  .nav-btn {
+    min-height: 48px !important;
+    border-radius: 15px !important;
+    gap: 3px !important;
+    font-size: 9px !important;
+  }
+
+  .capture-core {
+    width: 54px !important;
+    height: 54px !important;
+    border-radius: 19px !important;
+  }
+
+  .nav-btn.capture { transform: translateY(-12px) !important; }
+
+  .comment-sheet {
+    width: calc(100vw - 14px);
+    bottom: calc(62px + env(safe-area-inset-bottom));
+    border-radius: 22px 22px 14px 14px;
+  }
+}
