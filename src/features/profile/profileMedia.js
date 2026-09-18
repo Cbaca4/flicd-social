@@ -241,7 +241,7 @@ async function optimizeProfileBackgroundImage(file) {
     );
   }
 
-  const baseName = String(file.name || "profile-background").replace(/.[^.]+$/, "") || "profile-background";
+  const baseName = String(file.name || "profile-background").replace(/\.[^.]+$/, "") || "profile-background";
   return new File([bestBlob], baseName + ".webp", {
     type: "image/webp",
     lastModified: file.lastModified || Date.now(),
