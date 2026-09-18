@@ -653,3 +653,30 @@
     border-radius: 22px 22px 14px 14px;
   }
 }
+
+/* Slightly lighter, smaller dock footprint across larger screens too. */
+.bottom-dock {
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  padding: 8px;
+  border-radius: 22px;
+  background: rgba(20,22,27,.72);
+}
+.nav-btn { min-height: 54px; border-radius: 16px; }
+.capture-core { width: 58px; height: 58px; border-radius: 20px; }
+.nav-btn.capture { transform: translateY(-14px); }
+
+@media (max-width: 620px) {
+  .bottom-dock {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: 8px !important;
+    padding: 5px !important;
+    border-radius: 20px !important;
+    background: rgba(20,22,27,.66) !important;
+  }
+  .nav-btn { min-height: 48px !important; }
+  .capture-core { width: 54px !important; height: 54px !important; }
+  .nav-btn.capture { transform: translateY(-12px) !important; }
+}
