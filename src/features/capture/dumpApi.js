@@ -10,6 +10,8 @@ export async function createDump({
   frameCount = null,
   items = [],
   musicTrackId = null,
+  location = null,
+  taggedUserIds = [],
 }) {
   const userId = await getCurrentUserId();
 
@@ -24,6 +26,11 @@ export async function createDump({
       context,
       frame_count: frameCount,
       music_track_id: musicTrackId,
+      location_name: location?.name || null,
+      location_city: location?.city || null,
+      location_lat: Number.isFinite(Number(location?.latitude)) ? Number(location.latitude) : null,
+      location_lng: Number.isFinite(Number(location?.longitude)) ? Number(location.longitude) : null,
+      location_place_id: location?.placeId || null,
     })
     .select()
     .single();
@@ -47,6 +54,27 @@ export async function createDump({
     if (itemsError) {
       await supabase.from("dumps").delete().eq("id", dump.id);
       throw itemsError;
+    }
+  }
+
+  const cleanTagIds = Array.from(
+    new Set((taggedUserIds || []).map((id) => String(id).trim()).filter(Boolean)),
+  )
+    .filter((id) => id !== userId)
+    .slice(0, 10);
+
+  if (cleanTagIds.length) {
+    const { error: tagsError } = await supabase
+      .from("dump_tags")
+      .insert(cleanTagIds.map((taggedUserId) => ({
+        dump_id: dump.id,
+        tagged_user_id: taggedUserId,
+        tagged_by_user_id: userId,
+      })));
+
+    if (tagsError) {
+      await supabase.from("dumps").delete().eq("id", dump.id);
+      throw tagsError;
     }
   }
 
@@ -82,6 +110,15 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
         duration,
         provider,
         provider_track_id
+      ),
+      dump_tags (
+        tagged_user_id,
+        tagged_user:tagged_user_id (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
       )
     `)
     .in("user_id", feedUserIds)
