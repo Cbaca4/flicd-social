@@ -223,6 +223,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
               key={key}
               type="button"
               className={`profile-space-tab${activeProfileTab === key ? " is-active" : ""}`}
+              data-tab={key}
               aria-selected={activeProfileTab === key}
               aria-label={label}
               onClick={() => selectProfileTab(key)}
