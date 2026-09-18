@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
@@ -32,7 +32,9 @@ describe("handheld profile layout", () => {
       <Profile
         profile={{
           handle: "baco",
+          displayName: "Baco",
           bio: "Building flic'd one piece at a time.",
+          links: [{ label: "Website", url: "https://example.com" }],
           followers: 12,
           following: 8,
         }}
@@ -84,7 +86,7 @@ describe("handheld profile layout", () => {
     );
   });
 
-  it("renders mobile-friendly text controls and background framing controls", () => {
+  it("renders background framing controls without the removed identity controls", () => {
     render(
       <ProfileStudio
         theme={{
@@ -104,7 +106,10 @@ describe("handheld profile layout", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Profile font")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Profile font")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Favorite artist")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Profile status")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Profile message")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Background horizontal position")).toHaveValue("50");
     expect(screen.getByLabelText("Background vertical position")).toHaveValue("50");
     expect(screen.getByLabelText("Background extend zoom")).toHaveValue("1");
@@ -113,7 +118,7 @@ describe("handheld profile layout", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps the full Profile Studio form usable after editing Favorite artist", () => {
+  it("keeps the full Profile Studio form usable after removing identity controls", () => {
     render(
       <ProfileStudio
         theme={DEFAULT_THEME}
@@ -125,13 +130,11 @@ describe("handheld profile layout", () => {
     );
 
     const studio = screen.getByTestId("profile-studio-screen");
-    const artist = screen.getByLabelText("Favorite artist");
 
     expect(studio).toHaveAttribute("data-scroll-container", "screen");
-    fireEvent.change(artist, { target: { value: "Deftones" } });
-
-    expect(artist).toHaveValue("Deftones");
     expect(screen.getByText("Sections")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Save Profile/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Favorite artist")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Profile font")).not.toBeInTheDocument();
   });
 });
