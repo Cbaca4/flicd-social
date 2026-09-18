@@ -86,6 +86,7 @@ function formatDumpRecord(dump) {
     author: dump.user_id,
     mood: dump.mood,
     mode: dump.expiry,
+    allowOthersToKeep: Boolean(dump.allow_others_to_keep),
     postedMinutesAgo: Math.floor((Date.now() - new Date(dump.created_at).getTime()) / 60000),
     likes: 0,
     liked: false,
@@ -385,6 +386,10 @@ export default function FlicdApp() {
   }, [supabaseProfile?.username]);
 
   const keep = async (post, index) => {
+    if (!post.allowOthersToKeep || post.mode !== "24h") {
+      onToast("This Flic'd cannot be kept.");
+      return;
+    }
     try {
       const savedBoard = await getOrCreateDefaultBoard();
       setBoards((current) => current.some((board) => board.id === savedBoard.id) ? current : [savedBoard, ...current]);
@@ -441,7 +446,7 @@ export default function FlicdApp() {
     }
   };
 
-  const postDump = async ({ mood, expiry, channel, items, musicTrack = null, location = null, taggedUsers = [] }) => {
+  const postDump = async ({ mood, expiry, channel, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
@@ -558,7 +563,7 @@ export default function FlicdApp() {
   let content;
 
   if (publicProfile) {
-    content = <PublicProfile profile={publicProfile} onBack={() => setPublicProfile(null)} onUserSelect={openPublicProfile} />;
+    content = <PublicProfile profile={publicProfile} onBack={() => { stopAudio(); setPublicProfile(null); }} onUserSelect={openPublicProfile} />;
   } else if (screen === "notifications") {
     content = (
       <Notifications
@@ -571,7 +576,7 @@ export default function FlicdApp() {
       />
     );
   } else if (screen === "home") {
-    content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} onUserSelect={openPublicProfile} />;
+    content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} onUserSelect={openPublicProfile} onNotifications={() => setScreen("notifications")} notificationsUnread={notificationsUnread} />;
   } else if (screen === "discover") {
     content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
   } else if (screen === "messages") {
@@ -593,7 +598,7 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={() => {}} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
+    content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => { setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item)); }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
   const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? "profile" : "home") : screen;
