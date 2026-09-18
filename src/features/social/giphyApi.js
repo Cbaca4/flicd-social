@@ -3,7 +3,9 @@ const API_BASE = "https://api.giphy.com/v1/gifs";
 export const GIPHY_ATTRIBUTION_TEXT = "Powered By GIPHY";
 
 function getApiKey(explicitKey) {
-  return explicitKey || import.meta.env.VITE_GIPHY_API_KEY || "";
+  return String(
+    explicitKey ?? import.meta.env.VITE_GIPHY_API_KEY ?? "",
+  ).trim();
 }
 
 function normalizeGif(item) {
@@ -23,7 +25,11 @@ function normalizeGif(item) {
 
 async function request(path, params, apiKey) {
   const key = getApiKey(apiKey);
-  if (!key) throw new Error("GIPHY is not configured.");
+  if (!key) {
+    throw new Error(
+      "GIPHY is not configured. Add VITE_GIPHY_API_KEY to .env.local and restart Vite.",
+    );
+  }
 
   const url = new URL(`${API_BASE}/${path}`);
   url.search = new URLSearchParams({
@@ -33,7 +39,18 @@ async function request(path, params, apiKey) {
   }).toString();
 
   const response = await fetch(url);
-  if (!response.ok) throw new Error("GIPHY could not load GIFs.");
+
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("GIPHY rejected this API key. Check that your key is active and configured for this app.");
+    }
+
+    if (response.status === 429) {
+      throw new Error("GIPHY rate limit reached. Try again in a little while.");
+    }
+
+    throw new Error("GIPHY could not load GIFs.");
+  }
 
   const payload = await response.json();
   return (payload.data || []).map(normalizeGif).filter(Boolean);
