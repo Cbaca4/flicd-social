@@ -10,7 +10,16 @@ export default function TagPeoplePicker({ value = [], onChange, disabled = false
   const [results, setResults] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [currentUserId, setCurrentUserId] = React.useState(null);
   const selectedIds = React.useMemo(() => new Set(value.map((user) => user.id)), [value]);
+
+  React.useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (active) setCurrentUserId(data?.user?.id || null);
+    }).catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   React.useEffect(() => {
     const clean = query.trim().replace(/^@+/, "");
@@ -38,14 +47,14 @@ export default function TagPeoplePicker({ value = [], onChange, disabled = false
         return;
       }
 
-      setResults((data || []).filter((user) => !selectedIds.has(user.id)));
+      setResults((data || []).filter((user) => user.id !== currentUserId && !selectedIds.has(user.id)));
     }, 180);
 
     return () => {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [open, query, selectedIds, value.length]);
+  }, [currentUserId, open, query, selectedIds, value.length]);
 
   const add = (user) => {
     if (!user?.id || selectedIds.has(user.id) || value.length >= MAX_TAGS) return;
