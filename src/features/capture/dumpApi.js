@@ -137,10 +137,17 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     throw error;
   }
 
-  if (data?.length) {
+  const expiryCutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const liveDumps = (data || []).filter(
+    (dump) =>
+      dump.expiry !== "24h" ||
+      new Date(dump.created_at || 0).getTime() > expiryCutoff,
+  );
+
+  if (liveDumps.length) {
     const [hydratedTracks, viewsResult] = await Promise.all([
-      hydrateMusicTracks(data.map((dump) => dump.music_tracks).filter(Boolean)),
-      supabase.from("dump_views").select("dump_id").eq("user_id", userId).in("dump_id", data.map((dump) => dump.id)),
+      hydrateMusicTracks(liveDumps.map((dump) => dump.music_tracks).filter(Boolean)),
+      supabase.from("dump_views").select("dump_id").eq("user_id", userId).in("dump_id", liveDumps.map((dump) => dump.id)),
     ]);
 
     if (viewsResult.error) throw viewsResult.error;
@@ -148,7 +155,7 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     const trackById = new Map(hydratedTracks.map((track) => [track.id, track]));
     const viewedIds = new Set((viewsResult.data || []).map((row) => row.dump_id));
 
-    return data
+    return liveDumps
       .filter((dump) => !(dump.expiry === "once" && viewedIds.has(dump.id)))
       .map((dump) => ({
         ...dump,
