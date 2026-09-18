@@ -47,6 +47,26 @@ const allowed = {
   radius: [14, 18, 22, 28, 34],
 };
 
+
+function normalizeBackgroundMedia(value) {
+  if (!value || typeof value !== "object" || !/^https?:\/\//.test(String(value.url || ""))) {
+    return null;
+  }
+
+  const positionX = Number(value.positionX);
+  const positionY = Number(value.positionY);
+  const scale = Number(value.scale);
+
+  return {
+    url: String(value.url),
+    type: value.type === "video" ? "video" : "image",
+    mimeType: String(value.mimeType || ""),
+    positionX: Number.isFinite(positionX) ? Math.min(100, Math.max(0, positionX)) : 50,
+    positionY: Number.isFinite(positionY) ? Math.min(100, Math.max(0, positionY)) : 50,
+    scale: Number.isFinite(scale) ? Math.min(1.6, Math.max(1, scale)) : 1,
+  };
+}
+
 function normalizeSectionStyle(value, fallback) {
   const next = { ...SECTION_DEFAULT, ...fallback, ...(value || {}) };
   if (!/^#[0-9a-fA-F]{6}$/.test(next.background)) next.background = fallback.background;
@@ -87,16 +107,7 @@ export function sanitizeProfileTheme(input = {}) {
   t.showInterests = Boolean(t.showInterests);
   t.showMusic = Boolean(t.showMusic);
 
-  t.backgroundMedia =
-    t.backgroundMedia &&
-    typeof t.backgroundMedia === "object" &&
-    /^https?:\/\//.test(String(t.backgroundMedia.url || ""))
-      ? {
-          url: String(t.backgroundMedia.url),
-          type: t.backgroundMedia.type === "video" ? "video" : "image",
-          mimeType: String(t.backgroundMedia.mimeType || ""),
-        }
-      : null;
+  t.backgroundMedia = normalizeBackgroundMedia(t.backgroundMedia);
 
   const sectionFallbacks = DEFAULT_THEME.sectionStyles;
   t.sectionStyles = Object.fromEntries(
