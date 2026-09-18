@@ -183,10 +183,13 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
   const sectionStyle = (name) => {
     const style = theme?.sectionStyles?.[name] || {};
+    const radius = Math.max(12, Number(style.radius) || 20);
     return {
       background: style.background,
       borderColor: style.border,
-      borderRadius: `${style.radius || 20}px`,
+      borderRadius: `${radius}px`,
+      overflow: "hidden",
+      minWidth: 0,
     };
   };
 
@@ -249,7 +252,10 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             <div className="profile-title-row">
               <div>
                 <div className="eyebrow">{activeSpace.label} space</div>
-                <h1 className="title" style={{ fontSize: 28, marginTop: 2 }}>@{profile.handle}</h1>
+                {profile.displayName ? (
+                  <div className="profile-display-name">{profile.displayName}</div>
+                ) : null}
+                <h1 className="title" style={{ fontSize: 28, marginTop: profile.displayName ? 2 : 0 }}>@{profile.handle}</h1>
               </div>
               <div className="profile-actions">
                 {onNotifications && <button type="button" className="btn icon-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}>
@@ -261,8 +267,15 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
               </div>
             </div>
             {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
-            <p className="subtitle profile-message">{theme.message}</p>
-            <p className="profile-status" style={{ color: theme.accent }}>{theme.statusEmoji} {theme.status}</p>
+            {profile.links?.length > 0 && (
+              <div className="profile-links" aria-label="Profile links">
+                {profile.links.map((link, index) => (
+                  <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">
+                    {link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
