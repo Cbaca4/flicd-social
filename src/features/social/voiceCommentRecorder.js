@@ -1,10 +1,21 @@
-const DEFAULT_MIME_TYPE = "audio/webm";
+const MIME_TYPE_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+];
 export const MAX_VOICE_COMMENT_DURATION = 30;
+
+export function getSupportedVoiceMimeType(MediaRecorderCtor = globalThis.MediaRecorder) {
+  if (!MediaRecorderCtor) return "";
+  if (typeof MediaRecorderCtor.isTypeSupported !== "function") return MIME_TYPE_CANDIDATES[0];
+  return MIME_TYPE_CANDIDATES.find((type) => MediaRecorderCtor.isTypeSupported(type)) || "";
+}
 
 export function createVoiceCommentRecorder({
   getUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices),
   MediaRecorder = globalThis.MediaRecorder,
-  mimeType = DEFAULT_MIME_TYPE,
+  mimeType = null,
   setTimeoutFn = globalThis.setTimeout,
   clearTimeoutFn = globalThis.clearTimeout,
 } = {}) {
@@ -35,7 +46,7 @@ export function createVoiceCommentRecorder({
     }
 
     stream = await getUserMedia({ audio: true });
-    recorder = new MediaRecorder(stream, { mimeType });
+    const selectedMimeType = mimeType || getSupportedVoiceMimeType(MediaRecorder);\n    recorder = selectedMimeType ? new MediaRecorder(stream, { mimeType: selectedMimeType }) : new MediaRecorder(stream);
     chunks.length = 0;
     blob = null;
     cancelled = false;
@@ -53,7 +64,7 @@ export function createVoiceCommentRecorder({
         state = "idle";
         return;
       }
-      blob = new Blob(chunks, { type: recorder.mimeType || mimeType });
+      blob = new Blob(chunks, { type: recorder.mimeType || mimeType || "audio/webm" });
       state = "review";
       notify();
     };
