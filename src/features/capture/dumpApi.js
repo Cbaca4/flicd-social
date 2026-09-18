@@ -169,3 +169,55 @@ export async function getDumps() {
 
   return data || [];
 }
+
+
+export async function getDumpById(dumpId) {
+  if (!dumpId) return null;
+
+  const { data, error } = await supabase
+    .from("dumps")
+    .select(`
+      *,
+      dump_items (
+        id,
+        position,
+        note,
+        image_path
+      ),
+      music_tracks:music_track_id (
+        id,
+        title,
+        artist,
+        cover_url,
+        audio_url,
+        genre,
+        mood,
+        duration,
+        provider,
+        provider_track_id
+      ),
+      dump_tags (
+        tagged_user_id,
+        tagged_user:tagged_user_id (
+          id,
+          username,
+          display_name,
+          avatar_url
+        )
+      )
+    `)
+    .eq("id", dumpId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const hydratedTracks = data.music_tracks
+    ? await hydrateMusicTracks([data.music_tracks])
+    : [];
+
+  return {
+    ...data,
+    music_tracks: hydratedTracks[0] || data.music_tracks || null,
+  };
+}
