@@ -2250,7 +2250,7 @@ button.post-metadata-pill:focus-visible {
 /* MySpace-inspired profile navigator: compact, sticky, and distinct from a
    generic social-tab clone. Labels stay meaningful; the type simply scales. */
 .profile-space-layout .profile-content-layer {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .profile-space-tabs {
   position: sticky;
@@ -2902,5 +2902,65 @@ button.post-metadata-pill:focus-visible {
   }
   .discover-tile-meta {
     font-size: 6px;
+  }
+}
+
+
+/* Final cleanup: the profile is a set of titled panels, not a second tab bar. */
+.profile-space-panel-heading h2,
+.profile-space-panel-title {
+  margin: 0;
+  font-size: clamp(15px, 1.7vw, 19px);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -.03em;
+}
+.profile-space-repeat .profile-space-panel-title {
+  flex: 0 0 auto;
+}
+.profile-space-repeat .profile-space-panel-title + .row {
+  margin-top: 9px !important;
+}
+@media (max-width: 620px) {
+  .profile-space-panel-heading h2,
+  .profile-space-panel-title {
+    font-size: 13px;
+  }
+  .profile-space-repeat .profile-space-panel-title + .row {
+    margin-top: 5px !important;
+  }
+}
+
+/* Media pickers live at document level so the mobile comment sheet cannot
+   trap them underneath its own stacking context. */
+.comment-media-sheet {
+  bottom: max(20px, calc(env(safe-area-inset-bottom) + 20px)) !important;
+  z-index: 2000 !important;
+  max-height: min(82dvh, 680px);
+}
+@media (max-width: 620px) {
+  .comment-media-sheet {
+    left: 50% !important;
+    width: min(calc(100vw - 14px), 560px) !important;
+    bottom: max(10px, calc(env(safe-area-inset-bottom) + 10px)) !important;
+    max-height: min(84dvh, 720px);
+    border-radius: 22px !important;
+  }
+}
+
+/* Viewer metadata stays in the upper-left corner even after opening a post. */
+.viewer-overlay .post-metadata-overlay {
+  left: max(16px, env(safe-area-inset-left));
+  top: calc(max(12px, env(safe-area-inset-top)) + 44px);
+  right: 96px;
+  bottom: auto;
+  z-index: 40;
+}
+@media (max-width: 620px) {
+  .viewer-overlay .post-metadata-overlay {
+    left: max(10px, env(safe-area-inset-left));
+    top: calc(max(8px, env(safe-area-inset-top)) + 40px);
+    right: 70px;
+    bottom: auto;
   }
 }
