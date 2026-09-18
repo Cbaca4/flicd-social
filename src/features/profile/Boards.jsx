@@ -1,5 +1,5 @@
 import React from "react";
-import { getDumpItemMediaUrl } from "../capture/mediaUrl.js";
+import { getDumpItemMediaUrl } from "../home/mediaUrl.js";
 import {
   ArrowLeft,
   Pin,
