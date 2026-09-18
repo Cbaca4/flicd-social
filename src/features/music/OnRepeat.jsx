@@ -126,7 +126,7 @@ export default function OnRepeat({
 
   return (
     <div className={className} style={style}>
-      <div className="eyebrow">On repeat</div>
+      <div className="eyebrow">On Repeat</div>
 
       {track ? (
         <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
