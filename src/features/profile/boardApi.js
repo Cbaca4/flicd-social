@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { MEDIA_BUCKET } from "../capture/mediaUpload.js";
 
 async function getCurrentUserId() {
   const {
@@ -155,6 +156,38 @@ export async function getOrCreateDefaultBoard() {
   });
 }
 
+async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosition) {
+  if (!sourcePath) return null;
+
+  const { data: file, error: downloadError } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .download(sourcePath);
+
+  if (downloadError) throw downloadError;
+  if (!file) throw new Error("Could not read the source image.");
+
+  const extension = String(sourcePath)
+    .split("?")[0]
+    .split(".")
+    .pop()
+    ?.replace(/[^a-z0-9]/gi, "")
+    .toLowerCase() || "jpg";
+
+  const snapshotPath =
+    userId + "/boards/" + boardId + "/" + dumpId + "-" + itemPosition + "." + extension;
+
+  const { data, error: uploadError } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .upload(snapshotPath, file, {
+      cacheControl: "31536000",
+      contentType: file.type || "image/jpeg",
+      upsert: true,
+    });
+
+  if (uploadError) throw uploadError;
+  return data?.path || snapshotPath;
+}
+
 export async function saveBoardItem({
   dumpId,
   itemPosition,
@@ -201,6 +234,25 @@ export async function saveBoardItem({
 
   if (!sourceItem) throw new Error("That saved moment is no longer available.");
 
+  const { data: existingItem } = await supabase
+    .from("board_items")
+    .select("id,saved_image_path")
+    .eq("user_id", userId)
+    .eq("board_id", targetBoard.id)
+    .eq("dump_id", dumpId)
+    .eq("item_position", itemPosition)
+    .maybeSingle();
+
+  const savedImagePath =
+    existingItem?.saved_image_path ||
+    await snapshotBoardImage(
+      sourceItem.image_path,
+      userId,
+      targetBoard.id,
+      dumpId,
+      itemPosition,
+    );
+
   let sourceUsername = "";
   const { data: sourceProfile } = await supabase
     .from("profiles")
@@ -219,7 +271,7 @@ export async function saveBoardItem({
         item_position: itemPosition,
         note: note || sourceItem.note || "",
         mood: mood || sourceItem.mood || "",
-        saved_image_path: sourceItem.image_path || null,
+        saved_image_path: savedImagePath,
         saved_author_username: sourceUsername || null,
       },
       {
@@ -276,6 +328,15 @@ export async function moveBoardItem(
 export async function deleteBoardItem(boardItemId) {
   const userId = await getCurrentUserId();
 
+  const { data: item, error: readError } = await supabase
+    .from("board_items")
+    .select("id,saved_image_path")
+    .eq("id", boardItemId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (readError) throw readError;
+
   const { error } = await supabase
     .from("board_items")
     .delete()
@@ -283,4 +344,11 @@ export async function deleteBoardItem(boardItemId) {
     .eq("user_id", userId);
 
   if (error) throw error;
+
+  if (item?.saved_image_path) {
+    const { error: removeError } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .remove([item.saved_image_path]);
+    if (removeError) console.error("Failed to remove Board snapshot:", removeError);
+  }
 }
