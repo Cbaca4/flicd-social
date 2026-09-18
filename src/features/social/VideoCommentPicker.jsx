@@ -3,6 +3,7 @@ import {
   validateCommentMediaFile,
   validateCommentVideoDuration,
   MAX_COMMENT_VIDEO_DURATION,
+  MAX_COMMENT_VIDEO_SIZE,
 } from "./commentMediaUpload.js";
 
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
@@ -149,7 +150,7 @@ export default function VideoCommentPicker({
         </>
       )}
 
-      <div className="subtitle">Videos must be {MAX_COMMENT_VIDEO_DURATION} seconds or shorter.</div>
+      <div className="subtitle">Videos must be {MAX_COMMENT_VIDEO_DURATION} seconds or shorter and {Math.round(MAX_COMMENT_VIDEO_SIZE / (1024 * 1024))} MB or smaller.</div>
       {error && <div className="subtitle" role="alert">{error}</div>}
     </div>
   );
