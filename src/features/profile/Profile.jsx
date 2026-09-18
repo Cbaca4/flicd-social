@@ -170,8 +170,23 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
   const sectionStyle = (name) => {
     const style = theme?.sectionStyles?.[name] || {};
+    const media = style.backgroundMedia;
     const radius = Math.max(12, Number(theme?.radius) || Number(style.radius) || 20);
-    return { background: style.background, borderColor: style.border, borderRadius: radius + "px", overflow: "hidden", minWidth: 0 };
+    const background = media?.url
+      ? "linear-gradient(rgba(9,10,13,.38),rgba(9,10,13,.58)), url(\"" + media.url + "\")"
+      : style.background;
+    return {
+      background,
+      backgroundSize: media?.url ? "cover" : undefined,
+      backgroundPosition: media?.url
+        ? (media.positionX ?? 50) + "% " + (media.positionY ?? 50) + "%"
+        : undefined,
+      backgroundRepeat: media?.url ? "no-repeat" : undefined,
+      borderColor: style.border,
+      borderRadius: radius + "px",
+      overflow: "hidden",
+      minWidth: 0,
+    };
   };
   const buttonStyle = theme?.buttonStyle || {};
 
@@ -191,8 +206,8 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
           <div className="profile-username-heading">@{profile.handle}</div>
           <div className="profile-main-row">
-            <div className="avatar lg">
-              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit", display: "block" }} /> : profile.handle[0].toUpperCase()}
+            <div className="avatar lg profile-avatar">
+              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} className="profile-avatar-image" /> : profile.handle[0].toUpperCase()}
             </div>
             <div className="profile-main-identity">
               {profile.displayName ? <div className="profile-display-name">{profile.displayName}</div> : null}
