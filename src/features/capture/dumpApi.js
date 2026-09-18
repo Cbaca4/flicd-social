@@ -9,6 +9,7 @@ export async function createDump({
   context = null,
   frameCount = null,
   items = [],
+  musicTrackId = null,
 }) {
   const userId = await getCurrentUserId();
 
@@ -22,6 +23,7 @@ export async function createDump({
       expiry,
       context,
       frame_count: frameCount,
+      music_track_id: musicTrackId,
     })
     .select()
     .single();
