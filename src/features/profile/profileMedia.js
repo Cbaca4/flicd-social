@@ -1,9 +1,9 @@
 import { supabase } from "../../lib/supabase";
 import { createMediaId, MEDIA_BUCKET } from "../capture/mediaUpload.js";
 
-export const MAX_PROFILE_PHOTO_SIZE = 5 * 1024 * 1024;
-export const MAX_PROFILE_BACKGROUND_IMAGE_SIZE = 12 * 1024 * 1024;
-export const MAX_PROFILE_BACKGROUND_VIDEO_SIZE = 30 * 1024 * 1024;
+export const MAX_PROFILE_PHOTO_SIZE = 10 * 1024 * 1024;
+export const MAX_PROFILE_BACKGROUND_IMAGE_SIZE = 20 * 1024 * 1024;
+export const MAX_PROFILE_BACKGROUND_VIDEO_SIZE = 50 * 1024 * 1024;
 export const MAX_PROFILE_BACKGROUND_OUTPUT_SIZE = 3 * 1024 * 1024;
 export const PROFILE_BACKGROUND_MAX_DIMENSION = 1920;
 export const PROFILE_BACKGROUND_VIDEO_MAX_SECONDS = 10;
@@ -44,8 +44,8 @@ function validateBackgroundFile(file) {
   if (file.size > limit) {
     throw new Error(
       file.type.startsWith("video/")
-        ? "Profile background videos must be 30 MB or smaller."
-        : "Profile background photos must be 12 MB or smaller.",
+        ? "Profile background videos must be 50 MB or smaller."
+        : "Profile background photos must be 20 MB or smaller.",
     );
   }
 
@@ -58,7 +58,7 @@ export function validateProfilePhoto(file) {
     throw new Error("Only JPEG, PNG, and WebP profile photos are supported.");
   }
   if (file.size > MAX_PROFILE_PHOTO_SIZE) {
-    throw new Error("Your profile photo must be 5 MB or smaller.");
+    throw new Error("Your profile photo must be 10 MB or smaller.");
   }
   return file;
 }
