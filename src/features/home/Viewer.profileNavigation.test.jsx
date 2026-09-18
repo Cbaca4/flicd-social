@@ -10,6 +10,7 @@ describe("Viewer profile navigation", () => {
   it("makes another user's comment author openable as a public profile", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={{
           id: "post-1",
           author: "friend-id",
