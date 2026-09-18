@@ -51,3 +51,20 @@ export function playAudioUrl(
   play();
   return audio;
 }
+
+
+export function pauseAudio() {
+  if (!activeAudio) return null;
+  activeAudio.pause();
+  return activeAudio;
+}
+
+export async function resumeAudio() {
+  if (!activeAudio) return null;
+  try {
+    await activeAudio.play();
+  } catch {
+    return null;
+  }
+  return activeAudio;
+}
