@@ -17,6 +17,9 @@ export default function OnRepeat({
   const [tracks, setTracks] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [localPlaying, setLocalPlaying] = React.useState(false);
+  const [searchLoading, setSearchLoading] = React.useState(false);
+  const [searchError, setSearchError] = React.useState("");
+  const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
 
@@ -94,12 +97,31 @@ export default function OnRepeat({
   };
 
   React.useEffect(() => {
-    if (!pickerOpen) return;
-    let active = true;
-    getMusicTracks({ search: query, limit: 30 })
-      .then((data) => { if (active) setTracks(data); })
-      .catch(() => { if (active) setTracks([]); });
-    return () => { active = false; };
+    if (!pickerOpen) {
+      searchRequestRef.current += 1;
+      setSearchLoading(false);
+      return undefined;
+    }
+
+    const requestId = ++searchRequestRef.current;
+    setSearchLoading(true);
+    setSearchError("");
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await getMusicTracks({ search: query, limit: 30 });
+        if (requestId !== searchRequestRef.current) return;
+        setTracks(data);
+      } catch (error) {
+        if (requestId !== searchRequestRef.current) return;
+        setTracks([]);
+        setSearchError(error.message || "Could not search music.");
+      } finally {
+        if (requestId === searchRequestRef.current) setSearchLoading(false);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
   }, [pickerOpen, query]);
 
   return (
@@ -148,9 +170,12 @@ export default function OnRepeat({
             className="input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the verified catalog…"
+            placeholder="Search artist, song, or genre…"
             aria-label="Search profile music"
           />
+          {searchLoading && <p className="subtitle">Searching music…</p>}
+          {searchError && <p role="alert" className="subtitle">{searchError}</p>}
+          {!searchLoading && !searchError && tracks.length === 0 && <p className="subtitle">No verified tracks found.</p>}
           {tracks.map((candidate) => (
             <button
               key={candidate.id}
