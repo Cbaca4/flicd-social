@@ -288,23 +288,113 @@ function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMut
   );
 }
 
-export function DumpCard({post,onOpen}){
-  const expired=timeLeft(post)==='expired';
-  const viewOnceLocked=post.mode==='once';
-  const firstItem=post.items.find(item=>item?.imageUrl||item?.imagePath);
-  const firstImage=firstItem?.imageUrl||getDumpItemMediaUrl(firstItem?.imagePath);
-  return <button className="card post-card" onClick={()=>!expired&&onOpen(post)} style={{width:'100%',textAlign:'left',opacity:expired?.45:1}}>
-    <div className="post-media" style={{background:gradients[(Number(post.id)||0)%gradients.length],position:'relative',overflow:'hidden'}}>
-      {firstImage&&<img src={firstImage} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',objectPosition:'center',opacity:viewOnceLocked?.5:.86,filter:viewOnceLocked?'blur(22px)':'none',transform:viewOnceLocked?'scale(1.04)':'none'}}/>}
-      <PostMetadataCarousel post={post} />
-      {viewOnceLocked&&<div className="view-once-feed-overlay"><Eye size={20}/><strong>View once</strong><span>Tap to open</span></div>}
-      <div style={{position:'relative',zIndex:2,display:'flex',justifyContent:'space-between',alignItems:'flex-start',width:'100%'}}><span className="tag">{post.mood}</span><span className="tag flicd-mono" style={{color:post.mode==='once'?'var(--danger)':'var(--amber)'}}>{post.mode==='once'&&<Eye size={11} style={{marginRight:4}}/>}{timeLeft(post)}</span></div>
-    </div>
-    <div className="meta"><div><strong>@{post.authorName||post.author}</strong><div className="subtitle" style={{marginTop:3}}>{post.context||'shared a moment'}</div></div><div className="row muted"><span className="row"><Heart size={14} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</span><span className="row"><MessageCircle size={14}/>{post.comments.length}</span></div></div>
-  </button>;
-}
+export function DumpCard({
+  post,
+  onOpen,
+  onLike,
+  onCommentOpen,
+  likePending = false,
+}) {
+  const expired = timeLeft(post) === "expired";
+  const viewOnceLocked = post.mode === "once";
+  const alreadyViewed = viewOnceLocked && Boolean(post.viewed);
+  const firstItem = (post.items || []).find((item) => item?.imageUrl || item?.imagePath);
+  const firstImage = firstItem?.imageUrl || getDumpItemMediaUrl(firstItem?.imagePath);
 
-export default function Home({dumps,activeSpace,onOpen,onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
+  return (
+    <article className="post-card" style={{ width: "100%", opacity: expired ? 0.45 : 1 }}>
+      <button
+        type="button"
+        className="post-media-button"
+        onClick={() => !expired && onOpen?.(post)}
+        disabled={expired}
+        aria-label={alreadyViewed ? "Open already viewed once post" : "Open post"}
+      >
+        <div
+          className="post-media"
+          style={{
+            background: gradients[(Number(post.id) || 0) % gradients.length],
+            position: "relative",
+            overflow: "hidden",
+          }}
+        >
+          {firstImage && (
+            <img
+              src={firstImage}
+              alt=""
+              style={{
+                position: "absolute",
+                inset: 0,
+                width: "100%",
+                height: "100%",
+                objectFit: "contain",
+                objectPosition: "center",
+                opacity: viewOnceLocked ? 0.22 : 0.92,
+                filter: viewOnceLocked ? "blur(42px)" : "none",
+                transform: viewOnceLocked ? "scale(1.14)" : "none",
+              }}
+            />
+          )}
+          <PostMetadataCarousel post={post} />
+          {viewOnceLocked && (
+            <div className="view-once-feed-overlay" aria-label={alreadyViewed ? "Already viewed once" : "View once"}>
+              <Eye size={20} />
+              <strong>{alreadyViewed ? "Already viewed once" : "View once"}</strong>
+              <span>{alreadyViewed ? "This image stays blurred." : "Tap to open once"}</span>
+            </div>
+          )}
+          <div style={{ position: "relative", zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+            <span className="tag">{post.mood}</span>
+            <span className="tag flicd-mono" style={{ color: post.mode === "once" ? "var(--danger)" : "var(--amber)" }}>
+              {post.mode === "once" && <Eye size={11} style={{ marginRight: 4 }} />}
+              {alreadyViewed ? "already viewed" : timeLeft(post)}
+            </span>
+          </div>
+        </div>
+      </button>
+
+      <div className="post-feed-actions" aria-label="Post actions">
+        <button
+          type="button"
+          className="post-feed-action"
+          disabled={expired || likePending}
+          aria-label={post.liked ? "Unlike" : "Like"}
+          onClick={() => onLike?.(post.id)}
+        >
+          <Heart size={18} fill={post.liked ? "var(--amber)" : "none"} color={post.liked ? "var(--amber)" : "currentColor"} />
+          <span>{post.likes}</span>
+        </button>
+        <button
+          type="button"
+          className="post-feed-action"
+          disabled={expired}
+          aria-label={"Open comments" + (post.comments?.length ? " (" + post.comments.length + ")" : "")}
+          onClick={() => !expired && onCommentOpen?.(post)}
+        >
+          <MessageCircle size={18} />
+          <span>{post.comments?.length || 0}</span>
+        </button>
+        {post.mode !== "once" && (
+          <button
+            type="button"
+            className="post-feed-action"
+            disabled={!post.allowOthersToKeep}
+            aria-label={post.allowOthersToKeep ? "Keep" : "Keep unavailable"}
+            onClick={() => onOpen?.(post)}
+          >
+            <Bookmark size={18} />
+          </button>
+        )}
+      </div>
+
+      <div className="post-feed-meta">
+        <strong>@{post.authorName || post.author}</strong>
+        <div className="subtitle post-feed-context">{post.context || "shared a moment"}</div>
+      </div>
+    </article>
+  );
+}
+export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
   const visible=dumps.filter(d=>d.channel===activeSpace.id);
 
   if(loading){
@@ -324,7 +414,7 @@ export default function Home({dumps,activeSpace,onOpen,onUserSelect,onNotificati
         {notificationsUnread>0&&<span className="nav-unread-badge">{notificationsUnread>9?"9+":notificationsUnread}</span>}
       </button>
     </div>
-    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen}/>)}</div>
+    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} likePending={pendingLikeIds.has(p.id)}/>)}</div>
   </div>;
 }
 
