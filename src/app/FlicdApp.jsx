@@ -456,7 +456,7 @@ export default function FlicdApp() {
   } else if (screen === "messages") {
     content = <Messages requests={requests} setRequests={setRequests} chats={chats} setChats={setChats} onToast={onToast} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} />;
+    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio profile={profile} theme={theme} onClose={() => setScreen("profile")} onChangeTheme={setTheme} onSaved={(updatedTheme) => { setTheme(updatedTheme); setScreen("profile"); onToast("Profile saved"); }} />;
   } else if (screen === "boards") {
