@@ -163,7 +163,7 @@ describe("FlicdApp public profile navigation", () => {
     render(<FlicdApp />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Discover" }));
-    expect(await screen.findByText("Discovery")).toBeInTheDocument();
+    expect(await screen.findByText("Discovery")).toBeTruthy();
 
     fireEvent.click(await screen.findByRole("button", { name: "Search people" }));
     fireEvent.click(await screen.findByRole("button", { name: "Open Maren" }));
@@ -171,6 +171,6 @@ describe("FlicdApp public profile navigation", () => {
     expect(await screen.findByRole("heading", { name: "@maren_" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByText("Flic'd")).toBeInTheDocument();
+    expect(await screen.findByText("Flic'd")).toBeTruthy();
   });
 });
