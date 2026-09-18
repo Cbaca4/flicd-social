@@ -145,7 +145,7 @@ expect(image.getAttribute("src")).toBe(
     expect(screen.getByText("2/2")).toBeInTheDocument();
   });
 
-  it("collapses multiple comments behind Open comments until requested", () => {
+  it("keeps comments hidden until the Comments action is requested", () => {
     const manyCommentsPost = {
       id: "comments-2",
       author: "baco",
@@ -173,13 +173,15 @@ expect(image.getAttribute("src")).toBe(
       />
     );
 
-    expect(screen.getByRole("button", { name: /open comments/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Comments" })).toBeInTheDocument();
     expect(screen.queryByText("first comment")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Add a comment")).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /open comments/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Comments" }));
 
     expect(screen.getByText("first comment")).toBeInTheDocument();
     expect(screen.getByText("second comment")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Add a comment")).toBeInTheDocument();
   });
 
   it("renders the viewer as independent media, scrim, controls, and comment layers", () => {
