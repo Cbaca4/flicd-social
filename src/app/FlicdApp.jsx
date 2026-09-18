@@ -341,24 +341,16 @@ export default function FlicdApp() {
   const activePost = dumps.find((dump) => dump.id === activePostId);
 
   const closeViewer = React.useCallback(() => {
-    if (activePost?.mode === "once" && activePost.viewed) {
-      setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-    }
     setViewerCommentsOpen(false);
     setActivePostId(null);
     setScreen("home");
-  }, [activePost?.id, activePost?.mode, activePost?.viewed]);
+  }, []);
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
   const openPublicProfile = React.useCallback((user) => {
     if (!user?.id) return;
     setViewerCommentsOpen(false);
-    if (screen === "viewer") {
-      if (activePost?.mode === "once" && activePost.viewed) {
-        setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-      }
-      setActivePostId(null);
-    }
+    if (screen === "viewer") setActivePostId(null);
     stopAudio();
     setProfileMusicPlaying(false);
     setPublicProfile(user);
@@ -720,12 +712,7 @@ export default function FlicdApp() {
         onNavigate={(key) => {
           setPublicProfile(null);
           setViewerCommentsOpen(false);
-          if (screen === "viewer") {
-            if (activePost?.mode === "once" && activePost.viewed) {
-              setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-            }
-            setActivePostId(null);
-          }
+          if (screen === "viewer") setActivePostId(null);
           if (!PROFILE_SCREENS.has(key)) {
             stopAudio();
             setProfileMusicPlaying(false);
@@ -735,12 +722,7 @@ export default function FlicdApp() {
         onCapture={() => {
           setPublicProfile(null);
           setViewerCommentsOpen(false);
-          if (screen === "viewer") {
-            if (activePost?.mode === "once" && activePost.viewed) {
-              setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-            }
-            setActivePostId(null);
-          }
+          if (screen === "viewer") setActivePostId(null);
           stopAudio();
           setProfileMusicPlaying(false);
           setScreen("create-choose");
