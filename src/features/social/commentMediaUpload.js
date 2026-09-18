@@ -2,6 +2,7 @@ import { supabase } from "../../lib/supabase";
 
 export const COMMENT_MEDIA_BUCKET = "flicd-media";
 export const MAX_COMMENT_VIDEO_DURATION = 15;
+export const MAX_COMMENT_VIDEO_SIZE = 50 * 1024 * 1024;
 
 const COMMENT_MEDIA_TYPES = {
   audio: {
@@ -31,6 +32,9 @@ export function validateCommentMediaFile(file, mediaType) {
   const extension = getExtension(mediaType, file?.type);
   if (!extension) {
     throw new Error("Only supported audio and video files can be attached to comments.");
+  }
+  if (mediaType === "video" && Number(file?.size) > MAX_COMMENT_VIDEO_SIZE) {
+    throw new Error("Comment videos must be 50 MB or smaller.");
   }
   return extension;
 }
