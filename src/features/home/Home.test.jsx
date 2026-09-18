@@ -295,6 +295,7 @@ describe("Post viewer", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: /open comments/i }));
     expect(screen.getByRole("button", { name: "Delete comment" })).toBeInTheDocument();
   });
 
