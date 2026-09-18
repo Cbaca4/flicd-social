@@ -477,6 +477,7 @@ export default function FlicdApp() {
           setPublicProfile(null);
           openDumpById(dumpId).finally(() => refreshNotificationCount());
         }}
+        onChanged={refreshNotificationCount}
       />
     );
   } else if (screen === "home") {
