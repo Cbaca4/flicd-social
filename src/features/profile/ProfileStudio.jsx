@@ -317,6 +317,7 @@ export default function ProfileStudio({
   const [privacySaving, setPrivacySaving] = React.useState(false);
   const [backgroundSaving, setBackgroundSaving] = React.useState(false);
   const [backgroundError, setBackgroundError] = React.useState("");
+  const [sectionBackgroundSaving, setSectionBackgroundSaving] = React.useState("");
   const event = getActiveSeasonalEvent();
 
   React.useEffect(() => {
@@ -396,6 +397,55 @@ export default function ProfileStudio({
           [section]: {
             ...current.sectionStyles?.[section],
             [key]: value,
+          },
+        },
+      }),
+    );
+  };
+
+
+  const handleSectionBackgroundChange = async (section, eventValue) => {
+    const file = eventValue.target.files?.[0];
+    eventValue.target.value = "";
+    if (!file || sectionBackgroundSaving) return;
+    setSectionBackgroundSaving(section);
+    try {
+      const uploaded = await uploadProfileBackground(file);
+      setDraft((current) =>
+        sanitizeProfileTheme({
+          ...current,
+          sectionStyles: {
+            ...current.sectionStyles,
+            [section]: {
+              ...current.sectionStyles?.[section],
+              backgroundMedia: {
+                url: uploaded.url,
+                type: "image",
+                mimeType: uploaded.mimeType,
+                positionX: 50,
+                positionY: 50,
+                scale: 1,
+              },
+            },
+          },
+        }),
+      );
+    } catch (error) {
+      setBackgroundError(error?.message || "Could not upload that component photo.");
+    } finally {
+      setSectionBackgroundSaving("");
+    }
+  };
+
+  const removeSectionBackground = (section) => {
+    setDraft((current) =>
+      sanitizeProfileTheme({
+        ...current,
+        sectionStyles: {
+          ...current.sectionStyles,
+          [section]: {
+            ...current.sectionStyles?.[section],
+            backgroundMedia: null,
           },
         },
       }),
@@ -973,6 +1023,25 @@ export default function ProfileStudio({
                           />
                         </label>
                       ))}
+                    </div>
+
+                    <div className="profile-component-background-controls">
+                      <label className="btn" style={{ cursor: sectionBackgroundSaving === key ? "wait" : "pointer", opacity: sectionBackgroundSaving === key ? 0.6 : 1 }}>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(eventValue) => handleSectionBackgroundChange(key, eventValue)}
+                          disabled={Boolean(sectionBackgroundSaving)}
+                          style={{ display: "none" }}
+                          aria-label={label + " background photo"}
+                        />
+                        {sectionBackgroundSaving === key ? "Uploading…" : style.backgroundMedia?.url ? "Change background photo" : "Add background photo"}
+                      </label>
+                      {style.backgroundMedia?.url && (
+                        <button type="button" className="btn" onClick={() => removeSectionBackground(key)}>
+                          Remove photo
+                        </button>
+                      )}
                     </div>
 
                     <label
