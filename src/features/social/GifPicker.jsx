@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   GIPHY_ATTRIBUTION_TEXT,
   getTrendingGifs,
@@ -38,7 +39,7 @@ export default function GifPicker({ onSelect, onClose }) {
     loadGifs(query);
   };
 
-  return (
+  const sheet = (return (
     <div className="comment-media-sheet" role="dialog" aria-modal="true" aria-label="Choose a GIF">
       <div className="comment-media-sheet__header">
         <strong>Choose a GIF</strong>
@@ -83,6 +84,8 @@ export default function GifPicker({ onSelect, onClose }) {
       )}
 
       <div className="giphy-attribution">{GIPHY_ATTRIBUTION_TEXT}</div>
-    </div>
+    </div>);
+
+  return typeof document !== "undefined" ? createPortal(sheet, document.body) : sheet;
   );
 }
