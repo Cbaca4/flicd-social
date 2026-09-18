@@ -652,11 +652,10 @@ export default function Boards({
 
         setCounts(nextCounts);
 
-        if (activeBoard) {
+        if (activeBoard?.id) {
           setActiveItems(
             itemRows.filter(
-              (item) =>
-                item.board_id === activeBoard.id
+              (item) => item.board_id === activeBoard.id
             )
           );
         }
@@ -673,7 +672,7 @@ export default function Boards({
         setLoading(false);
       }
     },
-    [activeBoard, onToast]
+    [activeBoard?.id, onToast]
   );
 
   React.useEffect(() => {
