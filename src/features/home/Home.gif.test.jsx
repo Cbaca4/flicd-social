@@ -67,6 +67,7 @@ describe("Viewer GIF composer", () => {
   it("opens the GIF picker from the comment composer", () => {
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -85,6 +86,7 @@ describe("Viewer GIF composer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
@@ -115,6 +117,7 @@ describe("Viewer GIF composer", () => {
 
     render(
       <Viewer
+        initialCommentsOpen
         post={post}
         onClose={() => {}}
         onLike={() => {}}
