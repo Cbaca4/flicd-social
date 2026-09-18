@@ -233,7 +233,7 @@ export default function Messages({ onToast }) {
           : "var(--card)",
       color:
         message.from === "you"
-          ? "#1c1507"
+          ? "#ffffff"
           : "var(--text)",
     }}
   >

@@ -1,5 +1,5 @@
 .flicd-app .app-frame {
-  height: calc(100dvh - 48px);
+  height: 100dvh;
 }
 
 .flicd-app .app-content {
@@ -36,7 +36,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.1),
+    rgba(28, 23, 15, 0.08),
     transparent
   );
 }
@@ -103,9 +103,9 @@
   transform: translateX(-50%);
   padding: 3px 7px;
   border-radius: 99px;
-  background: rgba(14, 15, 18, 0.86);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: var(--muted);
+  background: rgba(28, 25, 20, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
   font-size: 8px;
   white-space: nowrap;
   pointer-events: none;
@@ -119,11 +119,11 @@
   transform: translateX(-50%);
   padding: 6px 9px;
   border-radius: 13px;
-  background: rgba(14, 15, 18, 0.94);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(28, 25, 20, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   font-size: 9px;
-  color: var(--text);
+  color: #ffffff;
   white-space: nowrap;
   pointer-events: none;
   animation: companionBubble 3.6s ease both;
@@ -150,10 +150,10 @@
   flex: 0 0 auto;
   background: linear-gradient(
     145deg,
-    rgba(255, 181, 46, 0.2),
-    rgba(70, 218, 200, 0.12)
+    rgba(232, 89, 12, 0.12),
+    rgba(13, 148, 136, 0.08)
   );
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(28, 23, 15, 0.06);
 }
 
 .setting-toggle-row,
@@ -164,8 +164,8 @@
   justify-content: space-between;
   gap: 14px;
   padding: 13px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(28, 23, 15, 0.07);
+  background: rgba(28, 23, 15, 0.03);
   border-radius: 15px;
 }
 
@@ -182,8 +182,8 @@
   margin-top: 12px;
   padding: 15px;
   border-radius: 17px;
-  background: rgba(0, 0, 0, 0.11);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(28, 23, 15, 0.03);
+  border: 1px solid rgba(28, 23, 15, 0.07);
 }
 
 .setting-field {
@@ -213,8 +213,8 @@
   margin-top: 2px;
   padding: 11px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(28, 23, 15, 0.07);
+  background: #faf9f5;
 }
 
 .companion-preview-sprite {
