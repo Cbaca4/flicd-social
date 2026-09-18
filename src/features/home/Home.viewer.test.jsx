@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
@@ -11,6 +11,7 @@ vi.mock("./mediaUrl.js", () => ({
 }));
 
 describe("Viewer", () => {
+  afterEach(() => cleanup());
   it("renders its context even when no viewed callback is provided", () => {
     const post = {
       id: 1,
