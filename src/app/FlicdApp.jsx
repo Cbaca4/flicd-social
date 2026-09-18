@@ -47,6 +47,8 @@ import Discovery from "../features/discovery/Discovery.jsx";
 import PublicProfile from "../features/profile/PublicProfile.jsx";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
 import { getMusicTrack } from "../features/music/musicApi.js";
+import Notifications from "../features/social/Notifications.jsx";
+import { getUnreadNotificationCount } from "../features/social/notificationsApi.js";
 
 import {
   DEFAULT_THEME,
@@ -86,6 +88,7 @@ export default function FlicdApp() {
   const [profileMusicTrack, setProfileMusicTrack] = React.useState(null);
   const [publicProfile, setPublicProfile] = React.useState(null);
   const [toast, setToast] = React.useState("");
+  const [notificationsUnread, setNotificationsUnread] = React.useState(0);
 
   React.useEffect(() => {
     async function getSession() {
@@ -104,6 +107,25 @@ export default function FlicdApp() {
     const timer = setTimeout(() => setToast(""), 1900);
     return () => clearTimeout(timer);
   }, [toast]);
+
+  const refreshNotificationCount = React.useCallback(async () => {
+    if (!session) {
+      setNotificationsUnread(0);
+      return;
+    }
+    try {
+      setNotificationsUnread(await getUnreadNotificationCount());
+    } catch {
+      // Notification badges should never block the app.
+    }
+  }, [session]);
+
+  React.useEffect(() => {
+    refreshNotificationCount();
+    if (!session) return undefined;
+    const timer = setInterval(refreshNotificationCount, 30000);
+    return () => clearInterval(timer);
+  }, [refreshNotificationCount, session]);
 
   React.useEffect(() => {
     async function loadProfile() {
@@ -142,6 +164,18 @@ export default function FlicdApp() {
         items: (dump.dump_items || []).sort((a, b) => a.position - b.position).map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
         context: dump.context || "",
         musicTrack: dump.music_tracks || null,
+        location: dump.location_name
+          ? {
+              name: dump.location_name,
+              city: dump.location_city || "",
+              latitude: dump.location_lat,
+              longitude: dump.location_lng,
+              placeId: dump.location_place_id || "",
+            }
+          : null,
+        taggedUsers: (dump.dump_tags || [])
+          .map((tag) => tag.tagged_user || null)
+          .filter(Boolean),
       }));
       setDumps(await hydrateDumpInteractions(formattedDumps));
       setFeedState({ status: "ready", error: "" });
@@ -289,7 +323,7 @@ export default function FlicdApp() {
     }
   };
 
-  const postDump = async ({ mood, expiry, channel, items, musicTrack = null }) => {
+  const postDump = async ({ mood, expiry, channel, items, musicTrack = null, location = null, taggedUsers = [] }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
@@ -300,8 +334,35 @@ export default function FlicdApp() {
         imagePath: item.imageFile ? uploadedPaths[uploadIndex++] : null,
       }));
 
-      const savedDump = await createDump({ type: "dump", spaceId: channel, mood, expiry, context: itemsWithPaths[0]?.note || "new dump", frameCount: itemsWithPaths.length, items: itemsWithPaths, musicTrackId: musicTrack?.id || null });
-      const newDump = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })), context: itemsWithPaths[0]?.note || "new dump", musicTrack };
+      const savedDump = await createDump({
+        type: "dump",
+        spaceId: channel,
+        mood,
+        expiry,
+        context: itemsWithPaths[0]?.note || "new dump",
+        frameCount: itemsWithPaths.length,
+        items: itemsWithPaths,
+        musicTrackId: musicTrack?.id || null,
+        location,
+        taggedUserIds: taggedUsers.map((user) => user.id),
+      });
+      const newDump = {
+        id: savedDump.id,
+        channel,
+        author: supabaseProfile?.username || activeSpace.handle,
+        authorId: session.user.id,
+        mood,
+        mode: expiry,
+        postedMinutesAgo: 0,
+        likes: 0,
+        liked: false,
+        comments: [],
+        items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })),
+        context: itemsWithPaths[0]?.note || "new dump",
+        musicTrack,
+        location,
+        taggedUsers,
+      };
       setDumps((currentDumps) => [newDump, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -313,14 +374,41 @@ export default function FlicdApp() {
     }
   };
 
-  const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null }) => {
+  const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null, location = null, taggedUsers = [] }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
       uploadedPaths = await uploadDumpImages(imageFiles);
       const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null }));
-      const savedDump = await createDump({ type: "roll", spaceId: channel, mood, expiry, context: `${frameCount} frame roll`, frameCount, items: itemsWithPaths, musicTrackId: musicTrack?.id || null });
-      const newRoll = { id: savedDump.id, channel, author: supabaseProfile?.username || activeSpace.handle, authorId: session.user.id, mood, mode: expiry, postedMinutesAgo: 0, likes: 0, liked: false, comments: [], items: itemsWithPaths, context: `${frameCount} frame roll`, musicTrack };
+      const savedDump = await createDump({
+        type: "roll",
+        spaceId: channel,
+        mood,
+        expiry,
+        context: `${frameCount} frame roll`,
+        frameCount,
+        items: itemsWithPaths,
+        musicTrackId: musicTrack?.id || null,
+        location,
+        taggedUserIds: taggedUsers.map((user) => user.id),
+      });
+      const newRoll = {
+        id: savedDump.id,
+        channel,
+        author: supabaseProfile?.username || activeSpace.handle,
+        authorId: session.user.id,
+        mood,
+        mode: expiry,
+        postedMinutesAgo: 0,
+        likes: 0,
+        liked: false,
+        comments: [],
+        items: itemsWithPaths,
+        context: `${frameCount} frame roll`,
+        musicTrack,
+        location,
+        taggedUsers,
+      };
       setDumps((currentDumps) => [newRoll, ...currentDumps]);
       setScreen("home");
       setFeedState({ status: "ready", error: "" });
@@ -349,6 +437,18 @@ export default function FlicdApp() {
 
   if (publicProfile) {
     content = <PublicProfile profile={publicProfile} onBack={() => setPublicProfile(null)} />;
+  } else if (screen === "notifications") {
+    content = (
+      <Notifications
+        onBack={() => setScreen("profile")}
+        onOpenDump={(dumpId) => {
+          setPublicProfile(null);
+          setActivePostId(dumpId);
+          setScreen("viewer");
+          refreshNotificationCount();
+        }}
+      />
+    );
   } else if (screen === "home") {
     content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} onUserSelect={openPublicProfile} />;
   } else if (screen === "discover") {
@@ -356,7 +456,7 @@ export default function FlicdApp() {
   } else if (screen === "messages") {
     content = <Messages requests={requests} setRequests={setRequests} chats={chats} setChats={setChats} onToast={onToast} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} />;
+    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio profile={profile} theme={theme} onClose={() => setScreen("profile")} onChangeTheme={setTheme} onSaved={(updatedTheme) => { setTheme(updatedTheme); setScreen("profile"); onToast("Profile saved"); }} />;
   } else if (screen === "boards") {
@@ -375,11 +475,11 @@ export default function FlicdApp() {
     content = activePost ? <Viewer post={activePost} onClose={() => setScreen("home")} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={() => {}} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
-  const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces"].includes(screen) ? (screen === "profile-settings" || screen === "edit-profile" || screen === "boards" || screen === "spaces" ? "profile" : "home") : screen;
+  const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications"].includes(screen) ? "profile" : "home") : screen;
 
   return (
     <>
-      <AppShell userId={session.user.id} screen={navigationScreen} onNavigate={(key) => setScreen(key)} onCapture={() => setScreen("create-choose")} unread={requests.length}>
+      <AppShell userId={session.user.id} screen={navigationScreen} onNavigate={(key) => setScreen(key)} onCapture={() => setScreen("create-choose")} unread={requests.length} notificationsUnread={notificationsUnread}>
         <div style={{ height: "100%" }}>{content}</div>
       </AppShell>
 
