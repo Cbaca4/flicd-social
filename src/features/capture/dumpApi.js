@@ -250,14 +250,23 @@ export async function getDumpById(dumpId) {
     ? await hydrateMusicTracks([data.music_tracks])
     : [];
 
+  const userId = await getCurrentUserId();
   const { data: view } = await supabase
     .from("dump_views")
     .select("dump_id")
     .eq("dump_id", dumpId)
-    .eq("user_id", await getCurrentUserId())
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (data.expiry === "once" && view) {
+    return null;
+  }
+
+  if (
+    data.expiry === "24h" &&
+    data.user_id !== userId &&
+    new Date(data.created_at || 0).getTime() <= Date.now() - 24 * 60 * 60 * 1000
+  ) {
     return null;
   }
 
