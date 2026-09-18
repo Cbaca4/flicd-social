@@ -142,7 +142,9 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     const trackById = new Map(hydratedTracks.map((track) => [track.id, track]));
     return data.map((dump) => ({
       ...dump,
-      music_tracks: dump.music_tracks ? trackById.get(dump.music_tracks.id) || dump.music_tracks : null,
+      ...(dump.music_tracks
+        ? { music_tracks: trackById.get(dump.music_tracks.id) || dump.music_tracks }
+        : {}),
     }));
   }
 
