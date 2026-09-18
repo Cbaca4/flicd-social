@@ -1,5 +1,5 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,Pause,Play} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import UserSearch from './UserSearch.jsx';
 import PublicProfile from '../profile/PublicProfile.jsx';
@@ -11,6 +11,7 @@ import { getCurrentUserId } from '../social/socialApi.js';
 import { deleteComment, reportComment } from '../social/interactionsApi.js';
 import GifPicker from '../social/GifPicker.jsx';
 import VideoCommentPicker from '../social/VideoCommentPicker.jsx';
+import { playAudioUrl, stopAudio } from '../music/audioController.js';
 import '../social/CommentComposer.css';
 
 function timeLeft(post){
