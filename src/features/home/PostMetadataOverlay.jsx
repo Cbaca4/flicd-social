@@ -11,6 +11,7 @@ export default function PostMetadataOverlay({
 }) {
   const track = post?.musicTrack || null;
   const hasMusic = Boolean(track?.title || track?.artist || track?.audio_url);
+  const canControlMusic = Boolean(onToggleMusic && track?.audio_url);
   const hasLocation = Boolean(post?.location?.name);
 
   if (!hasMusic && !hasLocation) return null;
@@ -21,7 +22,7 @@ export default function PostMetadataOverlay({
     <div className={rootClassName} data-media-interactive="true" aria-label="Post details">
       <div className="post-metadata-overlay-track">
         {hasMusic && (
-          onToggleMusic ? (
+          canControlMusic ? (
             <button
               type="button"
               className="post-metadata-pill post-metadata-pill--music"
