@@ -46,7 +46,7 @@ export default function Archive({ onBack, onKeep }) {
                   const source = item.archiveUrl;
                   return source ? <img key={item.id} src={source} alt={item.note || "Archived Flic'd"} /> : <span key={item.id} className="subtitle">Media unavailable</span>;
                 })}
-                {!dump.dump_items.some((item) => item.image_path) && <span className="subtitle">No photo attached</span>}
+                {!dump.dump_items.some((item) => item.archiveUrl) && <span className="subtitle">No archived media available</span>}
               </div>
               <div className="archive-card-copy">
                 <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
