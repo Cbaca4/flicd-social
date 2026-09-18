@@ -354,7 +354,7 @@ export function DumpCard({
         aria-disabled={expired}
       >
         <div
-          className="post-media"
+          className={"post-media post-feed-media" + (!firstImage ? " post-media-placeholder" : "")}
           style={{
             background: gradients[(Number(post.id) || 0) % gradients.length],
             position: "relative",
@@ -365,13 +365,10 @@ export function DumpCard({
             <img
               src={firstImage}
               alt=""
+              className="post-feed-media-image"
               style={{
-                position: "absolute",
-                inset: 0,
                 width: "100%",
-                height: "100%",
-                objectFit: "contain",
-                objectPosition: "center",
+                height: "auto",
                 opacity: viewOnceLocked ? 0.22 : 0.92,
                 filter: viewOnceLocked ? "blur(42px)" : "none",
                 transform: viewOnceLocked ? "scale(1.14)" : "none",
@@ -386,7 +383,7 @@ export function DumpCard({
               <span>{alreadyViewed ? "This image stays blurred." : "Tap to open once"}</span>
             </div>
           )}
-          <div style={{ position: "relative", zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+          <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "auto" }}>
             <span className="tag">{post.mood}</span>
             <span className="tag flicd-mono" style={{ color: post.mode === "once" ? "var(--danger)" : "var(--amber)" }}>
               {post.mode === "once" && <Eye size={11} style={{ marginRight: 4 }} />}
