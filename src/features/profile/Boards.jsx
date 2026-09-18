@@ -651,14 +651,6 @@ export default function Boards({
         );
 
         setCounts(nextCounts);
-
-        if (activeBoard?.id) {
-          setActiveItems(
-            itemRows.filter(
-              (item) => item.board_id === activeBoard.id
-            )
-          );
-        }
       } catch (error) {
         console.error(
           "Failed to load Boards:",
@@ -672,7 +664,7 @@ export default function Boards({
         setLoading(false);
       }
     },
-    [activeBoard?.id, onToast]
+    [onToast]
   );
 
   React.useEffect(() => {
