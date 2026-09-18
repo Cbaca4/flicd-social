@@ -198,9 +198,9 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             <div className="profile-main-identity">
               {profile.displayName ? <div className="profile-display-name">{profile.displayName}</div> : null}
               <div className="profile-mini-stats">
+                <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
                 <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span></button>
                 <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{relationshipCounts.following}</strong><span className="subtitle">following</span></button>
-                <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
               </div>
             </div>
           </div>
