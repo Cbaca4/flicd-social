@@ -48,6 +48,14 @@ import Discovery from "../features/discovery/Discovery.jsx";
 import PublicProfile from "../features/profile/PublicProfile.jsx";
 import SpaceSwitcher from "../features/spaces/SpaceSwitcher.jsx";
 import { getMusicTrack } from "../features/music/musicApi.js";
+import {
+  getActiveAudio,
+  pauseAudio,
+  playAudioUrl,
+  resumeAudio,
+  stopAudio,
+} from "../features/music/audioController.js";
+import { getMessageRequests } from "../features/messages/messageApi.js";
 import Notifications from "../features/social/Notifications.jsx";
 import { getUnreadNotificationCount } from "../features/social/notificationsApi.js";
 
@@ -62,9 +70,14 @@ const seedSpaces = [
   { id: "music", handle: "the.setlist", label: "Music", followers: 301, following: 58 },
 ];
 
-const seedRequests = [
-  { id: "r1", user: { handle: "alex", name: "Alex Rivera", bio: "found you through global" } },
-];
+const PROFILE_SCREENS = new Set([
+  "profile",
+  "profile-settings",
+  "boards",
+  "edit-profile",
+  "spaces",
+  "notifications",
+]);
 
 function formatDumpRecord(dump) {
   return {
@@ -114,11 +127,11 @@ export default function FlicdApp() {
   const [savingKeep, setSavingKeep] = React.useState(false);
   const [boardStudioOpen, setBoardStudioOpen] = React.useState(false);
   const [openBoardId, setOpenBoardId] = React.useState(null);
-  const [requests, setRequests] = React.useState(seedRequests);
-  const [chats, setChats] = React.useState([]);
+  const [messageUnread, setMessageUnread] = React.useState(0);
   const [theme, setTheme] = React.useState(() => sanitizeProfileTheme(DEFAULT_THEME));
   const [supabaseProfile, setSupabaseProfile] = React.useState(null);
   const [profileMusicTrack, setProfileMusicTrack] = React.useState(null);
+  const [profileMusicPlaying, setProfileMusicPlaying] = React.useState(false);
   const [publicProfile, setPublicProfile] = React.useState(null);
   const [toast, setToast] = React.useState("");
   const [notificationsUnread, setNotificationsUnread] = React.useState(0);
@@ -159,6 +172,75 @@ export default function FlicdApp() {
     const timer = setInterval(refreshNotificationCount, 30000);
     return () => clearInterval(timer);
   }, [refreshNotificationCount, session]);
+
+  const refreshMessageCount = React.useCallback(async () => {
+    if (!session) {
+      setMessageUnread(0);
+      return;
+    }
+    try {
+      const requests = await getMessageRequests();
+      setMessageUnread(requests.length);
+    } catch {
+      setMessageUnread(0);
+    }
+  }, [session]);
+
+  React.useEffect(() => {
+    refreshMessageCount();
+    if (!session) return undefined;
+    const timer = setInterval(refreshMessageCount, 30000);
+    return () => clearInterval(timer);
+  }, [refreshMessageCount, session]);
+
+  React.useEffect(() => {
+    const shouldPlay = Boolean(session && !publicProfile && PROFILE_SCREENS.has(screen) && profileMusicTrack?.audio_url);
+    if (!shouldPlay) {
+      stopAudio();
+      setProfileMusicPlaying(false);
+      return undefined;
+    }
+
+    const existing = getActiveAudio();
+    if (existing?.src !== profileMusicTrack.audio_url) {
+      const audio = playAudioUrl(profileMusicTrack.audio_url, {
+        loop: true,
+        muted: false,
+        onFallbackToMuted: () => {},
+      });
+      if (!audio) return undefined;
+    }
+
+    const audio = getActiveAudio();
+    const syncState = () => setProfileMusicPlaying(Boolean(audio && !audio.paused));
+    audio?.addEventListener?.("play", syncState);
+    audio?.addEventListener?.("pause", syncState);
+    syncState();
+
+    return () => {
+      audio?.removeEventListener?.("play", syncState);
+      audio?.removeEventListener?.("pause", syncState);
+    };
+  }, [profileMusicTrack?.audio_url, publicProfile, screen, session]);
+
+  const toggleProfileMusic = React.useCallback(async () => {
+    const audio = getActiveAudio();
+    if (!audio || audio.src !== profileMusicTrack?.audio_url) {
+      if (profileMusicTrack?.audio_url) {
+        playAudioUrl(profileMusicTrack.audio_url, { loop: true, muted: false });
+        setProfileMusicPlaying(true);
+      }
+      return;
+    }
+
+    if (audio.paused) {
+      const resumed = await resumeAudio();
+      setProfileMusicPlaying(Boolean(resumed && !resumed.paused));
+    } else {
+      pauseAudio();
+      setProfileMusicPlaying(false);
+    }
+  }, [profileMusicTrack?.audio_url]);
 
   React.useEffect(() => {
     async function loadProfile() {
@@ -206,9 +288,10 @@ export default function FlicdApp() {
           id: item.id,
           boardId: item.board_id,
           dumpId: item.dump_id,
-          author: "",
+          author: item.saved_author_username || "",
           note: item.note || "",
           mood: item.mood || "",
+          imagePath: item.saved_image_path || "",
           seed: item.item_position || 0,
         })));
       } catch (error) {
@@ -235,7 +318,10 @@ export default function FlicdApp() {
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
   const openPublicProfile = React.useCallback((user) => {
-    if (user?.id) setPublicProfile(user);
+    if (!user?.id) return;
+    stopAudio();
+    setProfileMusicPlaying(false);
+    setPublicProfile(user);
   }, []);
 
   const openDumpById = React.useCallback(async (dumpId) => {
@@ -377,6 +463,7 @@ export default function FlicdApp() {
         musicTrackId: musicTrack?.id || null,
         location,
         taggedUserIds: taggedUsers.map((user) => user.id),
+        allowOthersToKeep,
       });
       const newDump = {
         id: savedDump.id,
@@ -394,6 +481,7 @@ export default function FlicdApp() {
         musicTrack,
         location,
         taggedUsers,
+        allowOthersToKeep: expiry === "24h" && Boolean(allowOthersToKeep),
       };
       setDumps((currentDumps) => [newDump, ...currentDumps]);
       setScreen("home");
@@ -406,7 +494,7 @@ export default function FlicdApp() {
     }
   };
 
-  const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null, location = null, taggedUsers = [] }) => {
+  const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
     let uploadedPaths = [];
     try {
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
@@ -423,6 +511,7 @@ export default function FlicdApp() {
         musicTrackId: musicTrack?.id || null,
         location,
         taggedUserIds: taggedUsers.map((user) => user.id),
+        allowOthersToKeep,
       });
       const newRoll = {
         id: savedDump.id,
@@ -440,6 +529,7 @@ export default function FlicdApp() {
         musicTrack,
         location,
         taggedUsers,
+        allowOthersToKeep: expiry === "24h" && Boolean(allowOthersToKeep),
       };
       setDumps((currentDumps) => [newRoll, ...currentDumps]);
       setScreen("home");
@@ -485,9 +575,9 @@ export default function FlicdApp() {
   } else if (screen === "discover") {
     content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
   } else if (screen === "messages") {
-    content = <Messages requests={requests} setRequests={setRequests} chats={chats} setChats={setChats} onToast={onToast} />;
+    content = <Messages onToast={onToast} onChanged={refreshMessageCount} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
+    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio profile={profile} theme={theme} onClose={() => setScreen("profile")} onChangeTheme={setTheme} onSaved={(updatedTheme) => { setTheme(updatedTheme); setScreen("profile"); onToast("Profile saved"); }} />;
   } else if (screen === "boards") {
@@ -510,7 +600,26 @@ export default function FlicdApp() {
 
   return (
     <>
-      <AppShell userId={session.user.id} screen={navigationScreen} onNavigate={(key) => setScreen(key)} onCapture={() => setScreen("create-choose")} unread={requests.length} notificationsUnread={notificationsUnread}>
+      <AppShell
+        userId={session.user.id}
+        screen={navigationScreen}
+        onNavigate={(key) => {
+          setPublicProfile(null);
+          if (!PROFILE_SCREENS.has(key)) {
+            stopAudio();
+            setProfileMusicPlaying(false);
+          }
+          setScreen(key);
+        }}
+        onCapture={() => {
+          setPublicProfile(null);
+          stopAudio();
+          setProfileMusicPlaying(false);
+          setScreen("create-choose");
+        }}
+        unread={messageUnread}
+        notificationsUnread={notificationsUnread}
+      >
         <div style={{ height: "100%" }}>{content}</div>
       </AppShell>
 
