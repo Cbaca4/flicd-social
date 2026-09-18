@@ -133,17 +133,25 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
       <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
       {musicToggle}
       {blurred && (
-        <button
-          type="button"
-          className="view-once-reveal"
-          data-media-interactive="true"
-          onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
-          aria-label="Tap to view once"
-        >
-          <Eye size={20} />
-          <strong>Tap to view once</strong>
-          <span>You'll only get one look.</span>
-        </button>
+        alreadyViewed ? (
+          <div className="view-once-locked" aria-label="Already viewed once">
+            <Eye size={20} />
+            <strong>Already viewed once</strong>
+            <span>This image stays blurred.</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="view-once-reveal"
+            data-media-interactive="true"
+            onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
+            aria-label="Tap to view once"
+          >
+            <Eye size={20} />
+            <strong>Tap to view once</strong>
+            <span>You'll only get one look.</span>
+          </button>
+        )
       )}
       <div className="post-media-context">
         <span className="tag">
