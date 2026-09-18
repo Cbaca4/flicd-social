@@ -38,7 +38,7 @@ export async function getMusicTracks({ search = "", limit = 50 } = {}) {
     if (error) throw error;
     tracks = data || [];
   } else {
-    const pattern = "%" + cleanSearch.replace(/[\\%_]/g, "\\\\$&") + "%";
+    const pattern = "%" + cleanSearch.replace(/[\\%_]/g, "\\const pattern = "%" + cleanSearch.replace(/[\\%_]/g, "\\\\$&") + "%";") + "%";
     const columns = ["title", "artist", "genre"];
 
     const results = await Promise.all(columns.map(async (column) => {
