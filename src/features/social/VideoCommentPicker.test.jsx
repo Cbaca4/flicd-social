@@ -27,6 +27,8 @@ describe("VideoCommentPicker", () => {
         onSelect={onSelect}
         onClose={() => {}}
         getVideoDuration={vi.fn().mockResolvedValue(8)}
+        createObjectUrl={vi.fn().mockReturnValue("blob:mov-preview")}
+        revokeObjectUrl={vi.fn()}
       />,
     );
 
