@@ -2,11 +2,13 @@
 
 import React from "react";
 import "@testing-library/jest-dom/vitest";
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
+
+afterEach(cleanup);
 
 vi.mock("../../lib/supabase", () => ({
   supabase: {
