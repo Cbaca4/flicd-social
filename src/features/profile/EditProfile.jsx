@@ -2,12 +2,14 @@ import React from "react";
 import { ArrowLeft, ImagePlus, Save } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { removeProfilePhoto, uploadProfilePhoto } from "./profileMedia.js";
+import { sanitizeProfileLinks, sanitizeProfileTheme } from "./profileTheme.js";
 
 export default function EditProfile({
   profile,
   onBack,
   onSaved,
   onToast,
+  profileTheme = {},
 }) {
   const [username, setUsername] = React.useState(profile.handle || "");
   const [displayName, setDisplayName] = React.useState(
@@ -15,6 +17,9 @@ export default function EditProfile({
   );
   const [bio, setBio] = React.useState(profile.bio || "");
   const [avatarUrl, setAvatarUrl] = React.useState(profile.avatarUrl || "");
+  const [links, setLinks] = React.useState(() =>
+    sanitizeProfileLinks(profile.links || profileTheme.profileLinks || [])
+  );
   const [photoSaving, setPhotoSaving] = React.useState(false);
 
   const [saving, setSaving] = React.useState(false);
@@ -64,6 +69,11 @@ export default function EditProfile({
     const cleanUsername = username.trim().toLowerCase();
     const cleanDisplayName = displayName.trim();
     const cleanBio = bio.trim();
+    const cleanLinks = sanitizeProfileLinks(links);
+    const nextTheme = sanitizeProfileTheme({
+      ...profileTheme,
+      profileLinks: cleanLinks,
+    });
 
     if (!cleanUsername) {
       setError("Username is required.");
@@ -90,6 +100,7 @@ export default function EditProfile({
         display_name: cleanDisplayName || null,
         bio: cleanBio || null,
         avatar_url: avatarUrl || null,
+        profile_theme: nextTheme,
       })
       .eq("id", user.id)
       .select()
@@ -247,6 +258,89 @@ export default function EditProfile({
           <p className="subtitle" style={{ marginTop: 6 }}>
             {bio.length}/160
           </p>
+        </div>
+
+        <div>
+          <div className="eyebrow">Profile links</div>
+          <p className="subtitle" style={{ marginTop: 6 }}>
+            Add up to 3 links people can open directly from your profile.
+          </p>
+
+          <div className="stack" style={{ marginTop: 10 }}>
+            {links.map((link, index) => (
+              <div className="card profile-link-editor" key={index} style={{ margin: 0 }}>
+                <div className="row" style={{ justifyContent: "space-between", gap: 8 }}>
+                  <strong>Link {index + 1}</strong>
+                  <button
+                    type="button"
+                    className="btn icon-btn"
+                    onClick={() =>
+                      setLinks((current) =>
+                        current.filter((_, itemIndex) => itemIndex !== index)
+                      )
+                    }
+                    aria-label={"Remove link " + (index + 1)}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <input
+                  className="input"
+                  style={{ marginTop: 9 }}
+                  value={link.label}
+                  onChange={(event) =>
+                    setLinks((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, label: event.target.value }
+                          : item
+                      )
+                    )
+                  }
+                  placeholder="Label (optional)"
+                  maxLength={40}
+                  aria-label={"Link " + (index + 1) + " label"}
+                />
+
+                <input
+                  className="input"
+                  style={{ marginTop: 8 }}
+                  value={link.url}
+                  onChange={(event) =>
+                    setLinks((current) =>
+                      current.map((item, itemIndex) =>
+                        itemIndex === index
+                          ? { ...item, url: event.target.value }
+                          : item
+                      )
+                    )
+                  }
+                  placeholder="https://example.com"
+                  maxLength={500}
+                  inputMode="url"
+                  autoComplete="url"
+                  aria-label={"Link " + (index + 1) + " URL"}
+                />
+              </div>
+            ))}
+          </div>
+
+          {links.length < 3 && (
+            <button
+              type="button"
+              className="btn"
+              style={{ marginTop: 10 }}
+              onClick={() =>
+                setLinks((current) => [
+                  ...current,
+                  { label: "", url: "" },
+                ])
+              }
+            >
+              + Add link
+            </button>
+          )}
         </div>
 
         {error && (
