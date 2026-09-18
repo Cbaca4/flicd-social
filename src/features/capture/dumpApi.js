@@ -70,6 +70,18 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
         position,
         note,
         image_path
+      ),
+      music_tracks:music_track_id (
+        id,
+        title,
+        artist,
+        cover_url,
+        audio_url,
+        genre,
+        mood,
+        duration,
+        provider,
+        provider_track_id
       )
     `)
     .in("user_id", feedUserIds)
