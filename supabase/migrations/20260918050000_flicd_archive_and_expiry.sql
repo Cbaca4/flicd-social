@@ -52,7 +52,6 @@ create policy "Users can delete their own Flicd archive media" on storage.object
 using (bucket_id = 'flicd-archive' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
 create schema if not exists private;
-create schema if not exists private;
 create or replace function private.handle_dump_view_archive()
 returns trigger language plpgsql security definer set search_path = public, pg_catalog
 as $$
