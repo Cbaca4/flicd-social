@@ -171,7 +171,7 @@ export async function saveBoardItem({
 
   const { data: sourceDump, error: sourceError } = await supabase
     .from("dumps")
-    .select("id,user_id,expiry,allow_others_to_keep,dump_items(id,position,image_path,note,mood)")
+    .select("id,user_id,expiry,created_at,allow_others_to_keep,dump_items(id,position,image_path,note,mood)")
     .eq("id", dumpId)
     .single();
 
