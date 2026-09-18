@@ -376,7 +376,7 @@ export function DumpCard({
               <span>{alreadyViewed ? "This image stays blurred." : "Tap to open once"}</span>
             </div>
           )}
-          <div style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "auto" }}>
+          <div className="post-feed-status" style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "auto" }}>
             <span className="tag">{post.mood}</span>
             <span className="tag flicd-mono" style={{ color: post.mode === "once" ? "var(--danger)" : "var(--amber)" }}>
               {post.mode === "once" && <Eye size={11} style={{ marginRight: 4 }} />}
