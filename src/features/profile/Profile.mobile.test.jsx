@@ -69,6 +69,30 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
   });
 
+  it("keeps compact mobile labels available without changing accessible button names", () => {
+    render(
+      <Profile
+        profile={{
+          handle: "baco",
+          displayName: "Baco",
+          bio: "Building flic'd.",
+          followers: 12,
+          following: 8,
+        }}
+        activeSpace={{ label: "Personal", handle: "baco" }}
+        theme={DEFAULT_THEME}
+        boards={[]}
+        onEditProfile={() => {}}
+        onCustomize={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
+    expect(document.querySelector(".profile-action-label--full")).toBeTruthy();
+    expect(document.querySelector(".profile-action-label--compact")).toBeTruthy();
+    expect(document.querySelector(".profile-secondary-label")).toBeTruthy();
+  });
+
   it("renders the saved profile photo instead of the fallback initial", () => {
     render(
       <Profile
