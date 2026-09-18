@@ -6,6 +6,7 @@ import { getRelationshipCounts } from "../social/socialApi.js";
 import CompanionSettings from "../companion/CompanionSettings.jsx";
 import { normalizeCompanionSettings } from "../companion/companionSettingsConfig.js";
 import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
+import OnRepeat from "../music/OnRepeat.jsx";
 
 function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
   const [companionUserId, setCompanionUserId] = React.useState("");
@@ -129,7 +130,7 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [relationshipCounts, setRelationshipCounts] = React.useState(() => ({
     followers: profile?.followers ?? 0,
@@ -220,7 +221,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             {pinnedBoards.length > 0 ? <div className="grid" style={{ gridTemplateColumns: "repeat(3,minmax(0,1fr))", marginTop: 14 }}>{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="card" onClick={onCustomizeBoards || onOpenBoards} style={{ width: "100%", marginTop: 14, minHeight: 150, display: "grid", placeItems: "center", textAlign: "center", borderStyle: "dashed", cursor: "pointer" }}><div><Plus size={22} /><strong style={{ display: "block", marginTop: 8 }}>Pin a Board to your profile</strong><span className="subtitle" style={{ display: "block", marginTop: 4 }}>Choose up to three Boards to feature here.</span></div></button>}
             <div className="row" style={{ justifyContent: "flex-end", marginTop: 12 }}><button type="button" className="btn" onClick={onOpenBoards}>View all Boards<ChevronRight size={15} /></button></div>
           </div>}
-          {theme.showMusic && <div className="card"><div className="eyebrow">On repeat</div><h3 style={{ marginTop: 6 }}>{theme.favoriteArtist || "Your soundtrack goes here"}</h3><p className="subtitle" style={{ marginTop: 4 }}>A small detail that makes your profile yours.</p></div>}
+          {theme.showMusic && <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} />}
         </div>
 
         <div className="stack">
