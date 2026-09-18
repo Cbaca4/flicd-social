@@ -2,6 +2,17 @@ import { supabase } from "../../lib/supabase";
 
 const TRACK_FIELDS = "id,title,artist,cover_url,audio_url,genre,mood,duration,provider,provider_track_id,license_id,active,approved";
 
+async function withPlayableAudio(track) {
+  if (!track?.audio_url || track.provider !== "Free Music Archive") return track;
+  const { data, error } = await supabase.storage.from("flicd-music").createSignedUrl(track.audio_url, 60 * 60);
+  if (error) return { ...track, audio_url: null };
+  return { ...track, audio_url: data?.signedUrl || null };
+}
+
+async function withPlayableAudioList(tracks) {
+  return Promise.all((tracks || []).map(withPlayableAudio));
+}
+
 export async function getMusicTracks({ search = "", limit = 50 } = {}) {
   const cleanSearch = search.trim();
   let query = supabase
@@ -22,7 +33,7 @@ export async function getMusicTracks({ search = "", limit = 50 } = {}) {
 
   const { data, error } = await query;
   if (error) throw error;
-  return data || [];
+  return withPlayableAudioList(data || []);
 }
 
 export async function getMusicTrack(trackId) {
@@ -36,7 +47,7 @@ export async function getMusicTrack(trackId) {
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return withPlayableAudio(data);
 }
 
 export async function setProfileMusicTrack(trackId) {
