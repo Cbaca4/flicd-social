@@ -144,6 +144,23 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
+  const [activeProfileTab, setActiveProfileTab] = React.useState("boards");
+  const boardsTabRef = React.useRef(null);
+  const repeatTabRef = React.useRef(null);
+
+  const selectProfileTab = (key) => {
+    setActiveProfileTab(key);
+    if (key === "studio") {
+      onCustomize?.();
+      return;
+    }
+    if (key === "spaces") {
+      onSwitchSpaces?.();
+      return;
+    }
+    const target = key === "boards" ? boardsTabRef.current : repeatTabRef.current;
+    target?.scrollIntoView?.({ behavior: "smooth", block: "nearest", inline: "nearest" });
+  };
 
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
