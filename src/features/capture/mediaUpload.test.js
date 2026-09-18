@@ -14,13 +14,13 @@ vi.mock("../../lib/supabase", () => ({
 }));
 
 describe("media upload helper", () => {
-  it("rejects unsupported files and files larger than 10 MB", async () => {
+  it("rejects unsupported files and files larger than 20 MB", async () => {
     const { validateMediaFile, MAX_MEDIA_SIZE } = await import("./mediaUpload.js");
     const badType = new File(["x"], "note.gif", { type: "image/gif" });
     const tooLarge = new File([new Uint8Array(MAX_MEDIA_SIZE + 1)], "large.jpg", { type: "image/jpeg" });
 
     expect(() => validateMediaFile(badType)).toThrow(/jpeg, png, and webp/i);
-    expect(() => validateMediaFile(tooLarge)).toThrow(/10 mb or smaller/i);
+    expect(() => validateMediaFile(tooLarge)).toThrow(/20 mb or smaller/i);
   });
 
   it("uploads valid files under the authenticated user's folder", async () => {
