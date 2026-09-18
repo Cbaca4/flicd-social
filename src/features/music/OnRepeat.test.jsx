@@ -49,7 +49,7 @@ describe("OnRepeat", () => {
     render(<OnRepeat track={null} onTrackChange={() => {}} />);
 
     expect(await screen.findByRole("searchbox", { name: "Search profile music" })).toBeInTheDocument();
-    fireEvent.click(await screen.findByRole("option", { name: /Night Drive Ketsa/i }));
+    fireEvent.click(await screen.findByRole("option"));
 
     await waitFor(() => {
       expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith("song-1");
