@@ -10,6 +10,10 @@
   padding-bottom: 132px;
 }
 
+.flicd-app .viewer-screen {
+  padding-bottom: 190px;
+}
+
 .flicd-app .bottom-dock {
   position: absolute;
   bottom: max(18px, env(safe-area-inset-bottom));
@@ -501,6 +505,7 @@
 @media (max-width: 900px) {
   .flicd-app .app-frame { height: 100dvh; }
   .flicd-app .screen { padding-bottom: 126px; }
+  .flicd-app .viewer-screen { padding-bottom: 190px; }
   .companion-zone {
     left: 12px;
     right: 12px;
