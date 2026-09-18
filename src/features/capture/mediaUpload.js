@@ -1,7 +1,7 @@
 import { supabase } from "../../lib/supabase";
 
 export const MEDIA_BUCKET = "flicd-media";
-export const MAX_MEDIA_SIZE = 10 * 1024 * 1024;
+export const MAX_MEDIA_SIZE = 20 * 1024 * 1024;
 export const MAX_MEDIA_COUNT = 20;
 export const ALLOWED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -26,7 +26,7 @@ export function validateMediaFile(file) {
     throw new Error("Only JPEG, PNG, and WebP images are supported.");
   }
   if (file.size > MAX_MEDIA_SIZE) {
-    throw new Error("Each image must be 10 MB or smaller.");
+    throw new Error("Each image must be 20 MB or smaller.");
   }
   return file;
 }
