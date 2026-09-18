@@ -5,21 +5,26 @@ import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
-const getMusicTracks = vi.fn();
-const setProfileMusicTrack = vi.fn();
-const stopAudio = vi.fn();
-const getActiveAudio = vi.fn(() => null);
-const playAudioUrl = vi.fn();
-const pauseAudio = vi.fn();
-const resumeAudio = vi.fn();
+const mocks = vi.hoisted(() => ({
+  getMusicTracks: vi.fn(),
+  setProfileMusicTrack: vi.fn(),
+  stopAudio: vi.fn(),
+  getActiveAudio: vi.fn(() => null),
+  playAudioUrl: vi.fn(),
+  pauseAudio: vi.fn(),
+  resumeAudio: vi.fn(),
+}));
 
-vi.mock("./musicApi.js", () => ({ getMusicTracks, setProfileMusicTrack }));
+vi.mock("./musicApi.js", () => ({
+  getMusicTracks: mocks.getMusicTracks,
+  setProfileMusicTrack: mocks.setProfileMusicTrack,
+}));
 vi.mock("./audioController.js", () => ({
-  getActiveAudio,
-  pauseAudio,
-  playAudioUrl,
-  resumeAudio,
-  stopAudio,
+  getActiveAudio: mocks.getActiveAudio,
+  pauseAudio: mocks.pauseAudio,
+  playAudioUrl: mocks.playAudioUrl,
+  resumeAudio: mocks.resumeAudio,
+  stopAudio: mocks.stopAudio,
 }));
 
 import OnRepeat from "./OnRepeat.jsx";
@@ -38,8 +43,8 @@ describe("OnRepeat", () => {
   };
 
   it("shows the search picker for a new profile and hides it after selection", async () => {
-    getMusicTracks.mockResolvedValue([song]);
-    setProfileMusicTrack.mockResolvedValue({ profile_music_track_id: song.id });
+    mocks.getMusicTracks.mockResolvedValue([song]);
+    mocks.setProfileMusicTrack.mockResolvedValue({ profile_music_track_id: song.id });
 
     render(<OnRepeat track={null} onTrackChange={() => {}} />);
 
