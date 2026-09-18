@@ -2371,3 +2371,177 @@ button.post-metadata-pill:focus-visible {
     height: 11px;
   }
 }
+
+
+/* On Repeat fills its profile grid cell and keeps the music catalog inside a
+   dedicated scroll region so the panel never loses its available height. */
+.profile-space-repeat-wrap {
+  min-height: 0;
+  height: 100%;
+}
+.profile-space-repeat {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.profile-space-repeat > .eyebrow {
+  flex: 0 0 auto;
+}
+.profile-space-repeat > .row {
+  flex: 0 0 auto;
+}
+.profile-music-picker {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+.profile-music-search-shell {
+  min-width: 0;
+  min-height: 42px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 4px 3px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--profile-control-radius, 20px);
+  background: var(--surface);
+}
+.profile-music-search-shell > svg {
+  flex: 0 0 auto;
+}
+.profile-music-search-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 9px 4px !important;
+  border-radius: 0 !important;
+  outline: none !important;
+}
+.profile-music-dropdown-toggle {
+  width: 34px !important;
+  height: 34px !important;
+  flex: 0 0 34px;
+  padding: 0 !important;
+  border-radius: calc(var(--profile-control-radius, 20px) - 4px) !important;
+}
+.profile-music-dropdown-toggle svg {
+  transition: transform .18s ease;
+}
+.profile-music-dropdown-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+.profile-music-dropdown {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.profile-music-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+.profile-music-dropdown::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.14);
+  border-radius: 99px;
+}
+.profile-music-option {
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: max(10px, calc(var(--profile-control-radius, 20px) - 6px));
+  background: rgba(255,255,255,.025);
+  color: var(--text);
+  text-align: left;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.profile-music-option:hover {
+  background: rgba(255,255,255,.055);
+  border-color: rgba(70,218,200,.25);
+  transform: translateY(-1px);
+}
+.profile-music-option.is-selected {
+  border-color: rgba(70,218,200,.42);
+  background: rgba(70,218,200,.08);
+}
+.profile-music-option-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-music-option-copy strong,
+.profile-music-option-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-music-option-copy strong {
+  font-size: 11px;
+}
+.profile-music-option-copy span {
+  color: var(--muted);
+  font-size: 9px;
+}
+.profile-music-status {
+  flex: 0 0 auto;
+  padding: 12px;
+}
+@media (max-width: 620px) {
+  .profile-space-repeat-wrap {
+    height: 100%;
+  }
+  .profile-music-picker {
+    margin-top: 6px;
+    gap: 5px;
+  }
+  .profile-music-search-shell {
+    min-height: 31px;
+    gap: 4px;
+    padding-left: 7px;
+  }
+  .profile-music-search-shell > svg {
+    width: 11px;
+    height: 11px;
+  }
+  .profile-music-search-input {
+    padding: 5px 2px !important;
+    font-size: 8px;
+  }
+  .profile-music-dropdown-toggle {
+    width: 26px !important;
+    height: 26px !important;
+    flex-basis: 26px;
+  }
+  .profile-music-dropdown-toggle svg {
+    width: 12px;
+    height: 12px;
+  }
+  .profile-music-option {
+    gap: 6px;
+    padding: 6px 7px;
+  }
+  .profile-music-option-copy strong {
+    font-size: 8px;
+  }
+  .profile-music-option-copy span {
+    font-size: 7px;
+  }
+}
