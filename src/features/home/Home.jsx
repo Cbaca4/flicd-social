@@ -100,6 +100,34 @@ const REPORT_REASONS=[
   ['other','Other'],
 ];
 
+function PostMusic({track}) {
+  const [playing, setPlaying] = React.useState(false);
+  React.useEffect(() => () => stopAudio(), []);
+  if (!track) return null;
+  const toggle = () => {
+    if (!track.audio_url) {
+      if (track.provider_track_id) window.open(track.provider_track_id, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (playing) {
+      stopAudio();
+      setPlaying(false);
+    } else {
+      playAudioUrl(track.audio_url);
+      setPlaying(true);
+    }
+  };
+  return <div className="card" style={{marginTop:12}}>
+    <div className="row">
+      <Music2 size={16} />
+      <div style={{flex:1,minWidth:0}}><strong>{track.title}</strong><p className="subtitle">{track.artist}</p></div>
+      <button type="button" className="btn" onClick={toggle} aria-label={playing ? 'Pause post music' : track.audio_url ? 'Play post music' : 'Open music source'}>
+        {playing ? <Pause size={15}/> : track.audio_url ? <Play size={15}/> : 'Source'}
+      </button>
+    </div>
+  </div>;
+}
+
 export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect}){
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
@@ -299,6 +327,7 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
         <button className="btn" type="button" onClick={()=>onKeep(post,index)}><Bookmark size={16}/>Keep</button>
       </div>
+      <PostMusic track={post.musicTrack} />
       <section className="post-conversation" aria-label="Conversation">
         <div className="stack">
           {visibleComments.length?visibleComments.map(c=><div key={c.id} className="comment-row">
