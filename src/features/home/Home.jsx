@@ -120,7 +120,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
 
 export function DumpCard({post,onOpen}){
   const expired=timeLeft(post)==='expired';
-  const viewOnceLocked=post.mode==='once'&&!post.viewed;
+  const viewOnceLocked=post.mode==='once';
   const firstItem=post.items.find(item=>item?.imageUrl||item?.imagePath);
   const firstImage=firstItem?.imageUrl||getDumpItemMediaUrl(firstItem?.imagePath);
   return <button className="card post-card" onClick={()=>!expired&&onOpen(post)} style={{width:'100%',textAlign:'left',opacity:expired?.45:1}}>
