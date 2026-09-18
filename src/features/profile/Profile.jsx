@@ -7,10 +7,12 @@ import CompanionSettings from "../companion/CompanionSettings.jsx";
 import { normalizeCompanionSettings } from "../companion/companionSettingsConfig.js";
 import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
 import OnRepeat from "../music/OnRepeat.jsx";
+import MusicCredits from "../music/MusicCredits.jsx";
 
 function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }) {
   const [companionUserId, setCompanionUserId] = React.useState("");
   const [companionSettings, setCompanionSettings] = React.useState(() => loadCompanionSettings(""));
+  const [musicCreditsOpen, setMusicCreditsOpen] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
@@ -28,6 +30,10 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
     setCompanionSettings(normalized);
     saveCompanionSettings(companionUserId || "local", normalized);
   };
+
+  if (musicCreditsOpen) {
+    return <MusicCredits onBack={() => setMusicCreditsOpen(false)} />;
+  }
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -95,6 +101,7 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces }
 
         <div className="eyebrow" style={{ marginTop: 12 }}>Support & About</div>
         {placeholderRow(HelpCircle, "Help & Support", "FAQ, report a problem, and ways to get help with Flic'd.")}
+        {row(Info, "Music Credits & Licenses", "See the artists, source pages, and licenses used by the beta music catalog.", () => setMusicCreditsOpen(true))}
         {placeholderRow(Info, "About Flic'd", "App version, Terms, Privacy Policy, and third-party licenses.")}
 
         <div className="card" style={{ marginTop: 4 }}>
