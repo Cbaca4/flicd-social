@@ -2,12 +2,14 @@
 
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 const uploadProfilePhoto = vi.hoisted(() => vi.fn());
+const validateProfilePhoto = vi.hoisted(() => vi.fn());
 
 vi.mock("./profileMedia.js", () => ({
   uploadProfilePhoto,
+  validateProfilePhoto,
 }));
 
 vi.mock("../../lib/supabase", () => ({
@@ -44,7 +46,7 @@ if (!URL.createObjectURL) URL.createObjectURL = vi.fn(() => "blob:profile-test")
 if (!URL.revokeObjectURL) URL.revokeObjectURL = vi.fn();
 
 describe("EditProfile gallery photo upload", () => {
-  it("uploads a selected gallery image and saves its URL to the profile", async () => {
+  it("opens the cropper for a selected gallery image before uploading", async () => {
     uploadProfilePhoto.mockResolvedValue("https://cdn.example/avatar.jpg");
     const onSaved = vi.fn();
     const file = new File(["avatar"], "avatar.png", { type: "image/png" });
@@ -63,6 +65,7 @@ describe("EditProfile gallery photo upload", () => {
 
     expect(screen.getByRole("dialog", { name: "Crop profile photo" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Use this crop" })).toBeInTheDocument();
+    expect(validateProfilePhoto).toHaveBeenCalledWith(file);
     expect(uploadProfilePhoto).not.toHaveBeenCalled();
     expect(onSaved).not.toHaveBeenCalled();
   });
