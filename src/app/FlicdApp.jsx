@@ -137,6 +137,7 @@ export default function FlicdApp() {
   const [publicProfile, setPublicProfile] = React.useState(null);
   const [toast, setToast] = React.useState("");
   const [notificationsUnread, setNotificationsUnread] = React.useState(0);
+  const [viewerCommentsOpen, setViewerCommentsOpen] = React.useState(false);
 
   React.useEffect(() => {
     async function getSession() {
@@ -319,33 +320,25 @@ export default function FlicdApp() {
   const activePost = dumps.find((dump) => dump.id === activePostId);
 
   const closeViewer = React.useCallback(() => {
-    if (activePost?.mode === "once" && activePost.viewed) {
-      setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-    }
+    setViewerCommentsOpen(false);
     setActivePostId(null);
     setScreen("home");
-  }, [activePost?.id, activePost?.mode, activePost?.viewed]);
+  }, []);
   const onToast = (message) => setToast(message);
   const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
   const openPublicProfile = React.useCallback((user) => {
     if (!user?.id) return;
-    if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
-      setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-      setActivePostId(null);
-    }
+    setViewerCommentsOpen(false);
+    if (screen === "viewer") setActivePostId(null);
     stopAudio();
     setProfileMusicPlaying(false);
     setPublicProfile(user);
-  }, [activePost?.id, activePost?.mode, activePost?.viewed, screen]);
+  }, [screen]);
 
   const openDumpById = React.useCallback(async (dumpId) => {
     const existing = dumps.find((dump) => dump.id === dumpId);
     if (existing) {
-      if (existing.mode === "once" && existing.viewed) {
-        setDumps((current) => current.filter((dump) => dump.id !== dumpId));
-        onToast("That view-once Flic'd has already been opened.");
-        return;
-      }
+      setViewerCommentsOpen(false);
       setActivePostId(dumpId);
       setScreen("viewer");
       return;
@@ -576,6 +569,7 @@ export default function FlicdApp() {
     followers: activeSpace.followers,
     following: activeSpace.following,
     musicTrack: profileMusicTrack,
+    links: theme.profileLinks || [],
   };
 
   let content;
@@ -594,7 +588,28 @@ export default function FlicdApp() {
       />
     );
   } else if (screen === "home") {
-    content = <Home dumps={dumps} activeSpace={activeSpace} loading={feedState.status === "loading"} error={feedState.status === "error" ? feedState.error : ""} onRetry={loadDumps} onOpen={(post) => { setActivePostId(post.id); setScreen("viewer"); }} onUserSelect={openPublicProfile} onNotifications={() => setScreen("notifications")} notificationsUnread={notificationsUnread} />;
+    content = <Home
+      dumps={dumps}
+      activeSpace={activeSpace}
+      loading={feedState.status === "loading"}
+      error={feedState.status === "error" ? feedState.error : ""}
+      onRetry={loadDumps}
+      onOpen={(post) => {
+        setViewerCommentsOpen(false);
+        setActivePostId(post.id);
+        setScreen("viewer");
+      }}
+      onCommentOpen={(post) => {
+        setViewerCommentsOpen(true);
+        setActivePostId(post.id);
+        setScreen("viewer");
+      }}
+      onLike={toggleLike}
+      pendingLikeIds={pendingLikeIds}
+      onUserSelect={openPublicProfile}
+      onNotifications={() => setScreen("notifications")}
+      notificationsUnread={notificationsUnread}
+    />;
   } else if (screen === "discover") {
     content = <Discovery onToast={onToast} onUserSelect={openPublicProfile} />;
   } else if (screen === "messages") {
@@ -602,11 +617,45 @@ export default function FlicdApp() {
   } else if (screen === "profile") {
     content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
-    content = <ProfileStudio profile={profile} theme={theme} onClose={() => setScreen("profile")} onChangeTheme={setTheme} onSaved={(updatedTheme) => { setTheme(updatedTheme); setScreen("profile"); onToast("Profile saved"); }} />;
+    content = <ProfileStudio
+      profile={profile}
+      theme={theme}
+      onClose={() => setScreen("profile")}
+      onChangeTheme={setTheme}
+      onSaved={async (updatedTheme) => {
+        if (!supabaseProfile?.id) throw new Error("Profile is still loading.");
+        const normalized = sanitizeProfileTheme(updatedTheme);
+        const { data, error } = await supabase
+          .from("profiles")
+          .update({
+            profile_theme: normalized,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", supabaseProfile.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setSupabaseProfile(data);
+        setTheme(normalized);
+        setScreen("profile");
+        onToast("Profile saved");
+      }}
+    />;
   } else if (screen === "boards") {
     content = <Boards dumps={dumps} keptItems={kept} initialBoardId={openBoardId} onBack={() => { setOpenBoardId(null); setScreen("profile"); }} onToast={onToast} />;
   } else if (screen === "edit-profile") {
-    content = <EditProfile profile={profile} onBack={() => setScreen("profile")} onSaved={(updatedProfile) => { setSupabaseProfile(updatedProfile); if (updatedProfile?.profile_theme) setTheme(sanitizeProfileTheme(updatedProfile.profile_theme)); setScreen("profile"); }} onToast={onToast} />;
+    content = <EditProfile
+      profile={profile}
+      profileTheme={theme}
+      onBack={() => setScreen("profile")}
+      onSaved={(updatedProfile) => {
+        setSupabaseProfile(updatedProfile);
+        if (updatedProfile?.profile_theme) setTheme(sanitizeProfileTheme(updatedProfile.profile_theme));
+        setScreen("profile");
+      }}
+      onToast={onToast}
+    />;
   } else if (screen === "spaces") {
     content = <SpaceSwitcher spaces={spaces} activeSpaceId={activeSpaceId} setActiveSpaceId={setActiveSpaceId} onClose={() => setScreen("profile")} />;
   } else if (screen === "create-choose") {
@@ -616,7 +665,7 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
+    content = activePost ? <Viewer post={activePost} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
           setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
           markDumpViewed(dumpId).catch((error) => console.error("Failed to record view-once post:", error));
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
@@ -631,10 +680,8 @@ export default function FlicdApp() {
         screen={navigationScreen}
         onNavigate={(key) => {
           setPublicProfile(null);
-          if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
-            setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-            setActivePostId(null);
-          }
+          setViewerCommentsOpen(false);
+          if (screen === "viewer") setActivePostId(null);
           if (!PROFILE_SCREENS.has(key)) {
             stopAudio();
             setProfileMusicPlaying(false);
@@ -643,10 +690,8 @@ export default function FlicdApp() {
         }}
         onCapture={() => {
           setPublicProfile(null);
-          if (screen === "viewer" && activePost?.mode === "once" && activePost?.viewed) {
-            setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
-            setActivePostId(null);
-          }
+          setViewerCommentsOpen(false);
+          if (screen === "viewer") setActivePostId(null);
           stopAudio();
           setProfileMusicPlaying(false);
           setScreen("create-choose");
