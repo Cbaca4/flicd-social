@@ -407,6 +407,26 @@ export default function ProfileStudio({
     );
   };
 
+  const setGlobalRadius = (value) => {
+    const radius = Number(value);
+    setDraft((current) =>
+      sanitizeProfileTheme({
+        ...current,
+        radius,
+        sectionStyles: Object.fromEntries(
+          Object.entries(current.sectionStyles || {}).map(([key, style]) => [
+            key,
+            { ...style, radius },
+          ]),
+        ),
+        buttonStyle: {
+          ...current.buttonStyle,
+          radius: Math.min(24, radius),
+        },
+      }),
+    );
+  };
+
   const applySeasonal = () => {
     setDraft((current) =>
       sanitizeProfileTheme(getSeasonalProfileTheme(current)),
@@ -772,25 +792,6 @@ export default function ProfileStudio({
 
           {isPrivate && <FollowRequests />}
 
-          <div className="profile-studio-field">
-            <label className="eyebrow">Corners</label>
-            <div className="wrap" style={{ marginTop: 8 }}>
-              {[14, 18, 22, 28, 34].map((value) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={
-                    "pill " +
-                    (draft.radius === value ? "active" : "")
-                  }
-                  onClick={() => update("radius", value)}
-                >
-                  {value}px
-                </button>
-              ))}
-            </div>
-          </div>
-
           <section className="card" style={{ margin: 0 }}>
             <div className="eyebrow">Sections</div>
             <p className="subtitle" style={{ marginTop: 4 }}>
@@ -901,37 +902,30 @@ export default function ProfileStudio({
                       ))}
                     </div>
 
-                    <label
-                      className="subtitle"
-                      style={{
-                        display: "block",
-                        marginTop: 8,
-                      }}
-                    >
-                      Roundness
-                      <input
-                        type="range"
-                        min="12"
-                        max="36"
-                        value={style.radius || 20}
-                        onChange={(eventValue) =>
-                          setSectionStyle(
-                            key,
-                            "radius",
-                            Number(eventValue.target.value),
-                          )
-                        }
-                        style={{
-                          width: "100%",
-                          marginTop: 6,
-                        }}
-                        aria-label={label + " roundness"}
-                      />
-                    </label>
                   </div>
                 );
               })}
             </div>
+          </section>
+
+          <section className="card profile-studio-global-radius" style={{ margin: 0 }}>
+            <div className="row" style={{ justifyContent: "space-between", gap: 10 }}>
+              <div>
+                <div className="eyebrow">Roundness</div>
+                <p className="subtitle" style={{ marginTop: 4 }}>One control for every profile component, text container, and button.</p>
+              </div>
+              <strong>{Number(draft.radius || 22)}px</strong>
+            </div>
+            <input
+              type="range"
+              min="12"
+              max="36"
+              step="1"
+              value={draft.radius || 22}
+              onChange={(eventValue) => setGlobalRadius(eventValue.target.value)}
+              style={{ width: "100%", marginTop: 8 }}
+              aria-label="Global roundness"
+            />
           </section>
 
           <section className="card" style={{ margin: 0 }}>
@@ -975,33 +969,6 @@ export default function ProfileStudio({
                 </label>
               ))}
             </div>
-
-            <label
-              className="subtitle"
-              style={{
-                display: "block",
-                marginTop: 8,
-              }}
-            >
-              Button roundness
-              <input
-                type="range"
-                min="8"
-                max="24"
-                value={draft.buttonStyle.radius}
-                onChange={(eventValue) =>
-                  setButtonStyle(
-                    "radius",
-                    Number(eventValue.target.value),
-                  )
-                }
-                style={{
-                  width: "100%",
-                  marginTop: 6,
-                }}
-                aria-label="Button roundness"
-              />
-            </label>
 
             <label
               className="row"
