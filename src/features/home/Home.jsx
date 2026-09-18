@@ -1,5 +1,5 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,Pause,Play,MapPin,Volume2,VolumeX} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Search,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import UserSearch from './UserSearch.jsx';
 import PublicProfile from '../profile/PublicProfile.jsx';
@@ -58,13 +58,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
     </>
   ) : null;
 
-  const locationMeta = post.location ? (
-    <div className="post-location-overlay" aria-label="Post location">
-      <MapPin size={13} />
-      <span>{post.location.name}</span>
-      {distanceLabel && <span className="post-location-distance">· {distanceLabel}</span>}
-    </div>
-  ) : null;
+
 
   if (imageUrl && !failed) {
     return (
@@ -79,7 +73,6 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
         {musicOverlay}
-        {locationMeta}
         <div style={{ position: "absolute", left: 12, right: 12, bottom: 12 }}>
           <span className="tag">{authorIdentity} · {post.mood}</span>
           {item?.note && <div className="media-text" style={{ marginTop: 10 }}>{item.note}</div>}
@@ -94,7 +87,6 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
       style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1" }}
     >
       {musicOverlay}
-      {locationMeta}
       <div>
         {authorIdentity}
         <span className="tag"> · {post.mood}</span>
