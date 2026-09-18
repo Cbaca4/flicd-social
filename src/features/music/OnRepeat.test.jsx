@@ -52,7 +52,7 @@ describe("OnRepeat", () => {
     fireEvent.click(await screen.findByRole("option", { name: /Night Drive Ketsa/i }));
 
     await waitFor(() => {
-      expect(setProfileMusicTrack).toHaveBeenCalledWith("song-1");
+      expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith("song-1");
       expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
       expect(screen.getByText("Night Drive")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Remove profile music" })).toBeInTheDocument();
