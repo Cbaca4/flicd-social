@@ -80,6 +80,7 @@ const PROFILE_SCREENS = new Set([
   "edit-profile",
   "spaces",
   "notifications",
+  "archive",
 ]);
 
 function formatDumpRecord(dump) {
@@ -361,7 +362,7 @@ export default function FlicdApp() {
     stopAudio();
     setProfileMusicPlaying(false);
     setPublicProfile(user);
-  }, [screen]);
+  }, [screen, activePost?.id, activePost?.mode, activePost?.viewed]);
 
   const openDumpById = React.useCallback(async (dumpId) => {
     const existing = dumps.find((dump) => dump.id === dumpId);
@@ -734,7 +735,12 @@ export default function FlicdApp() {
         onCapture={() => {
           setPublicProfile(null);
           setViewerCommentsOpen(false);
-          if (screen === "viewer") setActivePostId(null);
+          if (screen === "viewer") {
+            if (activePost?.mode === "once" && activePost.viewed) {
+              setDumps((current) => current.filter((dump) => dump.id !== activePost.id));
+            }
+            setActivePostId(null);
+          }
           stopAudio();
           setProfileMusicPlaying(false);
           setScreen("create-choose");
