@@ -13,6 +13,7 @@ export async function createDump({
   musicTrackId = null,
   location = null,
   taggedUserIds = [],
+  allowOthersToKeep = false,
 }) {
   const userId = await getCurrentUserId();
 
@@ -27,6 +28,7 @@ export async function createDump({
       context,
       frame_count: frameCount,
       music_track_id: musicTrackId,
+      allow_others_to_keep: expiry === "24h" && Boolean(allowOthersToKeep),
       location_name: location?.name || null,
       location_city: location?.city || null,
       location_lat: Number.isFinite(Number(location?.latitude)) ? Number(location.latitude) : null,
