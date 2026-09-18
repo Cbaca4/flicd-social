@@ -19,7 +19,7 @@ export default function OnRepeat({
   const [localPlaying, setLocalPlaying] = React.useState(false);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
-  const [songsOpen, setSongsOpen] = React.useState(false);
+  const [songsOpen, setSongsOpen] = React.useState(true);
   const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
@@ -59,7 +59,7 @@ export default function OnRepeat({
     setTrack(nextTrack);
     onTrackChange?.(nextTrack);
     setPickerOpen(true);
-    setSongsOpen(false);
+    setSongsOpen(true);
     setQuery("");
   };
 
