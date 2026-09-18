@@ -160,3 +160,11 @@ body { overflow-x: hidden; }
   .onboarding-card { width: 100%; max-width: 680px; box-sizing: border-box; }
   .onboarding-card .row { flex-wrap: wrap; }
 }
+ 
+/* Keep the Profile screen scrollable above the fixed mobile dock. */
+@media (max-width: 900px) {
+  .profile-screen {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+}

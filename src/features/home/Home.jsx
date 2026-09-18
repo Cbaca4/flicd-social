@@ -1,5 +1,5 @@
 import React from 'react';
-import {Heart,MessageCircle,Eye,Bookmark,ChevronRight,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
+import {Heart,MessageCircle,Eye,Bookmark,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
 import { getDumpItemMediaUrl } from './mediaUrl.js';
@@ -21,6 +21,41 @@ function timeLeft(post){
 
 const gradients=['linear-gradient(145deg,#2f3a40,#12161b)','linear-gradient(145deg,#493221,#17120e)','linear-gradient(145deg,#293f39,#111816)','linear-gradient(145deg,#3b293d,#17121a)'];
 
+function PostMetadataCarousel({ post, distanceLabel = "" }) {
+  const hasMusic = Boolean(post?.musicTrack?.title || post?.musicTrack?.artist);
+  const hasLocation = Boolean(post?.location?.name);
+
+  if (!hasMusic && !hasLocation) return null;
+
+  return (
+    <div className="post-metadata-carousel" data-media-interactive="true" aria-label="Post details">
+      <div className="post-metadata-carousel-track">
+        {hasMusic && (
+          <div className="post-metadata-chip post-metadata-chip--music">
+            {post.musicTrack.cover_url ? (
+              <img src={post.musicTrack.cover_url} alt="" className="post-metadata-art" />
+            ) : (
+              <span className="post-metadata-art post-metadata-art-fallback"><Music2 size={13} /></span>
+            )}
+            <span className="post-metadata-copy">
+              <strong>{post.musicTrack.title || "On repeat"}</strong>
+              {post.musicTrack.artist && <span>{post.musicTrack.artist}</span>}
+            </span>
+          </div>
+        )}
+
+        {hasLocation && (
+          <div className="post-metadata-chip">
+            <MapPin size={13} />
+            <span>{post.location.name}</span>
+            {distanceLabel && <span className="post-metadata-distance">· {distanceLabel}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, onReveal }) {
   const [failed, setFailed] = React.useState(false);
   const imageUrl = item?.imageUrl || getDumpItemMediaUrl(item?.imagePath);
@@ -30,51 +65,44 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
     ? <button type="button" className="tag" onClick={(event) => { event.stopPropagation(); openAuthor(); }} aria-label={`Open profile @${authorLabel}`}>@{authorLabel}</button>
     : <span className="tag">@{authorLabel}</span>;
 
-  const musicOverlay = post.musicTrack ? (
-    <>
-      <div className="post-music-overlay" aria-label="Post music">
-        {post.musicTrack.cover_url ? (
-          <img src={post.musicTrack.cover_url} alt="" className="post-music-art" />
-        ) : (
-          <span className="post-music-art post-music-art-fallback"><Music2 size={15} /></span>
-        )}
-        <div className="post-music-copy">
-          <strong>{post.musicTrack.title}</strong>
-          <span>{post.musicTrack.artist}</span>
-        </div>
-        {musicPlaying && <span className="post-music-live" aria-label="Music playing" />}
-      </div>
-      <button
-        type="button"
-        className="post-music-toggle"
-        onClick={(event) => { event.stopPropagation(); onToggleMusic?.(); }}
-        aria-label={musicMuted ? "Unmute post music" : "Mute post music"}
-        aria-pressed={musicMuted}
-      >
-        {musicMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-      </button>
-    </>
+  const musicToggle = post.musicTrack ? (
+    <button
+      type="button"
+      className="post-music-toggle"
+      data-media-interactive="true"
+      onClick={(event) => { event.stopPropagation(); onToggleMusic?.(); }}
+      aria-label={musicMuted ? "Unmute post music" : "Mute post music"}
+      aria-pressed={musicMuted}
+    >
+      {musicMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+    </button>
   ) : null;
-
-
 
   if (imageUrl && !failed) {
     return (
-      <div
-        className="post-media"
-        style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1", position: "relative", overflow: "hidden" }}
-      >
+      <div className="post-media" style={{ background: gradients[((Number(post.id) || 0) + index) % gradients.length] }}>
         <img
           src={imageUrl}
           alt={item?.note || `Moment ${index + 1}`}
           onError={() => setFailed(true)}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", filter: blurred ? "blur(22px)" : "none", transform: blurred ? "scale(1.08)" : "none" }}
+          style={{
+            width: "100%",
+            height: "auto",
+            maxHeight: "min(72dvh, 760px)",
+            objectFit: "contain",
+            objectPosition: "center",
+            display: "block",
+            filter: blurred ? "blur(22px)" : "none",
+            transform: blurred ? "scale(1.08)" : "none",
+          }}
         />
-        {musicOverlay}
+        <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
+        {musicToggle}
         {blurred && (
           <button
             type="button"
             className="view-once-reveal"
+            data-media-interactive="true"
             onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
             aria-label="Tap to view once"
           >
@@ -83,24 +111,24 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
             <span>You'll only get one look.</span>
           </button>
         )}
-        <div style={{ position: "absolute", left: 12, right: 12, bottom: 12 }}>
-          <span className="tag">{authorIdentity} · {post.mood}</span>
-          {item?.note && <div className="media-text" style={{ marginTop: 10 }}>{item.note}</div>}
+        <div className="post-media-context">
+          <span className="tag">
+            {authorIdentity} · {post.mood}
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="post-media"
-      style={{ background: gradients[(post.id + index) % gradients.length], aspectRatio: "1/1" }}
-    >
-      {musicOverlay}
+    <div className="post-media post-media-placeholder" style={{ background: gradients[((Number(post.id) || 0) + index) % gradients.length] }}>
+      <PostMetadataCarousel post={post} distanceLabel={distanceLabel} />
+      {musicToggle}
       {blurred && (
         <button
           type="button"
           className="view-once-reveal"
+          data-media-interactive="true"
           onClick={(event) => { event.stopPropagation(); onReveal?.(); }}
           aria-label="Tap to view once"
         >
@@ -109,11 +137,153 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
           <span>You'll only get one look.</span>
         </button>
       )}
-      <div>
-        {authorIdentity}
-        <span className="tag"> · {post.mood}</span>
-        <div className="media-text" style={{ marginTop: 12 }}>{item?.note || "a little piece of the day"}</div>
+      <div className="post-media-context">
+        <span className="tag">
+          {authorIdentity} · {post.mood}
+        </span>
       </div>
+    </div>
+  );
+}
+
+function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMuted, musicPlaying, onToggleMusic, distanceLabel, revealedOnce, onReveal }) {
+  const [dragX, setDragX] = React.useState(0);
+  const [dragging, setDragging] = React.useState(false);
+  const viewportRef = React.useRef(null);
+  const gestureRef = React.useRef(null);
+
+  const moveTo = React.useCallback((nextIndex) => {
+    const last = Math.max(0, (post.items?.length || 1) - 1);
+    onIndexChange?.(Math.max(0, Math.min(last, nextIndex)));
+  }, [onIndexChange, post.items?.length]);
+
+  React.useEffect(() => {
+    moveTo(index);
+    setDragX(0);
+    setDragging(false);
+    gestureRef.current = null;
+  }, [moveTo, post.id]);
+
+  React.useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (post.items?.length < 2) return;
+      if (event.target?.closest?.("input, textarea, select, [contenteditable='true'], button, a")) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveTo(index - 1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveTo(index + 1);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [index, moveTo, post.items?.length]);
+
+  const handlePointerDown = (event) => {
+    if (post.items?.length < 2) return;
+    if (event.isPrimary === false) return;
+    if (event.button !== undefined && event.button !== 0) return;
+    if (event.target?.closest?.("[data-media-interactive], button, input, textarea, select, video, audio, a")) return;
+
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      axis: null,
+      startTime: performance.now(),
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = (event) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+    gesture.lastX = event.clientX;
+
+    if (!gesture.axis && (Math.abs(deltaX) > 8 || Math.abs(deltaY) > 8)) {
+      gesture.axis = Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y";
+    }
+
+    if (gesture.axis !== "x") return;
+
+    const atStart = index === 0 && deltaX > 0;
+    const atEnd = index === (post.items?.length || 1) - 1 && deltaX < 0;
+    setDragging(true);
+    setDragX(deltaX * (atStart || atEnd ? 0.28 : 1));
+  };
+
+  const finishPointer = (event) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - gesture.startX;
+    const elapsed = Math.max(1, performance.now() - gesture.startTime);
+    const velocity = Math.abs(deltaX) / elapsed;
+    const threshold = Math.max(52, Math.min(112, (viewportRef.current?.clientWidth || 320) * 0.16));
+    const fastEnough = velocity > 0.42 && Math.abs(deltaX) > 26;
+
+    if (gesture.axis === "x") {
+      if (deltaX < -threshold || (fastEnough && deltaX < -26)) moveTo(index + 1);
+      if (deltaX > threshold || (fastEnough && deltaX > 26)) moveTo(index - 1);
+    }
+
+    setDragX(0);
+    setDragging(false);
+    gestureRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  };
+
+  return (
+    <div
+      ref={viewportRef}
+      className="post-media-viewport"
+      role="group"
+      aria-label="Photo viewer"
+      tabIndex={0}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={finishPointer}
+      onPointerCancel={finishPointer}
+    >
+      <div
+        className="post-media-track"
+        style={{
+          transform: `translate3d(calc(-${index * 100}% + ${dragX}px), 0, 0)`,
+          transition: dragging ? "none" : "transform 280ms cubic-bezier(.22,.61,.36,1)",
+        }}
+      >
+        {(post.items || []).map((item, itemIndex) => (
+          <div className="post-media-slide" key={item?.id || `${post.id}-${itemIndex}`}>
+            <MediaFrame
+              item={item}
+              index={itemIndex}
+              post={post}
+              onUserSelect={onUserSelect}
+              musicMuted={musicMuted}
+              musicPlaying={musicPlaying}
+              onToggleMusic={onToggleMusic}
+              distanceLabel={distanceLabel}
+              blurred={post.mode === "once" && itemIndex === index && !revealedOnce}
+              onReveal={() => {
+                if (itemIndex !== index || post.mode !== "once" || revealedOnce) return;
+                onReveal?.();
+              }}
+            />
+          </div>
+        ))}
+      </div>
+      {post.items?.length > 1 && (
+        <span className="post-media-counter flicd-mono" aria-live="polite">
+          {index + 1}/{post.items.length}
+        </span>
+      )}
     </div>
   );
 }
@@ -124,11 +294,11 @@ export function DumpCard({post,onOpen}){
   const firstItem=post.items.find(item=>item?.imageUrl||item?.imagePath);
   const firstImage=firstItem?.imageUrl||getDumpItemMediaUrl(firstItem?.imagePath);
   return <button className="card post-card" onClick={()=>!expired&&onOpen(post)} style={{width:'100%',textAlign:'left',opacity:expired?.45:1}}>
-    <div className="post-media" style={{background:gradients[post.id%gradients.length],position:'relative',overflow:'hidden'}}>
-      {firstImage&&<img src={firstImage} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',opacity:viewOnceLocked?.5:.86,filter:viewOnceLocked?'blur(22px)':'none',transform:viewOnceLocked?'scale(1.08)':'none'}}/>}
+    <div className="post-media" style={{background:gradients[(Number(post.id)||0)%gradients.length],position:'relative',overflow:'hidden'}}>
+      {firstImage&&<img src={firstImage} alt="" style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'contain',objectPosition:'center',opacity:viewOnceLocked?.5:.86,filter:viewOnceLocked?'blur(22px)':'none',transform:viewOnceLocked?'scale(1.04)':'none'}}/>}
+      <PostMetadataCarousel post={post} />
       {viewOnceLocked&&<div className="view-once-feed-overlay"><Eye size={20}/><strong>View once</strong><span>Tap to open</span></div>}
-      <div style={{position:'relative',zIndex:1}}><span className="tag">{post.mood}</span><div className="media-text" style={{marginTop:10}}>{post.items.length} moments</div></div>
-      <span className="tag flicd-mono" style={{position:'relative',zIndex:1,marginLeft:'auto',alignSelf:'flex-start',color:post.mode==='once'?'var(--danger)':'var(--amber)'}}>{post.mode==='once'&&<Eye size={11} style={{marginRight:4}}/>}{timeLeft(post)}</span>
+      <div style={{position:'relative',zIndex:2,display:'flex',justifyContent:'space-between',alignItems:'flex-start',width:'100%'}}><span className="tag">{post.mood}</span><span className="tag flicd-mono" style={{color:post.mode==='once'?'var(--danger)':'var(--amber)'}}>{post.mode==='once'&&<Eye size={11} style={{marginRight:4}}/>}{timeLeft(post)}</span></div>
     </div>
     <div className="meta"><div><strong>@{post.authorName||post.author}</strong><div className="subtitle" style={{marginTop:3}}>{post.context||'shared a moment'}</div></div><div className="row muted"><span className="row"><Heart size={14} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</span><span className="row"><MessageCircle size={14}/>{post.comments.length}</span></div></div>
   </button>;
@@ -206,6 +376,7 @@ const REPORT_REASONS=[
 export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect}){
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
+  const [commentsOpen,setCommentsOpen]=React.useState(false);
   const [recording,setRecording]=React.useState(false);
   const [voiceReviewBlob,setVoiceReviewBlob]=React.useState(null);
   const [voiceReviewUrl,setVoiceReviewUrl]=React.useState('');
@@ -232,6 +403,11 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   React.useEffect(() => {
     setRevealedOnce(post.mode !== "once" || Boolean(post.viewed));
   }, [post.id, post.mode, post.viewed]);
+
+  React.useEffect(() => {
+    setIndex(0);
+    setCommentsOpen(false);
+  }, [post.id]);
 
   React.useEffect(() => {
     const track = post.musicTrack;
@@ -488,21 +664,15 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       <button className="btn icon-btn" onClick={onClose} aria-label="Close">×</button>
       <span className="tag flicd-mono">{timeLeft(post)}</span>
     </div>
-    <div className="card">
-      <MediaFrame
-        item={post.items[index]}
-        index={index}
+    <div className="viewer-post">
+      <SwipeMediaCarousel
         post={post}
+        index={index}
+        onIndexChange={setIndex}
         onUserSelect={onUserSelect}
         musicMuted={musicMuted}
         musicPlaying={musicPlaying}
         onToggleMusic={toggleMusic}
-        blurred={post.mode === "once" && !revealedOnce}
-        onReveal={() => {
-          if (post.mode !== "once" || revealedOnce) return;
-          setRevealedOnce(true);
-          onMarkViewed?.(post.id);
-        }}
         distanceLabel={
           viewerLocation && post.location
             ? formatDistanceKm(distanceKm(
@@ -513,8 +683,19 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
               ))
             : ""
         }
+        revealedOnce={revealedOnce}
+        onReveal={() => {
+          if (post.mode !== "once" || revealedOnce) return;
+          setRevealedOnce(true);
+          onMarkViewed?.(post.id);
+        }}
       />
-      {post.items.length>1&&<div className="row" style={{justifyContent:'space-between',marginTop:10}}><button className="btn" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronRight size={16} style={{transform:'rotate(180deg)'}}/></button><span className="flicd-mono muted">{index+1}/{post.items.length}</span><button className="btn" disabled={index===post.items.length-1} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={16}/></button></div>}
+      {(post.caption || post.items?.[0]?.note) && (
+        <section className="post-caption-section" aria-label="Caption">
+          <div className="eyebrow">Caption</div>
+          <p>{post.caption || post.items?.[0]?.note}</p>
+        </section>
+      )}
       <div className="post-actions">
         <button className="btn" type="button" disabled={likePending} aria-label={post.liked?'Unlike':'Like'} onClick={()=>onLike(post.id)}><Heart size={16} fill={post.liked?'var(--amber)':'none'} color={post.liked?'var(--amber)':'currentColor'}/>{post.likes}</button>
         <button className="btn" type="button" disabled={!canKeep} onClick={()=>canKeep&&onKeep(post,index)} aria-label={canKeep ? "Keep" : "Keep unavailable"}><Bookmark size={16}/>{canKeep ? "Keep" : "Keep unavailable"}</button>
@@ -534,13 +715,29 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         </div>
       )}
       <section className="post-conversation" aria-label="Conversation">
-        <div className="stack">
-          {visibleComments.length?visibleComments.map(c=><div key={c.id} className="comment-row">
-            {(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia comment={c}/>:<p className="subtitle">{onUserSelect?<button type="button" className="comment-author-link" onClick={()=>openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>:<strong style={{color:'var(--text)'}}>@{c.from}</strong>} {c.text}</p>}
-            {resolvedCurrentUserId&&c.user_id===resolvedCurrentUserId&&<button className="btn comment-delete-btn" type="button" aria-label="Delete comment" disabled={deletingCommentId===c.id} onClick={()=>handleDeleteComment(c.id)}>{deletingCommentId===c.id?'Deleting…':'Delete'}</button>}
-            {resolvedCurrentUserId&&c.user_id&&c.user_id!==resolvedCurrentUserId&&!reportedCommentIds.has(c.id)&&<button className="btn comment-report-btn" type="button" aria-label="Report comment" disabled={reporting} onClick={()=>{setReportMessage('');setReportError('');setReportingCommentId(c.id);}}>Report</button>}
-            {resolvedCurrentUserId&&reportedCommentIds.has(c.id)&&<span className="tag" aria-label="Comment reported">Reported</span>}
-          </div>):<p className="subtitle">No comments yet.</p>}
+        <div className="post-comment-summary">
+          {visibleComments.length === 0 && <p className="subtitle">No comments yet.</p>}
+          {visibleComments.length > 1 && (
+            <button
+              type="button"
+              className="post-comments-toggle"
+              onClick={() => setCommentsOpen((open) => !open)}
+              aria-expanded={commentsOpen}
+            >
+              {commentsOpen ? "Close comments" : "Open comments"}
+              <span className="flicd-mono">{visibleComments.length}</span>
+            </button>
+          )}
+          {(visibleComments.length === 1 || commentsOpen) && (
+            <div className="stack post-comment-list">
+              {visibleComments.map(c=><div key={c.id} className="comment-row">
+                {(c.media_type==='audio'||c.media_type==='video'||c.media_type==='gif')?<SavedCommentMedia comment={c}/>:<p className="subtitle">{onUserSelect?<button type="button" className="comment-author-link" onClick={()=>openCommentAuthor(c)} aria-label={`Open profile @${c.from}`}>@{c.from}</button>:<strong style={{color:'var(--text)'}}>@{c.from}</strong>} {c.text}</p>}
+                {resolvedCurrentUserId&&c.user_id===resolvedCurrentUserId&&<button className="btn comment-delete-btn" type="button" aria-label="Delete comment" disabled={deletingCommentId===c.id} onClick={()=>handleDeleteComment(c.id)}>{deletingCommentId===c.id?'Deleting…':'Delete'}</button>}
+                {resolvedCurrentUserId&&c.user_id&&c.user_id!==resolvedCurrentUserId&&!reportedCommentIds.has(c.id)&&<button className="btn comment-report-btn" type="button" aria-label="Report comment" disabled={reporting} onClick={()=>{setReportMessage('');setReportError('');setReportingCommentId(c.id);}}>Report</button>}
+                {resolvedCurrentUserId&&reportedCommentIds.has(c.id)&&<span className="tag" aria-label="Comment reported">Reported</span>}
+              </div>)}
+            </div>
+          )}
           {reportMessage&&<p className="subtitle" role="status">{reportMessage}</p>}
         </div>
         {reportingCommentId&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Report comment" onMouseDown={(event)=>{if(event.target===event.currentTarget&&!reporting)setReportingCommentId(null);}}>

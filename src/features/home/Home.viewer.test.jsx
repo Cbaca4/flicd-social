@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
@@ -106,4 +106,79 @@ expect(image.getAttribute("src")).toBe(
   "https://cdn.example.com/user-1/rooftop.jpg"
 );
   });
+
+  it("switches to the next photo with a horizontal swipe", () => {
+    const swipePost = {
+      id: "swipe-1",
+      author: "baco",
+      mood: "late night",
+      mode: "dump",
+      postedMinutesAgo: 5,
+      likes: 2,
+      liked: false,
+      comments: [],
+      items: [
+        { id: "frame-1", note: "first frame" },
+        { id: "frame-2", note: "second frame" },
+      ],
+    };
+
+    render(
+      <Viewer
+        post={swipePost}
+        currentUserId="me"
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />
+    );
+
+    const viewport = screen.getByRole("group", { name: "Photo viewer" });
+
+    fireEvent.pointerDown(viewport, { pointerId: 1, clientX: 300, clientY: 200, button: 0, isPrimary: true });
+    fireEvent.pointerMove(viewport, { pointerId: 1, clientX: 100, clientY: 204, isPrimary: true });
+    fireEvent.pointerUp(viewport, { pointerId: 1, clientX: 100, clientY: 204, isPrimary: true });
+
+    expect(screen.getByText("2/2")).toBeInTheDocument();
+  });
+
+  it("collapses multiple comments behind Open comments until requested", () => {
+    const manyCommentsPost = {
+      id: "comments-2",
+      author: "baco",
+      mood: "late night",
+      mode: "dump",
+      postedMinutesAgo: 5,
+      likes: 2,
+      liked: false,
+      comments: [
+        { id: "comment-a", user_id: "friend-a", from: "mia", text: "first comment" },
+        { id: "comment-b", user_id: "friend-b", from: "alex", text: "second comment" },
+      ],
+      items: [{ id: "frame-1", note: "one frame" }],
+    };
+
+    render(
+      <Viewer
+        post={manyCommentsPost}
+        currentUserId="me"
+        onClose={() => {}}
+        onLike={() => {}}
+        onComment={() => {}}
+        onKeep={() => {}}
+        onMarkViewed={() => {}}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: /open comments/i })).toBeInTheDocument();
+    expect(screen.queryByText("first comment")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /open comments/i }));
+
+    expect(screen.getByText("first comment")).toBeInTheDocument();
+    expect(screen.getByText("second comment")).toBeInTheDocument();
+  });
+
 });

@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabase";
 import { getPeopleSuggestions } from "../social/socialApi.js";
 
 function PersonCard({ person, onUserSelect }) {
-  return <div className="card"><div className="row" style={{ alignItems: "center" }}><button type="button" onClick={() => onUserSelect?.(person)} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", color: "inherit", padding: 0, textAlign: "left", cursor: "pointer" }} aria-label={`Open profile @${person.username || "unknown"}`}><div className="avatar">{(person.username || person.display_name || "?")[0].toUpperCase()}</div><div style={{ minWidth: 0 }}><strong>@{person.username || "unknown"}</strong><div className="subtitle">{person.display_name || ""}</div>{person.bio && <div className="subtitle" style={{ marginTop: 4 }}>{person.bio}</div>}{person.sharedInterests?.length > 0 && <div className="subtitle" style={{ marginTop: 5 }}>You both like {person.sharedInterests.slice(0, 3).join(" · ")}</div>}</div></button><FollowButton userId={person.id} compact /></div></div>;
+  return <div className="card"><div className="row" style={{ alignItems: "center" }}><button type="button" onClick={() => onUserSelect?.(person)} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 12, border: 0, background: "transparent", color: "inherit", padding: 0, textAlign: "left", cursor: "pointer" }} aria-label={`Open profile @${person.username || "unknown"}`}><div className="avatar">{(person.username || "?")[0].toUpperCase()}</div><div style={{ minWidth: 0 }}><strong>@{person.username || "unknown"}</strong></div></button><FollowButton userId={person.id} compact /></div></div>;
 }
 
 export default function PeopleDiscovery({ onUserSelect }) {
@@ -35,7 +35,7 @@ export default function PeopleDiscovery({ onUserSelect }) {
       setSearchError("");
       const { data, error } = await supabase
         .from("profiles")
-        .select("id,username,display_name,bio,avatar_url,profile_theme,is_private")
+        .select("id,username,avatar_url,is_private")
         .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
         .limit(18);
       if (cancelled) return;
