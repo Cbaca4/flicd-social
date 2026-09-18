@@ -51,28 +51,43 @@ vi.mock("../features/profile/BoardStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/ProfileStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/EditProfile.jsx", () => ({ default: () => <div>Edit Profile</div> }));
 vi.mock("../features/discovery/Discovery.jsx", () => ({
-  default: ({ onUserSelect }) => (
-    <div>
-      <div>Discovery</div>
-      <div>People</div>
-      <button
-        type="button"
-        aria-label="Search people"
-        onClick={() => onUserSelect?.({
-          id: "profile-123",
-          username: "maren_",
-          display_name: "Maren",
-          bio: "moments + coffee",
-          avatar_url: "",
-          followers: 42,
-          following: 18,
-          profile_theme: null,
-        })}
-      >
-        Search people
-      </button>
-    </div>
-  ),
+  default: ({ onUserSelect }) => {
+    const [searched, setSearched] = React.useState(false);
+
+    const maren = {
+      id: "profile-123",
+      username: "maren_",
+      display_name: "Maren",
+      bio: "moments + coffee",
+      avatar_url: "",
+      followers: 42,
+      following: 18,
+      profile_theme: null,
+    };
+
+    return (
+      <div>
+        <div>Discovery</div>
+        <div>People</div>
+        <button
+          type="button"
+          aria-label="Search people"
+          onClick={() => setSearched(true)}
+        >
+          Search people
+        </button>
+        {searched ? (
+          <button
+            type="button"
+            aria-label="Open Maren"
+            onClick={() => onUserSelect?.(maren)}
+          >
+            Maren
+          </button>
+        ) : null}
+      </div>
+    );
+  },
 }));
 vi.mock("../features/messages/Messages.jsx", () => ({ default: () => <div>Messages</div> }));
 vi.mock("../features/spaces/SpaceSwitcher.jsx", () => ({ default: () => <div>Spaces</div> }));
