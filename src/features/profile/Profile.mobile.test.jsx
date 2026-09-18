@@ -114,6 +114,9 @@ describe("handheld profile layout", () => {
     expect(screen.queryByLabelText("Profile status")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Profile message")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Global roundness")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Profile header roundness")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Boards roundness")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Button roundness")).not.toBeInTheDocument();
     expect(screen.getByLabelText("Background horizontal position")).toHaveValue("50");
     expect(screen.getByLabelText("Background vertical position")).toHaveValue("50");
     expect(screen.getByLabelText("Background extend zoom")).toHaveValue("1");
