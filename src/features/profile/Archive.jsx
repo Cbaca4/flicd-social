@@ -43,8 +43,8 @@ export default function Archive({ onBack, onKeep }) {
             <article className="card archive-card" key={dump.id}>
               <div className="archive-card-media">
                 {dump.dump_items.map((item) => {
-                  const source = getDumpItemMediaUrl(item.image_path);
-                  return source ? <img key={item.id} src={source} alt={item.note || "Archived Flic'd"} /> : null;
+                  const source = item.archiveUrl;
+                  return source ? <img key={item.id} src={source} alt={item.note || "Archived Flic'd"} /> : <span key={item.id} className="subtitle">Media unavailable</span>;
                 })}
                 {!dump.dump_items.some((item) => item.image_path) && <span className="subtitle">No photo attached</span>}
               </div>
