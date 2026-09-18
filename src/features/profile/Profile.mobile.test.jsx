@@ -82,6 +82,35 @@ describe("handheld profile layout", () => {
     );
   });
 
+  it("renders mobile-friendly text controls and background framing controls", () => {
+    render(
+      <ProfileStudio
+        theme={{
+          ...DEFAULT_THEME,
+          backgroundMedia: {
+            url: "https://cdn.example/background.jpg",
+            type: "image",
+            positionX: 50,
+            positionY: 50,
+            scale: 1,
+          },
+        }}
+        setTheme={() => {}}
+        onClose={() => {}}
+        onSave={() => {}}
+        profile={{ handle: "baco" }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Profile font")).toBeInTheDocument();
+    expect(screen.getByLabelText("Background horizontal position")).toHaveValue("50");
+    expect(screen.getByLabelText("Background vertical position")).toHaveValue("50");
+    expect(screen.getByLabelText("Background extend zoom")).toHaveValue("1");
+    expect(
+      screen.getByRole("img", { name: "Background positioning preview" }),
+    ).toBeInTheDocument();
+  });
+
   it("keeps the full Profile Studio form usable after editing Favorite artist", () => {
     render(
       <ProfileStudio
