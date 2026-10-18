@@ -2,7 +2,7 @@ import React from 'react';
 import {Heart,MessageCircle,Eye,Bookmark,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
-import { getDumpItemMediaUrl } from './mediaUrl.js';
+import { getDumpItemMediaUrl, resolveDumpItemMediaUrl, PRIVATE_DUMP_MEDIA_BUCKET } from './mediaUrl.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
 import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 import { getCurrentUserId } from '../social/socialApi.js';
@@ -22,9 +22,27 @@ function timeLeft(post){
 
 const gradients=['linear-gradient(145deg,#2f3a40,#12161b)','linear-gradient(145deg,#493221,#17120e)','linear-gradient(145deg,#293f39,#111816)','linear-gradient(145deg,#3b293d,#17121a)'];
 
+function useDumpMediaUrl(item, enabled = true) {
+  const imagePath = item?.imagePath;
+  const mediaBucket = item?.mediaBucket;
+  const key = JSON.stringify([imagePath, mediaBucket]);
+  const [resolved, setResolved] = React.useState(null);
+  React.useEffect(() => {
+    if (!enabled || !imagePath || mediaBucket !== PRIVATE_DUMP_MEDIA_BUCKET || item?.imageUrl) return undefined;
+    let active = true;
+    resolveDumpItemMediaUrl({ imagePath, mediaBucket })
+      .then((url) => { if (active) setResolved({ key, url }); })
+      .catch(() => { if (active) setResolved({ key, url: null }); });
+    return () => { active = false; };
+  }, [enabled, imagePath, mediaBucket, item?.imageUrl, key]);
+  if (!enabled) return null;
+  return item?.imageUrl || (resolved?.key === key ? resolved.url : null) || getDumpItemMediaUrl(imagePath, mediaBucket);
+}
+
 function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal }) {
   const [failed, setFailed] = React.useState(false);
-  const imageUrl = item?.imageUrl || getDumpItemMediaUrl(item?.imagePath);
+  // Never fetch view-once image bytes while the reveal overlay is showing.
+  const imageUrl = useDumpMediaUrl(item, !blurred);
   const openAuthor = () => onUserSelect?.({ id: post.authorId || post.author, username: post.authorName || post.author });
   const authorLabel = post.authorName || post.author || "unknown";
   const authorIdentity = onUserSelect
@@ -336,7 +354,8 @@ export function DumpCard({
   const viewOnceLocked = post.mode === "once";
   const alreadyViewed = viewOnceLocked && Boolean(post.viewed);
   const firstItem = (post.items || []).find((item) => item?.imageUrl || item?.imagePath);
-  const firstImage = firstItem?.imageUrl || getDumpItemMediaUrl(firstItem?.imagePath);
+  // A view-once feed card has no raw media source. Render its private placeholder.
+  const firstImage = useDumpMediaUrl(firstItem, !viewOnceLocked);
 
   return (
     <article className="post-card" style={{ width: "100%", opacity: expired ? 0.45 : 1 }}>
@@ -524,6 +543,9 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [musicPlaying,setMusicPlaying]=React.useState(false);
   const [viewerLocation,setViewerLocation]=React.useState(null);
   const [revealedOnce,setRevealedOnce]=React.useState(post.mode !== "once" || Boolean(post.viewed));
+  const [unlockedMediaUrls,setUnlockedMediaUrls]=React.useState(null);
+  const [unlockingOnce,setUnlockingOnce]=React.useState(false);
+  const [unlockError,setUnlockError]=React.useState('');
   const [reportError,setReportError]=React.useState('');
   const [reportMessage,setReportMessage]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
@@ -531,6 +553,12 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
   const onceLocked=onceViewedAtOpen || Boolean(post.mode === "once" && post.viewed && !revealedOnce);
+  const viewerPost = post.mode === "once"
+    ? { ...post, items: (post.items || []).map((item, itemIndex) => ({
+        ...item,
+        imageUrl: revealedOnce ? unlockedMediaUrls?.[itemIndex] || null : null,
+      })) }
+    : post;
 
   React.useEffect(() => {
     setCommentsOpen(Boolean(initialCommentsOpen));
@@ -836,7 +864,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       <div className="viewer-surface">
         <div className="viewer-media-layer">
           <SwipeMediaCarousel
-            post={post}
+            post={viewerPost}
             index={index}
             onIndexChange={setIndex}
             onUserSelect={onUserSelect}
@@ -846,12 +874,29 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             distanceLabel={distanceLabel}
             revealedOnce={revealedOnce}
             onceViewedAtOpen={onceLocked}
-            onReveal={() => {
-              if (post.mode !== "once" || onceLocked || revealedOnce) return;
-              setRevealedOnce(true);
-              onMarkViewed?.(post.id);
+            onReveal={async () => {
+              if (post.mode !== "once" || onceLocked || revealedOnce || unlockingOnce) return;
+              setUnlockingOnce(true);
+              setUnlockError('');
+              try {
+                // Sign before recording the view; the view acknowledgement revokes
+                // authorization for further signatures. The short-lived URLs permit
+                // this one open viewer session but can be replayed until expiration.
+                const urls = await Promise.all((post.items || []).map(resolveDumpItemMediaUrl));
+                if ((post.items || []).some((item, itemIndex) => item.imagePath && !urls[itemIndex])) {
+                  throw new Error("A media item is unavailable.");
+                }
+                setUnlockedMediaUrls(urls);
+                setRevealedOnce(true);
+                onMarkViewed?.(post.id);
+              } catch {
+                setUnlockError("Could not unlock this post. Try again.");
+              } finally {
+                setUnlockingOnce(false);
+              }
             }}
           />
+          {unlockError && <span role="alert" className="subtitle">{unlockError}</span>}
         </div>
 
         <div className="viewer-scrim-layer" aria-hidden="true" />
