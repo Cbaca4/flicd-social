@@ -128,3 +128,29 @@ begin
   if n <> 2 then raise exception 'Request trigger did not create exactly two legitimate members, got %',n; end if;
 end $$;
 \echo 'PASS: synthetic database RLS tests for private Dump media, view-once, DM and requests'
+
+-- 6) Strict column privileges prevent a recipient from impersonating the
+-- sender while accepting a message request.
+begin;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',true);
+do $$
+begin
+  if has_column_privilege('authenticated','public.message_requests','sender_id','UPDATE')
+     or has_column_privilege('authenticated','public.message_requests','recipient_id','UPDATE') then
+    raise exception 'Request sender/recipient fields are writable by authenticated clients';
+  end if;
+  if not has_column_privilege('authenticated','public.message_requests','status','UPDATE') then
+    raise exception 'Legitimate recipients cannot accept their message requests';
+  end if;
+  begin
+    update public.message_requests
+    set sender_id='cccccccc-cccc-cccc-cccc-cccccccccccc',status='accepted'
+    where recipient_id='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+      and status='pending';
+    raise exception 'SECURITY_FAIL: recipient forged message request sender';
+  exception when insufficient_privilege then null;
+  end;
+end $$;
+rollback;
+\echo 'PASS: authenticated client cannot rewrite request identities'
