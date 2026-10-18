@@ -71,6 +71,31 @@ using (
   )
 );
 
+-- A user must not be able to attach another uploader's private object path
+-- to a Dump they own and then exploit read access through that association.
+-- Every Dump image path is generated under its posting owner's UUID prefix.
+drop policy if exists "Users can create items for their own dumps" on public.dump_items;
+create policy "Users can create items for their own dumps"
+on public.dump_items for insert to authenticated
+with check (
+  exists (select 1 from public.dumps d
+    where d.id = dump_items.dump_id and d.user_id = (select auth.uid()))
+  and (image_path is null or split_part(image_path,'/',1) = (select auth.uid())::text)
+);
+
+drop policy if exists "Users can update items for their own dumps" on public.dump_items;
+create policy "Users can update items for their own dumps"
+on public.dump_items for update to authenticated
+using (
+  exists (select 1 from public.dumps d
+    where d.id = dump_items.dump_id and d.user_id = (select auth.uid()))
+)
+with check (
+  exists (select 1 from public.dumps d
+    where d.id = dump_items.dump_id and d.user_id = (select auth.uid()))
+  and (image_path is null or split_part(image_path,'/',1) = (select auth.uid())::text)
+);
+
 -- Existing public media must be copied to private storage and referenced by
 -- media_bucket BEFORE removing legacy public objects. Do not flip the old bucket.
 alter table public.dump_items
@@ -123,8 +148,10 @@ using (
     (storage.foldername(name))[1]=(select auth.uid())::text
     or exists (
       select 1 from public.dump_items i
+      join public.dumps d on d.id = i.dump_id
       where i.media_bucket='flicd-dump-private'
         and i.image_path=storage.objects.name
+        and d.user_id::text = (storage.foldername(storage.objects.name))[1]
     )
   )
 );
