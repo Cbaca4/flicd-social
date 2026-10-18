@@ -42,5 +42,7 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261018050000_stage_private_dump_media_and_membership.sql
       - name: Apply message request integrity migration
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261018163000_restrict_message_request_updates.sql
+      - name: Move membership helper out of exposed API schema
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261018170000_move_member_rls_helper_private.sql
       - name: Verify RLS for three synthetic identities
         run: psql -X -v ON_ERROR_STOP=1 -f tests/security/assertions.sql
