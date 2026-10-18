@@ -137,6 +137,25 @@ using (
   and (storage.foldername(name))[1]=(select auth.uid())::text
 );
 
+-- Saved Board snapshots of private posts must not be copied back into
+-- public Storage. Reuse the already-private, owner-scoped flicd-archive bucket.
+-- Existing legacy snapshots retain their old bucket until trusted migration.
+alter table public.board_items
+  add column if not exists snapshot_bucket text not null default 'flicd-media';
+do $guard$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname='board_items_snapshot_bucket_check'
+      and conrelid='public.board_items'::regclass
+  ) then
+    alter table public.board_items
+      add constraint board_items_snapshot_bucket_check
+      check (snapshot_bucket in ('flicd-media','flicd-archive'));
+  end if;
+end
+$guard$;
+
 -- Storage validates SELECT RLS before signing/downloading the object.
 -- Owner's unassociated uploads remain accessible for cleanup.
 drop policy if exists "Authorized reads for private dump media" on storage.objects;
