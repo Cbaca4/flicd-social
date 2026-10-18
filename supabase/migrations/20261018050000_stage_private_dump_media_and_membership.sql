@@ -80,7 +80,13 @@ on public.dump_items for insert to authenticated
 with check (
   exists (select 1 from public.dumps d
     where d.id = dump_items.dump_id and d.user_id = (select auth.uid()))
-  and (image_path is null or split_part(image_path,'/',1) = (select auth.uid())::text)
+  and (
+    image_path is null
+    or (
+      media_bucket='flicd-dump-private'
+      and split_part(image_path,'/',1) = (select auth.uid())::text
+    )
+  )
 );
 
 drop policy if exists "Users can update items for their own dumps" on public.dump_items;
