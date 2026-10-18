@@ -68,7 +68,9 @@ create table public.message_requests(
   id uuid primary key default gen_random_uuid(),
   sender_id uuid not null references auth.users(id),
   recipient_id uuid not null references auth.users(id),
-  status text not null default 'pending'
+  status text not null default 'pending',
+  created_at timestamptz not null default now(),
+  responded_at timestamptz
 );
 
 create table storage.buckets(
