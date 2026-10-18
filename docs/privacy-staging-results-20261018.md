@@ -3,6 +3,8 @@
 **Repository branch:** `security/privacy-hardening-staging` (draft PR #11).  
 **Test environment:** separate Free-plan Supabase project named `flicd-privacy-staging`, US East. The production project was not altered.
 
+**Follow-up:** real Auth/Storage API integration and dummy-media retirement have now been exercised on the isolated project: **24/24 hosted checks pass**, with **229 local tests passing**. See [the detailed HTTP results, failures/fixes, and remaining release gates](privacy-staging-results-20261018-http.md). The database-only observations below describe the earlier stage, not the current extent of verification. Production and browser/device rollout remain unapproved.
+
 ## Scope and limitations
 
 Staging was initialized with a **schema-only, intentionally limited set of flic'd tables** related to Dumps, Storage authorization, Boards, conversations and message requests. It is not a full production-schema clone and contains **no real users, private messages, images or uploaded files**. Three synthetic database identities were created, without email addresses or passwords.
@@ -38,6 +40,6 @@ These were tested using actual staging PostgreSQL RLS with transactions and synt
 3. Rehearse copying legacy **dummy** media from the public bucket into the proper private buckets with the guarded `migrate-legacy-media-staging.mjs` utility; verify byte hashes. Then rehearse the independent public-source cleanup.
 4. Before production, inventory all public bucket objects and cross-references, back up user data, rehearse rollback, and explicitly approve a coordinated deployment and real-media cutover. Legacy public URLs remain accessible in production until their original objects are retired.
 5. Resolve separate Auth security settings, including leaked-password protection. Review Supabase security advisors again before launch.
-6. Staging includes a marker table `public.__flicd_staging_marker` with RLS disabled. SELECT permissions for both `anon` and `authenticated` are revoked, but Supabase's table listing flags it. Enabling RLS or removing/moving the marker should be explicitly reviewed before declaring a fully clean staging configuration.
+6. Follow-up: the staging marker now has RLS enabled and client grants revoked. Its intentional deny-all/no-policy configuration produces an INFO advisor; outstanding Auth/definer-function WARNs remain documented in the HTTP follow-up.
 
 **Do not merge draft PR #11 or apply production migrations based only on these database unit tests.**

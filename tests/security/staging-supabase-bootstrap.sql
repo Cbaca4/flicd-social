@@ -1,7 +1,7 @@
 -- ONLY for a separate empty Supabase staging project. Reproduces selected
 -- flic'd production schema elements without exporting private user data.
 -- Refuse running on the known live production database.
-do $
+do $$
 begin
   -- Supabase hosted databases usually share the generic SQL database name
   -- "postgres", so matching current_database() is NOT a reliable safety guard.
@@ -12,7 +12,7 @@ begin
   ) then
     raise exception 'Staging bootstrap requires an EMPTY application schema. Refusing to touch existing application tables.';
   end if;
-end $;
+end $$;
 create table if not exists public.__flicd_staging_marker (
   label text primary key,
   created_at timestamptz default now()

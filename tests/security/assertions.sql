@@ -154,3 +154,8 @@ begin
 end $$;
 rollback;
 \echo 'PASS: authenticated client cannot rewrite request identities'
+
+-- Keep the actual tracked RPC definitions and their authorization regression
+-- matrix in this existing disposable-PostgreSQL CI entrypoint. No hosted keys.
+\ir ../../supabase/migrations/20260918030000_add_post_locations_tags_notifications.sql
+\ir profile-relationship-rpc.assertions.sql

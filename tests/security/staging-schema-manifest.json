@@ -1,0 +1,33 @@
+{
+  "purpose": "Schema-only dependencies for the already-created, intentionally partial flicd privacy staging bootstrap; not a production migration runner",
+  "projectRef": "ljcfoanzmowgkjtrdcgg",
+  "projectName": "flicd-privacy-staging",
+  "aggregateSqlSha256": "108a8adf2ebdaebfbb76861ad11c897642c1815f7158f46a48325359982e8e3a",
+  "completion": "tests/security/staging-integration-dependencies.sql",
+  "historicalDependenciesInOrder": [
+    "20260916153409_persistent_social_interactions.sql",
+    "20260916153508_add_likes_user_index.sql",
+    "20260916224153_add_multimodal_comment_media.sql",
+    "20260916224301_allow_multimodal_comment_inserts.sql",
+    "20260917122607_create_flicd_music_foundation.sql",
+    "20260917180000_add_profile_relationship_counts.sql",
+    "20260917190000_add_comment_reports.sql",
+    "20260918014515_harden_music_track_assignments.sql",
+    "20260918014827_harden_music_function_search_path.sql",
+    "20260918021000_create_private_music_storage.sql",
+    "20260918030000_add_post_locations_tags_notifications.sql",
+    "20260918110000_enforce_dump_post_limit.sql"
+  ],
+  "schemaOnlyProvenanceStatements": [
+    "alter table public.music_licenses add column if not exists attribution_text text;",
+    "alter table public.music_tracks add column if not exists source_url text;"
+  ],
+  "excluded": [
+    "20260918001000_seed_verified_music_catalog.sql",
+    "The data UPDATE statements in 20260918014803_add_music_provenance_fields.sql",
+    "All production data, Auth identities, media, messages, and credential exports"
+  ],
+  "roleAssertions": "tests/security/staging-dependencies.assertions.sql",
+  "execution": "Explicit human approval; rehearse aggregate SQL plus role assertions inside BEGIN/ROLLBACK, verify rollback, then apply aggregate SQL alone inside BEGIN/COMMIT and read back the schema. Do not replay non-idempotent historical migrations on completed staging. Inventory before reuse.",
+  "configurationDml": "Bucket configuration and existing derived follower-count recalculation affect staging configuration/synthetic records only; no production rows or catalog seed rows are imported."
+}

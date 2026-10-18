@@ -1,0 +1,137 @@
+{
+  "projectRef": "ljcfoanzmowgkjtrdcgg",
+  "runId": "603aa699-79ea-451e-a391-13a73411429f",
+  "startedAt": "2026-10-18T17:43:59.860Z",
+  "checks": [
+    {
+      "name": "staging marker and private bucket configuration",
+      "status": "PASS"
+    },
+    {
+      "name": "four real Auth users and independent password sessions",
+      "status": "PASS"
+    },
+    {
+      "name": "client schema and embedded relationship queries",
+      "status": "PASS"
+    },
+    {
+      "name": "owner private Storage uploads and real byte readback",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-owner upload rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous and unrelated signing/download rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "public endpoint cannot serve private bytes",
+      "status": "PASS"
+    },
+    {
+      "name": "approved follower signed URL and checksum",
+      "status": "PASS"
+    },
+    {
+      "name": "expired media blocks follower but remains available to owner",
+      "status": "PASS"
+    },
+    {
+      "name": "view-once signing before consumption",
+      "status": "PASS"
+    },
+    {
+      "name": "view-once trigger and global fresh-signature revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "existing signed capability lifetime is bounded",
+      "status": "FAIL",
+      "reason": "Expected an authorization/not-found response, received HTTP 400."
+    },
+    {
+      "name": "recipient accepts a genuine DM request",
+      "status": "PASS"
+    },
+    {
+      "name": "only intended DM participants can read and send",
+      "status": "PASS"
+    },
+    {
+      "name": "conversation self-enrollment and forged request identities rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "owner archive copy/upsert and byte verification",
+      "status": "PASS"
+    },
+    {
+      "name": "archive metadata and object denial for other identities",
+      "status": "PASS"
+    },
+    {
+      "name": "private Board snapshot upload/upsert and checksum",
+      "status": "PASS"
+    },
+    {
+      "name": "private Board metadata and snapshot denied to others",
+      "status": "PASS"
+    },
+    {
+      "name": "revoked follower cannot obtain a fresh signature",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy legacy public source positive controls",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy copy, SHA-256 verification and reference cutover",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy source purge refuses active public references",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy public originals removed and private copies retained",
+      "status": "FAIL",
+      "reason": "Expected an authorization/not-found response, received HTTP 200."
+    }
+  ],
+  "users": {
+    "owner": "79275a6b-0662-4329-aa20-dae2d592219c",
+    "follower": "8c60226c-54e6-4af9-9f1f-4c2b8208efdb",
+    "secondFollower": "34f040eb-044c-4020-8c7a-29e8cd0e3efa",
+    "unrelated": "cdd93cf4-8e00-48db-a8d7-27053f5c0671"
+  },
+  "manifests": [
+    {
+      "kind": "dump",
+      "ownerId": "79275a6b-0662-4329-aa20-dae2d592219c",
+      "path": "79275a6b-0662-4329-aa20-dae2d592219c/privacy-staging/603aa699-79ea-451e-a391-13a73411429f/legacy-dump.png",
+      "destination": "flicd-dump-private",
+      "sha256": "a38a4ff7320a3d8764ac959b264f15e335360d7c1e23a0627dee7f366c95c58f",
+      "table": "dump_items",
+      "column": "media_bucket",
+      "id": "9f61867d-b4da-4dc9-b727-9c079ff26535"
+    },
+    {
+      "kind": "board",
+      "ownerId": "8c60226c-54e6-4af9-9f1f-4c2b8208efdb",
+      "path": "8c60226c-54e6-4af9-9f1f-4c2b8208efdb/privacy-staging/603aa699-79ea-451e-a391-13a73411429f/legacy-board.png",
+      "destination": "flicd-archive",
+      "sha256": "a38a4ff7320a3d8764ac959b264f15e335360d7c1e23a0627dee7f366c95c58f",
+      "table": "board_items",
+      "column": "snapshot_bucket",
+      "id": "bc645400-d72a-4edd-b4b9-e61549ed9819"
+    }
+  ],
+  "completedAt": "2026-10-18T17:44:59.022Z",
+  "passed": 22,
+  "failed": 2,
+  "notRun": 0
+}

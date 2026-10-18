@@ -2,6 +2,8 @@
 
 This file is a checklist, **not** a command that has been run.
 
+Status update: the separate project now exists and its reviewed repository-derived schema completion was rehearsed and applied to staging only. Real Auth/Storage checks and dummy source cleanup passed. See [the integration results](privacy-staging-results-20261018-http.md) and `tests/security/staging-schema-manifest.json` for exactly what was applied. This is not verified production-schema parity; no live data/schema export or production changes were performed. Do not replay non-idempotent historical migrations on the completed staging project.
+
 ## Why a fresh project needs initialization
 
 Supabase preview branches are unavailable on the current Free plan. A separate Free project may be a valid non-production test environment. However, this repository's oldest migration,

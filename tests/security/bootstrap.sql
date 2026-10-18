@@ -17,6 +17,9 @@ grant execute on function auth.uid() to authenticated,anon;
 create table auth.users(id uuid primary key);
 create table public.profiles(
   id uuid primary key references auth.users(id),
+  username text not null,
+  display_name text not null default '',
+  avatar_url text,
   is_private boolean not null default false
 );
 create table public.follows(
@@ -185,10 +188,10 @@ insert into auth.users(id) values
  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'),
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
  ('cccccccc-cccc-cccc-cccc-cccccccccccc');
-insert into public.profiles(id,is_private) values
- ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',true),
- ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',false),
- ('cccccccc-cccc-cccc-cccc-cccccccccccc',false);
+insert into public.profiles(id,username,is_private) values
+ ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','synthetic_owner',true),
+ ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','synthetic_follower',false),
+ ('cccccccc-cccc-cccc-cccc-cccccccccccc','synthetic_unrelated',false);
 insert into public.follows(follower_id,following_id,status) values
  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa','accepted');
 insert into public.dumps(id,user_id,expiry,created_at) values

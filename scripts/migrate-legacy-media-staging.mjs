@@ -74,7 +74,7 @@ async function readObject(client, bucket, path) {
   return { content, type: data.type || "application/octet-stream", hash: sha256(content) };
 }
 
-async function copyAndVerify(client, record) {
+export async function copyAndVerify(client, record) {
   const source = await readObject(client, LEGACY, record.path);
   const { error } = await client.storage.from(record.destination).upload(
     record.path, source.content,
@@ -88,9 +88,13 @@ async function copyAndVerify(client, record) {
   return source.hash;
 }
 
-async function verifyAfterCopy(client, record) {
+export async function verifyAfterCopy(client, record) {
   const destination = await readObject(client, record.destination, record.path);
-  if (!destination.hash) throw new Error("Copied media verification failed.");
+  const expectedHash = record.sha256 || (await readObject(client, LEGACY, record.path)).hash;
+  if (!/^[a-f0-9]{64}$/.test(expectedHash) || destination.hash !== expectedHash) {
+    throw new Error("Content hash mismatch; copied media verification failed.");
+  }
+  return destination.hash;
 }
 
 async function main() {
