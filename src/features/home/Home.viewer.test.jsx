@@ -3,11 +3,13 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
   getDumpItemMediaUrl: (imagePath) => imagePath ? `https://cdn.example.com/${imagePath}` : null,
+  PRIVATE_DUMP_MEDIA_BUCKET: "flicd-dump-private",
+  resolveDumpItemMediaUrl: vi.fn(async (item) => item.imagePath ? `https://cdn.example.com/${item.imagePath}` : null),
 }));
 
 describe("Viewer", () => {
@@ -39,7 +41,7 @@ describe("Viewer", () => {
     expect(screen.getByRole("button", { name: /keep/i })).toBeTruthy();
   });
 
-  it("reveals a view-once photo and records the view", () => {
+  it("reveals a view-once photo and records the view", async () => {
     const onMarkViewed = vi.fn();
     const post = {
       id: "once-1",
@@ -68,7 +70,7 @@ describe("Viewer", () => {
     expect(screen.getByRole("button", { name: "Tap to view once" })).toBeInTheDocument();
     screen.getByRole("button", { name: "Tap to view once" }).click();
 
-    expect(onMarkViewed).toHaveBeenCalledWith("once-1");
+    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledWith("once-1"));
     expect(screen.getByRole("img", { name: /private moment/i })).toHaveAttribute(
       "src",
       "https://cdn.example.com/user-1/private.jpg",

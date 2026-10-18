@@ -1,0 +1,150 @@
+{
+  "projectRef": "ljcfoanzmowgkjtrdcgg",
+  "runId": "dd0ee658-91fc-4851-aea3-011b0b90acf7",
+  "startedAt": "2026-10-18T17:58:37.148Z",
+  "checks": [
+    {
+      "name": "staging marker and private bucket configuration",
+      "status": "PASS"
+    },
+    {
+      "name": "four real Auth users and independent password sessions",
+      "status": "PASS"
+    },
+    {
+      "name": "client schema and embedded relationship queries",
+      "status": "PASS"
+    },
+    {
+      "name": "owner private Storage uploads and real byte readback",
+      "status": "PASS"
+    },
+    {
+      "name": "cross-owner upload rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "anonymous and unrelated signing/download rejection",
+      "status": "PASS"
+    },
+    {
+      "name": "public endpoint cannot serve private bytes",
+      "status": "PASS"
+    },
+    {
+      "name": "approved follower signed URL and checksum",
+      "status": "PASS"
+    },
+    {
+      "name": "expired media blocks follower but remains available to owner",
+      "status": "PASS"
+    },
+    {
+      "name": "view-once signing before consumption",
+      "status": "PASS"
+    },
+    {
+      "name": "view-once trigger and global fresh-signature revocation",
+      "status": "PASS"
+    },
+    {
+      "name": "existing signed capability lifetime is bounded",
+      "status": "PASS"
+    },
+    {
+      "name": "recipient accepts a genuine DM request",
+      "status": "PASS"
+    },
+    {
+      "name": "only intended DM participants can read and send",
+      "status": "PASS"
+    },
+    {
+      "name": "conversation self-enrollment and forged request identities rejected",
+      "status": "PASS"
+    },
+    {
+      "name": "owner archive copy/upsert and byte verification",
+      "status": "PASS"
+    },
+    {
+      "name": "archive metadata and object denial for other identities",
+      "status": "PASS"
+    },
+    {
+      "name": "private Board snapshot upload/upsert and checksum",
+      "status": "PASS"
+    },
+    {
+      "name": "private Board metadata and snapshot denied to others",
+      "status": "PASS"
+    },
+    {
+      "name": "revoked follower cannot obtain a fresh signature",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy legacy public source positive controls",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy copy, SHA-256 verification and reference cutover",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy source purge refuses active public references",
+      "status": "PASS"
+    },
+    {
+      "name": "dummy public originals removed and private copies retained",
+      "status": "PASS"
+    }
+  ],
+  "users": {
+    "owner": "5ed64bff-fb8a-4985-b6b8-60a1608efa7e",
+    "follower": "dcf22384-3995-4d1a-8f61-949eca753bb9",
+    "secondFollower": "48982354-d027-4dad-9cf4-5e9876d7ae38",
+    "unrelated": "0e0b697e-9ef8-4e53-be72-4c5791dfb8be"
+  },
+  "manifests": [
+    {
+      "kind": "dump",
+      "ownerId": "5ed64bff-fb8a-4985-b6b8-60a1608efa7e",
+      "path": "5ed64bff-fb8a-4985-b6b8-60a1608efa7e/privacy-staging/dd0ee658-91fc-4851-aea3-011b0b90acf7/legacy-dump.png",
+      "destination": "flicd-dump-private",
+      "sha256": "a38a4ff7320a3d8764ac959b264f15e335360d7c1e23a0627dee7f366c95c58f",
+      "table": "dump_items",
+      "column": "media_bucket",
+      "id": "2306067e-9373-4c65-b97a-9ba3356262fc",
+      "publicRetirement": {
+        "initiallyReadable": true,
+        "attempts": 25,
+        "elapsedMs": 50998
+      }
+    },
+    {
+      "kind": "board",
+      "ownerId": "dcf22384-3995-4d1a-8f61-949eca753bb9",
+      "path": "dcf22384-3995-4d1a-8f61-949eca753bb9/privacy-staging/dd0ee658-91fc-4851-aea3-011b0b90acf7/legacy-board.png",
+      "destination": "flicd-archive",
+      "sha256": "a38a4ff7320a3d8764ac959b264f15e335360d7c1e23a0627dee7f366c95c58f",
+      "table": "board_items",
+      "column": "snapshot_bucket",
+      "id": "1ab547f9-2da7-4ca2-8810-8e13aade68da",
+      "publicRetirement": {
+        "initiallyReadable": true,
+        "attempts": 25,
+        "elapsedMs": 52239
+      }
+    }
+  ],
+  "signedExpiry": {
+    "requestedTtlSeconds": 45,
+    "elapsedAtRequestMs": 47012,
+    "httpStatus": 400
+  },
+  "completedAt": "2026-10-18T18:00:58.038Z",
+  "passed": 24,
+  "failed": 0,
+  "notRun": 0
+}

@@ -325,7 +325,7 @@ function BoardDetail({
           {resolvedItems.map((item) => {
             const dump = item.dump;
             const frame = dump?.items?.[item.item_position];
-            const imagePath = frame?.imagePath || getDumpItemMediaUrl(item.saved_image_path) || null;
+            const imagePath = item.saved_image_url || getDumpItemMediaUrl(item.saved_image_path, item.snapshot_bucket || "flicd-media") || frame?.imageUrl || null;
             const mood = item.mood || dump?.mood || "Saved";
             const note = item.note || frame?.note || "";
             

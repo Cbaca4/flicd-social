@@ -3,11 +3,13 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
-  getDumpItemMediaUrl: (path) => path ? `https://media.example.test/${path}` : null,
+  PRIVATE_DUMP_MEDIA_BUCKET: "flicd-dump-private",
+  getDumpItemMediaUrl: (path, bucket) => bucket === "flicd-dump-private" ? null : path ? `https://media.example.test/${path}` : null,
+  resolveDumpItemMediaUrl: vi.fn(async (item) => item?.imagePath ? `https://media.example.test/signed/${item.imagePath}` : null),
 }));
 vi.mock("../social/socialApi.js", () => ({ getCurrentUserId: vi.fn(async () => "me") }));
 
@@ -19,8 +21,8 @@ const oncePost = {
   likes: 0,
   comments: [],
   items: [
-    { id: "photo-1", imagePath: "one.jpg", note: "First private photo" },
-    { id: "photo-2", imagePath: "two.jpg", note: "Second private photo" },
+    { id: "photo-1", imagePath: "one.jpg", mediaBucket: "flicd-dump-private", note: "First private photo" },
+    { id: "photo-2", imagePath: "two.jpg", mediaBucket: "flicd-dump-private", note: "Second private photo" },
   ],
 };
 
@@ -28,30 +30,28 @@ function renderViewer(post = oncePost, props = {}) {
   return render(<Viewer post={post} currentUserId="me" {...props} />);
 }
 
-function expectAllPhotosBlurred() {
-  for (const image of screen.getAllByRole("img")) {
-    expect(image).toHaveStyle({ filter: "blur(22px)" });
-  }
+function expectNoPrivatePhotosLoaded() {
+  expect(screen.queryAllByRole("img")).toHaveLength(0);
 }
 
 afterEach(() => cleanup());
 
 describe("Viewer one-view privacy", () => {
-  it("blurs every photo before reveal, including offscreen slides", () => {
+  it("does not download private photos before reveal, including offscreen slides", () => {
     const onMarkViewed = vi.fn();
     renderViewer(oncePost, { onMarkViewed });
 
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(onMarkViewed).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Keep unavailable" })).toBeDisabled();
   });
 
-  it("keeps the current reveal visible when the parent records the view", () => {
+  it("keeps the current reveal visible when the parent records the view", async () => {
     const onMarkViewed = vi.fn();
     const { rerender } = renderViewer(oncePost, { onMarkViewed });
 
     fireEvent.click(screen.getAllByRole("button", { name: "Tap to view once" })[0]);
-    expect(onMarkViewed).toHaveBeenCalledExactlyOnceWith("once-1");
+    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledExactlyOnceWith("once-1"));
     rerender(<Viewer post={{ ...oncePost, viewed: true }} currentUserId="me" onMarkViewed={onMarkViewed} />);
     // A subsequent UI update must not consume the opening-time snapshot.
     fireEvent.click(screen.getByRole("button", { name: "Comments" }));
@@ -67,45 +67,48 @@ describe("Viewer one-view privacy", () => {
     const onMarkViewed = vi.fn();
     renderViewer({ ...oncePost, viewed: true }, { onMarkViewed });
 
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.getAllByLabelText("Already viewed once")).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument();
     expect(onMarkViewed).not.toHaveBeenCalled();
   });
 
-  it("locks a consumed post when the viewer is closed and reopened", () => {
+  it("locks a consumed post when the viewer is closed and reopened", async () => {
     const onMarkViewed = vi.fn();
     const { unmount } = renderViewer(oncePost, { onMarkViewed });
     fireEvent.click(screen.getAllByRole("button", { name: "Tap to view once" })[0]);
+    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledTimes(1));
     unmount();
 
     renderViewer({ ...oncePost, viewed: true }, { onMarkViewed });
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument();
     expect(onMarkViewed).toHaveBeenCalledTimes(1);
   });
 
-  it("resets reveal and slide position when switching to another unviewed post", () => {
+  it("resets reveal and slide position when switching to another unviewed post", async () => {
     const onMarkViewed = vi.fn();
     const { rerender } = renderViewer(oncePost, { onMarkViewed });
     fireEvent.click(screen.getAllByRole("button", { name: "Tap to view once" })[0]);
+    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledTimes(1));
     fireEvent.keyDown(screen.getByRole("group", { name: "Photo viewer" }), { key: "ArrowRight" });
     expect(screen.getByText("2/2")).toBeInTheDocument();
 
     rerender(<Viewer post={{ ...oncePost, id: "once-2" }} currentUserId="me" onMarkViewed={onMarkViewed} />);
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.getByText("1/2")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Tap to view once" })[0]);
-    expect(onMarkViewed).toHaveBeenLastCalledWith("once-2");
+    await waitFor(() => expect(onMarkViewed).toHaveBeenLastCalledWith("once-2"));
     expect(onMarkViewed).toHaveBeenCalledTimes(2);
   });
 
-  it("locks when switching from a revealed post to an already-viewed post", () => {
+  it("locks when switching from a revealed post to an already-viewed post", async () => {
     const { rerender } = renderViewer();
     fireEvent.click(screen.getAllByRole("button", { name: "Tap to view once" })[0]);
+    await waitFor(() => expect(screen.getByRole("img", { name: "First private photo" })).toBeInTheDocument());
     rerender(<Viewer post={{ ...oncePost, id: "once-consumed", viewed: true }} currentUserId="me" />);
 
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument();
   });
 
@@ -114,7 +117,7 @@ describe("Viewer one-view privacy", () => {
     const { rerender } = renderViewer(oncePost, { onMarkViewed });
     rerender(<Viewer post={{ ...oncePost, viewed: true }} currentUserId="me" onMarkViewed={onMarkViewed} />);
 
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument();
     expect(onMarkViewed).not.toHaveBeenCalled();
   });
@@ -133,7 +136,7 @@ describe("Viewer one-view privacy", () => {
 
     expect(frames.length).toBeGreaterThan(0);
     for (const frame of frames) {
-      expect(frame).toEqual(["blur(22px)", "blur(22px)"]);
+      expect(frame).toEqual([]);
     }
   });
 
@@ -141,13 +144,13 @@ describe("Viewer one-view privacy", () => {
     const { rerender } = renderViewer({ ...oncePost, viewed: true });
     rerender(<Viewer post={oncePost} currentUserId="me" />);
 
-    expectAllPhotosBlurred();
+    expectNoPrivatePhotosLoaded();
     expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument();
   });
 
   it("does not blur ordinary posts or disable their Keep action", () => {
     renderViewer({ ...oncePost, mode: "24h", postedMinutesAgo: 1 });
-    for (const image of screen.getAllByRole("img")) {
+    for (const image of screen.queryAllByRole("img")) {
       expect(image).toHaveStyle({ filter: "none" });
     }
     expect(screen.getByRole("button", { name: "Keep" })).toBeEnabled();

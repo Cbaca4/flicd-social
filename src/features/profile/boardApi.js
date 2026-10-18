@@ -157,6 +157,21 @@ export async function getOrCreateDefaultBoard() {
   });
 }
 
+async function resolveBoardSnapshotUrl(item) {
+  if (!item?.saved_image_path) return null;
+  if (item.snapshot_bucket === ARCHIVE_BUCKET) {
+    const { data, error } = await supabase.storage
+      .from(ARCHIVE_BUCKET)
+      .createSignedUrl(item.saved_image_path, 600);
+    if (error) throw error;
+    return data?.signedUrl || null;
+  }
+  if (!item.snapshot_bucket || item.snapshot_bucket === MEDIA_BUCKET) {
+    return supabase.storage.from(MEDIA_BUCKET).getPublicUrl(item.saved_image_path).data?.publicUrl || null;
+  }
+  return null;
+}
+
 async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosition, sourceBucket = MEDIA_BUCKET) {
   if (!sourcePath) return null;
 
@@ -178,11 +193,11 @@ async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosit
     userId + "/boards/" + boardId + "/" + dumpId + "-" + itemPosition + "." + extension;
 
   const { data, error: uploadError } = await supabase.storage
-    .from(MEDIA_BUCKET)
+    .from(ARCHIVE_BUCKET)
     .upload(snapshotPath, file, {
-      cacheControl: "31536000",
+      cacheControl: "600",
       contentType: file.type || "image/jpeg",
-      upsert: true,
+      upsert: false,
     });
 
   if (uploadError) throw uploadError;
@@ -205,7 +220,7 @@ export async function saveBoardItem({
 
   const { data: sourceDump, error: sourceError } = await supabase
     .from("dumps")
-    .select("id,user_id,expiry,created_at,allow_others_to_keep,dump_items(id,position,image_path,note,mood)")
+    .select("id,user_id,expiry,created_at,allow_others_to_keep,dump_items(id,position,image_path,media_bucket,note,mood)")
     .eq("id", dumpId)
     .single();
 
@@ -246,11 +261,11 @@ export async function saveBoardItem({
   if (archiveItemError) throw archiveItemError;
 
   const sourcePath = archiveItem?.archive_path || sourceItem.image_path;
-  const sourceBucket = archiveItem?.archive_path ? ARCHIVE_BUCKET : MEDIA_BUCKET;
+  const sourceBucket = archiveItem?.archive_path ? ARCHIVE_BUCKET : (sourceItem.media_bucket || MEDIA_BUCKET);
 
   const { data: existingItem } = await supabase
     .from("board_items")
-    .select("id,saved_image_path")
+    .select("id,saved_image_path,snapshot_bucket")
     .eq("user_id", userId)
     .eq("board_id", targetBoard.id)
     .eq("dump_id", dumpId)
@@ -287,6 +302,7 @@ export async function saveBoardItem({
         note: note || sourceItem.note || "",
         mood: mood || sourceItem.mood || "",
         saved_image_path: savedImagePath,
+        snapshot_bucket: existingItem?.saved_image_path ? (existingItem.snapshot_bucket || MEDIA_BUCKET) : ARCHIVE_BUCKET,
         saved_author_username: sourceUsername || null,
       },
       {
@@ -297,7 +313,7 @@ export async function saveBoardItem({
     .single();
 
   if (error) throw error;
-  return data;
+  return { ...data, saved_image_url: await resolveBoardSnapshotUrl(data) };
 }
 
 export async function getBoardItems(boardId = null) {
@@ -306,7 +322,7 @@ export async function getBoardItems(boardId = null) {
   let query = supabase
     .from("board_items")
     .select(
-      "id,user_id,board_id,dump_id,item_position,note,mood,saved_image_path,saved_author_username,created_at"
+      "id,user_id,board_id,dump_id,item_position,note,mood,saved_image_path,snapshot_bucket,saved_author_username,created_at"
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
@@ -318,7 +334,7 @@ export async function getBoardItems(boardId = null) {
   const { data, error } = await query;
 
   if (error) throw error;
-  return data || [];
+  return Promise.all((data || []).map(async (item) => ({ ...item, saved_image_url: await resolveBoardSnapshotUrl(item) })));
 }
 
 export async function moveBoardItem(
@@ -345,7 +361,7 @@ export async function deleteBoardItem(boardItemId) {
 
   const { data: item, error: readError } = await supabase
     .from("board_items")
-    .select("id,saved_image_path")
+    .select("id,saved_image_path,snapshot_bucket")
     .eq("id", boardItemId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -362,7 +378,7 @@ export async function deleteBoardItem(boardItemId) {
 
   if (item?.saved_image_path) {
     const { error: removeError } = await supabase.storage
-      .from(MEDIA_BUCKET)
+      .from(item.snapshot_bucket || MEDIA_BUCKET)
       .remove([item.saved_image_path]);
     if (removeError) console.error("Failed to remove Board snapshot:", removeError);
   }

@@ -1,6 +1,7 @@
 import { supabase } from "../../lib/supabase";
 
-export const MEDIA_BUCKET = "flicd-media";
+export const MEDIA_BUCKET = "flicd-media"; // Legacy public media; retained for existing profiles and archives.
+export const PRIVATE_DUMP_MEDIA_BUCKET = "flicd-dump-private";
 export const MAX_MEDIA_SIZE = 20 * 1024 * 1024;
 export const MAX_MEDIA_COUNT = 20;
 export const ALLOWED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -58,9 +59,9 @@ export async function uploadDumpImages(files) {
       const extension = extensionForType(file.type);
       const path = `${userId}/${createMediaId()}.${extension}`;
       const { data, error } = await supabase.storage
-        .from(MEDIA_BUCKET)
+        .from(PRIVATE_DUMP_MEDIA_BUCKET)
         .upload(path, file, {
-          cacheControl: "31536000",
+          cacheControl: "60",
           contentType: file.type,
           upsert: false,
         });
@@ -74,9 +75,9 @@ export async function uploadDumpImages(files) {
   }
 }
 
-export async function removeDumpImages(paths) {
+export async function removeDumpImages(paths, bucket = PRIVATE_DUMP_MEDIA_BUCKET) {
   const cleanPaths = Array.from(new Set((paths || []).filter(Boolean)));
   if (!cleanPaths.length) return;
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).remove(cleanPaths);
+  const { error } = await supabase.storage.from(bucket).remove(cleanPaths);
   if (error) console.error("Failed to clean up uploaded media:", error);
 }

@@ -70,6 +70,7 @@ export async function createDump({
       position: index,
       note: item.note || "",
       image_path: item.imagePath || null,
+      media_bucket: item.mediaBucket || "flicd-dump-private",
     }));
 
     const { error: itemsError } = await supabase
@@ -122,7 +123,8 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
         id,
         position,
         note,
-        image_path
+        image_path,
+        media_bucket
       ),
       music_tracks:music_track_id (
         id,
@@ -215,7 +217,8 @@ export async function getDumps() {
         id,
         position,
         note,
-        image_path
+        image_path,
+        media_bucket
       )
     `)
     .order("created_at", { ascending: false });
@@ -239,7 +242,8 @@ export async function getDumpById(dumpId) {
         id,
         position,
         note,
-        image_path
+        image_path,
+        media_bucket
       ),
       music_tracks:music_track_id (
         id,

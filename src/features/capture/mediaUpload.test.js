@@ -36,7 +36,7 @@ describe("media upload helper", () => {
     expect(upload.mock.calls[0][0]).toMatch(/^user-123\/.+\.jpg$/);
     expect(upload.mock.calls[0][1]).toBe(file);
     expect(upload.mock.calls[0][2]).toMatchObject({
-      cacheControl: "31536000",
+      cacheControl: "60",
       contentType: "image/jpeg",
       upsert: false,
     });
