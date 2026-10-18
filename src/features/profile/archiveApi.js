@@ -26,7 +26,7 @@ function extensionFor(path, mimeType = "") {
 async function archiveDumpMediaForUser(dumpId, userId) {
   const { data: items, error: itemsError } = await supabase
     .from("dump_items")
-    .select("id,position,image_path")
+    .select("id,position,image_path,media_bucket")
     .eq("dump_id", dumpId)
     .order("position", { ascending: true });
   if (itemsError) throw itemsError;
@@ -43,7 +43,7 @@ async function archiveDumpMediaForUser(dumpId, userId) {
     if (!item.image_path || existingPositions.has(Number(item.position))) continue;
 
     const { data: file, error: downloadError } = await supabase.storage
-      .from(MEDIA_BUCKET)
+      .from(item.media_bucket || MEDIA_BUCKET)
       .download(item.image_path);
     if (downloadError) throw downloadError;
     if (!file) throw new Error("Could not read archived media.");
@@ -67,12 +67,17 @@ async function archiveDumpMediaForUser(dumpId, userId) {
     if (rowError) throw rowError;
   }
 
-  const rowsToRemove = (items || []).filter((item) => item.image_path).map((item) => item.image_path);
-  if (rowsToRemove.length) {
+  const pathsByBucket = new Map();
+  for (const item of items || []) {
+    if (!item.image_path) continue;
+    const bucket = item.media_bucket || MEDIA_BUCKET;
+    pathsByBucket.set(bucket, [...(pathsByBucket.get(bucket) || []), item.image_path]);
+  }
+  for (const [bucket, paths] of pathsByBucket) {
     const { error: removeError } = await supabase.storage
-      .from(MEDIA_BUCKET)
-      .remove(Array.from(new Set(rowsToRemove)));
-    if (removeError) console.error("Failed to remove expired public media:", removeError);
+      .from(bucket)
+      .remove(Array.from(new Set(paths)));
+    if (removeError) console.error("Failed to remove archived media:", removeError);
   }
 }
 
@@ -161,7 +166,7 @@ export async function getArchiveDumps() {
   if (!dumpIds.length) return [];
 
   const [{ data: dumps, error: dumpError }, { data: mediaRows, error: mediaError }] = await Promise.all([
-    supabase.from("dumps").select("id,user_id,type,mood,expiry,context,created_at,dump_items(id,position,note,image_path)").eq("user_id", userId).in("id", dumpIds),
+    supabase.from("dumps").select("id,user_id,type,mood,expiry,context,created_at,dump_items(id,position,note,image_path,media_bucket)").eq("user_id", userId).in("id", dumpIds),
     supabase.from("flicd_archive_items").select("dump_id,item_position,archive_path").eq("user_id", userId).in("dump_id", dumpIds),
   ]);
   if (dumpError) throw dumpError;
