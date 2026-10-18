@@ -1,0 +1,47 @@
+name: flicd verification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feature/profile-studio-mobile-polish-latest
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flicd-verification-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Install, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Mock client configuration for isolated CI only. Never use production credentials.
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: ci-nonproduction-placeholder
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        id: install
+        run: npm ci
+      - name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint
+      - name: Test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+      - name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
