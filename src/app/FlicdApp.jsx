@@ -331,6 +331,8 @@ export default function FlicdApp() {
           note: item.note || "",
           mood: item.mood || "",
           imagePath: item.saved_image_path || "",
+          imageUrl: item.saved_image_url || null,
+          mediaBucket: item.snapshot_bucket || "flicd-media",
           seed: item.item_position || 0,
         })));
       } catch (error) {
@@ -488,7 +490,7 @@ export default function FlicdApp() {
     try {
       setSavingKeep(true);
       const saved = await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition: index, note: post.items[index]?.note || "", mood: post.mood || "" });
-      setKept((current) => current.some((item) => item.id === saved.id) ? current : [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: saved.saved_author_username || post.author, note: saved.note || "", mood: saved.mood || "", imagePath: saved.saved_image_path || post.items[index]?.imagePath || "", seed: saved.item_position }]);
+      setKept((current) => current.some((item) => item.id === saved.id) ? current : [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: saved.saved_author_username || post.author, note: saved.note || "", mood: saved.mood || "", imagePath: saved.saved_image_path || post.items[index]?.imagePath || "", imageUrl: saved.saved_image_url || null, mediaBucket: saved.snapshot_bucket || "flicd-media", seed: saved.item_position }]);
       setBoards(await getBoards());
       setPendingKeep(null);
       setCreatingKeepBoard(false);
