@@ -32,6 +32,7 @@ import {
   getPostingLimitStatus,
 } from "../features/capture/dumpApi.js";
 import {
+  PRIVATE_DUMP_MEDIA_BUCKET,
   removeDumpImages,
   uploadDumpImages,
 } from "../features/capture/mediaUpload.js";
@@ -100,7 +101,7 @@ function formatDumpRecord(dump) {
     comments: [],
     items: (dump.dump_items || [])
       .sort((a, b) => a.position - b.position)
-      .map((item) => ({ note: item.note || "", imagePath: item.image_path || null })),
+      .map((item) => ({ note: item.note || "", imagePath: item.image_path || null, mediaBucket: item.media_bucket || "flicd-media" })),
     context: dump.context || "",
     musicTrack: dump.music_tracks || null,
     location: dump.location_name
@@ -538,6 +539,7 @@ export default function FlicdApp() {
       const itemsWithPaths = items.map((item) => ({
         note: item.note || "",
         imagePath: item.imageFile ? uploadedPaths[uploadIndex++] : null,
+        mediaBucket: PRIVATE_DUMP_MEDIA_BUCKET,
       }));
 
       const savedDump = await createDump({
@@ -565,7 +567,7 @@ export default function FlicdApp() {
         likes: 0,
         liked: false,
         comments: [],
-        items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath })),
+        items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath, mediaBucket: item.mediaBucket })),
         context: itemsWithPaths[0]?.note || "new dump",
         musicTrack,
         location,
@@ -592,7 +594,7 @@ export default function FlicdApp() {
     try {
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
       uploadedPaths = await uploadDumpImages(imageFiles);
-      const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null }));
+      const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null, mediaBucket: PRIVATE_DUMP_MEDIA_BUCKET }));
       const savedDump = await createDump({
         type: "roll",
         spaceId: channel,
