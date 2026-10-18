@@ -8,6 +8,8 @@ import Home, { DumpCard, Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
   getDumpItemMediaUrl: (imagePath) => imagePath ? `https://cdn.example.com/${imagePath}` : null,
+  PRIVATE_DUMP_MEDIA_BUCKET: "flicd-dump-private",
+  resolveDumpItemMediaUrl: vi.fn(async (item) => item?.imagePath ? `https://cdn.example.com/${item.imagePath}` : null),
 }));
 
 vi.mock("../seasonal/SeasonalOverlay.jsx", () => ({
