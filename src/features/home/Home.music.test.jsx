@@ -7,7 +7,11 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { DumpCard, Viewer } from "./Home.jsx";
 import { getActiveAudio, playAudioUrl, stopAudio } from "../music/audioController.js";
 
-vi.mock("./mediaUrl.js", () => ({ getDumpItemMediaUrl: () => null }));
+vi.mock("./mediaUrl.js", () => ({
+  PRIVATE_DUMP_MEDIA_BUCKET: "flicd-dump-private",
+  getDumpItemMediaUrl: () => null,
+  resolveDumpItemMediaUrl: vi.fn(async () => null),
+}));
 vi.mock("../social/socialApi.js", () => ({ getCurrentUserId: vi.fn(async () => "me") }));
 
 let audioInstances;
@@ -164,12 +168,13 @@ describe("Feed music", () => {
 });
 
 describe("Viewer music lifecycle", () => {
-  it("keeps playing through a view acknowledgement and stops when the viewer closes", () => {
+  it("keeps playing through a view acknowledgement and stops when the viewer closes", async () => {
     const oncePost = { ...post, mode: "once", viewed: false };
     const { rerender, unmount } = render(<Viewer post={oncePost} currentUserId="me" />);
     const audio = getActiveAudio();
     audio.currentTime = 12;
     fireEvent.click(screen.getByRole("button", { name: "Tap to view once" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Tap to view once" })).not.toBeInTheDocument());
     rerender(<Viewer post={{ ...oncePost, viewed: true }} currentUserId="me" />);
     expect(getActiveAudio()).toBe(audio);
     expect(audio.play).toHaveBeenCalledTimes(1);
