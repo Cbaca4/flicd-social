@@ -20,3 +20,11 @@ order by policyname;
 -- *after* the migration/cutover before making strong privacy claims.
 select media_bucket, count(*) from public.dump_items
 where image_path is not null group by media_bucket order by media_bucket;
+
+-- Board snapshots written by the updated client must use an owner-private bucket.
+select snapshot_bucket, count(*) from public.board_items
+where saved_image_path is not null group by snapshot_bucket order by snapshot_bucket;
+
+-- There must be no unauthenticated direct path to signing or downloading
+-- private Dump and Board objects. Validate these with real anon/authenticated
+-- Storage API requests, not just this catalog introspection.
