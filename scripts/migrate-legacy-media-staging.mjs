@@ -16,6 +16,8 @@
  *   node scripts/migrate-legacy-media-staging.mjs --verify
  */
 import { createHash } from "node:crypto";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
 
 const LIVE_REF = "xbmfphdetgmjzqnxhmgp";
@@ -24,7 +26,7 @@ const PRIVATE_DUMPS = "flicd-dump-private";
 const PRIVATE_BOARDS = "flicd-archive";
 const PAGE_SIZE = 100;
 
-function assertStagingEnvironment(env) {
+export function assertStagingEnvironment(env) {
   const { SUPABASE_URL: rawUrl, SUPABASE_SERVICE_ROLE_KEY: secret, FLICD_STAGING_PROJECT_REF: stagingRef } = env;
   if (!rawUrl || !secret || !stagingRef) {
     throw new Error("Staging URL, staging service-role key, and FLICD_STAGING_PROJECT_REF are required.");
@@ -57,7 +59,7 @@ async function listRows(client, table, columns) {
   return rows;
 }
 
-function validateOwnerPath(path, owner) {
+export function validateOwnerPath(path, owner) {
   if (!path || !owner || typeof path !== "string") throw new Error("Invalid media reference.");
   if (!path.startsWith(owner + "/") || path.includes("..") || path.startsWith("/")) {
     throw new Error("Object path does not match verified owner; aborting.");
@@ -169,7 +171,9 @@ async function main() {
   }));
 }
 
-main().catch((error) => {
-  console.error("Staging migration failed:", error.message);
-  process.exitCode = 1;
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error("Staging migration failed:", error.message);
+    process.exitCode = 1;
+  });
+}
