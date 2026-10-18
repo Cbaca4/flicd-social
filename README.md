@@ -5,17 +5,22 @@ Flic'd is a social app prototype focused on temporary photo dumps, rolls, spaces
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
-npm run build
+npm run lint
 npm test
+npm run build
 ```
 
-The source prototype supplied with this workspace is preserved in `src/FlicdLegacy.jsx` and the original blueprint in `blueprint.md`.
+Copy `.env.example` to local `.env` and fill in **public/development client** variables only when connected testing is needed. Never put a Supabase service-role or secret key in a `VITE_` variable.
 
-## Verification baseline
+## AI-assisted development
 
-This repository was initialized from the supplied prototype and blueprint because the uploads did not include a package manifest or Git metadata. Baseline verification begins with the first Vite build and test run.
+- `AGENTS.md` — repository conventions, product invariants, safe agent workflow.
+- `docs/hermes-setup.md` — Windows setup, isolated worktree instructions, first audit prompt.
+- `.github/workflows/verify.yml` — lint, test, build verification on pull requests.
+
+The active development branch as of 2026-10-17 is `feature/profile-studio-mobile-polish-latest`. `main` has diverged and is not the latest feature baseline. Reconcile branches carefully before changing the integration target.
 
 ## Repository layout
 
@@ -24,13 +29,17 @@ This repository was initialized from the supplied prototype and blueprint becaus
 - `src/features/home/` — home feed and viewer
 - `src/features/capture/` — dump/roll creation
 - `src/features/messages/` — requests and conversations
-- `src/features/profile/` — profile, boards, and Profile Studio
+- `src/features/profile/` — profile, boards, Archive and Profile Studio
+- `src/features/music/` — On Repeat, track picker, credits and audio control
+- `src/features/social/` — follows, comments and notifications
 - `src/features/discovery/` — Explore and Global discovery
 - `src/features/competition/` — photo competition ranking
-- `docs/superpowers/specs/` — approved product design
-- `docs/superpowers/plans/` — implementation plan
+- `supabase/migrations/` — backend schema changes (require review before remote apply)
+- `docs/superpowers/specs/` — prior approved product design
+- `docs/superpowers/plans/` — prior implementation plans
 - `docs/superpowers/prd-checklist.md` — verification ledger
+- `blueprint.md` — early product blueprint
 
 ## Verification note
 
-The environment could not complete `npm install` because access to the npm registry timed out. Therefore package-backed test/build verification is explicitly marked BLOCKED rather than being claimed as passing. Source-level checks and requirement mapping were still completed.
+Early baseline documentation predates recent development. Checks added by the Hermes foundation PR are intended to establish a current CI baseline; do not interpret their presence as proof that every check is already passing.
