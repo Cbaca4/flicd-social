@@ -32,11 +32,25 @@ describe("Companion", () => {
     expect(screen.queryByText("Buddy")).not.toBeInTheDocument();
   });
 
-  it("reacts when tapped", async () => {
+  it.each([
+    ["ordinary season", 6, 15, "✨"],
+    ["Halloween", 9, 17, "🎃"],
+    ["Christmas", 11, 15, "🎄"],
+    ["Valentine's Day", 1, 10, "💗"],
+    ["before Halloween", 9, 14, "✨"],
+    ["Halloween start", 9, 15, "🎃"],
+    ["Halloween end", 10, 2, "🎃"],
+    ["after Halloween", 10, 3, "✨"],
+  ])("reacts when tapped during %s", async (_season, month, day, expectedReaction) => {
+    // Freeze only Date so user-event and reaction timers keep their real behavior.
+    // Construct local noon explicitly; UTC conversion must not shift the test day.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, month, day, 12));
     const user = userEvent.setup();
     vi.spyOn(Math, "random").mockReturnValue(0);
 
     render(<Companion userId="u1" />);
+    expect(screen.queryByRole("status", { name: /Companion reaction:/i })).not.toBeInTheDocument();
 
     await user.click(
       screen.getByRole("button", {
@@ -44,7 +58,7 @@ describe("Companion", () => {
       }),
     );
 
-    expect(screen.getByText("✨")).toBeInTheDocument();
+    expect(screen.getByRole("status", { name: `Companion reaction: ${expectedReaction}` })).toHaveTextContent(expectedReaction);
   });
 
   it("shows the configured costume", () => {
