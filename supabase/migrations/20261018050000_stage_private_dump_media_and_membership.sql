@@ -71,6 +71,9 @@ using (
   )
 );
 
+alter table public.dump_items
+  add column if not exists media_bucket text not null default 'flicd-media';
+
 -- A user must not be able to attach another uploader's private object path
 -- to a Dump they own and then exploit read access through that association.
 -- Every Dump image path is generated under its posting owner's UUID prefix.
@@ -104,8 +107,7 @@ with check (
 
 -- Existing public media must be copied to private storage and referenced by
 -- media_bucket BEFORE removing legacy public objects. Do not flip the old bucket.
-alter table public.dump_items
-  add column if not exists media_bucket text not null default 'flicd-media';
+
 do $guard$
 begin
   if not exists (
