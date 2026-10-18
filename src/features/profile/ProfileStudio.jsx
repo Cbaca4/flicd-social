@@ -44,6 +44,21 @@ function backgroundMediaStyle(media) {
   };
 }
 
+function sectionPreviewStyle(style) {
+  const media = style?.backgroundMedia;
+  return media?.url
+    ? {
+        backgroundImage:
+          "linear-gradient(rgba(9,10,13,.36),rgba(9,10,13,.58)), url(\"" +
+          media.url +
+          "\")",
+        backgroundSize: "cover",
+        backgroundPosition:
+          (media.positionX ?? 50) + "% " + (media.positionY ?? 50) + "%",
+      }
+    : {};
+}
+
 export function ProfilePreview({ theme, profile }) {
   const hero = theme.sectionStyles?.hero || {};
   const boards = theme.sectionStyles?.boards || {};
@@ -100,6 +115,7 @@ export function ProfilePreview({ theme, profile }) {
             borderRadius: hero.radius || 20,
             overflow: "hidden",
             background: hero.background || "rgba(255,255,255,.03)",
+            ...sectionPreviewStyle(hero),
             border:
               "1px solid " +
               (hero.border || "rgba(255,255,255,.08)"),
@@ -144,6 +160,7 @@ export function ProfilePreview({ theme, profile }) {
             className="mini-sect"
             style={{
               background: onRepeat.background || undefined,
+              ...sectionPreviewStyle(onRepeat),
               borderColor: onRepeat.border || undefined,
               borderRadius: onRepeat.radius || 16,
             }}
@@ -165,6 +182,7 @@ export function ProfilePreview({ theme, profile }) {
           className="mini-sect"
           style={{
             background: boards.background || undefined,
+            ...sectionPreviewStyle(boards),
             borderColor: boards.border || undefined,
             borderRadius: boards.radius || 16,
           }}
@@ -308,6 +326,7 @@ export default function ProfileStudio({
   const [privacySaving, setPrivacySaving] = React.useState(false);
   const [backgroundSaving, setBackgroundSaving] = React.useState(false);
   const [backgroundError, setBackgroundError] = React.useState("");
+  const [sectionBackgroundSaving, setSectionBackgroundSaving] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState("");
   const event = getActiveSeasonalEvent();
@@ -389,6 +408,58 @@ export default function ProfileStudio({
           [section]: {
             ...current.sectionStyles?.[section],
             [key]: value,
+          },
+        },
+      }),
+    );
+  };
+
+  const handleSectionBackgroundChange = async (section, eventValue) => {
+    const file = eventValue.target.files?.[0];
+    eventValue.target.value = "";
+
+    if (!file || sectionBackgroundSaving) return;
+
+    setSectionBackgroundSaving(section);
+    setBackgroundError("");
+
+    try {
+      const uploaded = await uploadProfileBackground(file);
+      setDraft((current) =>
+        sanitizeProfileTheme({
+          ...current,
+          sectionStyles: {
+            ...current.sectionStyles,
+            [section]: {
+              ...current.sectionStyles?.[section],
+              backgroundMedia: {
+                url: uploaded.url,
+                type: "image",
+                mimeType: uploaded.mimeType,
+                positionX: 50,
+                positionY: 50,
+                scale: 1,
+              },
+            },
+          },
+        }),
+      );
+    } catch (error) {
+      setBackgroundError(error?.message || "Could not upload that component photo.");
+    } finally {
+      setSectionBackgroundSaving("");
+    }
+  };
+
+  const removeSectionBackground = (section) => {
+    setDraft((current) =>
+      sanitizeProfileTheme({
+        ...current,
+        sectionStyles: {
+          ...current.sectionStyles,
+          [section]: {
+            ...current.sectionStyles?.[section],
+            backgroundMedia: null,
           },
         },
       }),
@@ -900,6 +971,39 @@ export default function ProfileStudio({
                           />
                         </label>
                       ))}
+                    </div>
+
+                    <div className="profile-component-background-controls">
+                      <label
+                        className="btn"
+                        style={{
+                          cursor: sectionBackgroundSaving === key ? "wait" : "pointer",
+                          opacity: sectionBackgroundSaving === key ? 0.6 : 1,
+                        }}
+                      >
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(eventValue) => handleSectionBackgroundChange(key, eventValue)}
+                          disabled={Boolean(sectionBackgroundSaving)}
+                          style={{ display: "none" }}
+                          aria-label={label + " background photo"}
+                        />
+                        {sectionBackgroundSaving === key
+                          ? "Uploading…"
+                          : style.backgroundMedia?.url
+                            ? "Change background photo"
+                            : "Add background photo"}
+                      </label>
+                      {style.backgroundMedia?.url && (
+                        <button
+                          type="button"
+                          className="btn"
+                          onClick={() => removeSectionBackground(key)}
+                        >
+                          Remove photo
+                        </button>
+                      )}
                     </div>
 
                   </div>

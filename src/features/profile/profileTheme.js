@@ -75,6 +75,24 @@ function normalizeSectionStyle(value, fallback) {
   if (!/^#[0-9a-fA-F]{6}$/.test(next.accent)) next.accent = fallback.accent;
   next.radius = Math.min(36, Math.max(12, Number(next.radius) || fallback.radius));
   next.opacity = Math.min(1, Math.max(0.65, Number(next.opacity) || fallback.opacity));
+  if (!next.backgroundMedia || typeof next.backgroundMedia !== "object" || !/^https?:\/\//.test(String(next.backgroundMedia.url || ""))) {
+    next.backgroundMedia = null;
+  } else {
+    next.backgroundMedia = {
+      url: String(next.backgroundMedia.url),
+      type: next.backgroundMedia.type === "video" ? "video" : "image",
+      mimeType: String(next.backgroundMedia.mimeType || ""),
+      positionX: Number.isFinite(Number(next.backgroundMedia.positionX))
+        ? Math.min(100, Math.max(0, Number(next.backgroundMedia.positionX)))
+        : 50,
+      positionY: Number.isFinite(Number(next.backgroundMedia.positionY))
+        ? Math.min(100, Math.max(0, Number(next.backgroundMedia.positionY)))
+        : 50,
+      scale: Number.isFinite(Number(next.backgroundMedia.scale))
+        ? Math.min(1.6, Math.max(1, Number(next.backgroundMedia.scale)))
+        : 1,
+    };
+  }
   return next;
 }
 
