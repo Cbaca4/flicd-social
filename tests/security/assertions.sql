@@ -23,10 +23,11 @@ begin
   select count(*) into n from public.messages;
   if n <> 0 then raise exception 'Unapproved user can read a private message'; end if;
 
-  if public.is_conversation_participant(
-    'ffffffff-ffff-ffff-ffff-fffffffffff1',
-    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
-  ) then raise exception 'SECURITY DEFINER helper accepted another user identity'; end if;
+  if private.is_authenticated_conversation_member(
+    'ffffffff-ffff-ffff-ffff-fffffffffff1'
+  ) then raise exception 'Unrelated user passed private membership helper'; end if;
+  if has_function_privilege('authenticated','public.is_conversation_participant(uuid,uuid)','EXECUTE')
+  then raise exception 'Privileged membership helper remains exposed as public RPC'; end if;
 
   begin
     insert into public.conversation_participants(conversation_id,user_id) values
@@ -67,9 +68,8 @@ begin
   if n <> 2 then raise exception 'Follower should see two private Storage entries, got %',n; end if;
   select count(*) into n from public.messages;
   if n <> 1 then raise exception 'Participant Bob should see a conversation message'; end if;
-  if not public.is_conversation_participant(
-    'ffffffff-ffff-ffff-ffff-fffffffffff1',
-    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'
+  if not private.is_authenticated_conversation_member(
+    'ffffffff-ffff-ffff-ffff-fffffffffff1'
   ) then raise exception 'Helper denied genuine participant Bob'; end if;
 end $$;
 rollback;
