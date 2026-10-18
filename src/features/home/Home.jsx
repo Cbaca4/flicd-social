@@ -252,7 +252,7 @@ function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMut
               musicPlaying={musicPlaying}
               onToggleMusic={onToggleMusic}
               distanceLabel={distanceLabel}
-              blurred={post.mode === "once" && (onceViewedAtOpen || (itemIndex === index && !revealedOnce))}
+              blurred={post.mode === "once" && (onceViewedAtOpen || !revealedOnce)}
               alreadyViewed={post.mode === "once" && onceViewedAtOpen}
               onReveal={() => {
                 if (itemIndex !== index || post.mode !== "once" || revealedOnce) return;
@@ -281,13 +281,14 @@ export function DumpCard({
 }) {
   const [musicMuted, setMusicMuted] = React.useState(false);
   const [musicPlaying, setMusicPlaying] = React.useState(false);
+  const postId = post.id;
+  const audioUrl = post.musicTrack?.audio_url;
 
   const toggleFeedMusic = React.useCallback(() => {
-    const audioUrl = post?.musicTrack?.audio_url;
     if (!audioUrl) return;
 
     const activeAudio = getActiveAudio();
-    const isOwnAudio = activeAudio?.dataset?.flicdPostId === String(post.id);
+    const isOwnAudio = activeAudio?.dataset?.flicdPostId === String(postId);
 
     if (isOwnAudio) {
       if (activeAudio.muted) {
@@ -319,12 +320,12 @@ export function DumpCard({
     });
 
     if (!audio) return;
-    audio.dataset.flicdPostId = String(post.id);
+    audio.dataset.flicdPostId = String(postId);
     audio.addEventListener?.('play', () => setMusicPlaying(true));
     audio.addEventListener?.('pause', () => setMusicPlaying(false));
     setMusicMuted(false);
     setMusicPlaying(!audio.paused);
-  }, [post.id, post?.musicTrack?.audio_url]);
+  }, [postId, audioUrl]);
 
   React.useEffect(() => () => {
     const audio = getActiveAudio();
@@ -497,11 +498,16 @@ const REPORT_REASONS=[
   ['other','Other'],
 ];
 
-export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
+export function Viewer(props){
+  return <ViewerSession key={JSON.stringify([props.post.id, props.post.mode])} {...props} />;
+}
+
+function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
   const [commentsOpen,setCommentsOpen]=React.useState(Boolean(initialCommentsOpen));
-  const onceViewedAtOpenRef=React.useRef(Boolean(post.mode === "once" && post.viewed));
+  // Parent view acknowledgements must not relock a reveal in this session.
+  const [onceViewedAtOpen]=React.useState(()=>Boolean(post.mode === "once" && post.viewed));
   const [recording,setRecording]=React.useState(false);
   const [voiceReviewBlob,setVoiceReviewBlob]=React.useState(null);
   const [voiceReviewUrl,setVoiceReviewUrl]=React.useState('');
@@ -524,16 +530,11 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [videoPickerOpen,setVideoPickerOpen]=React.useState(false);
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
+  const onceLocked=onceViewedAtOpen || Boolean(post.mode === "once" && post.viewed && !revealedOnce);
 
   React.useEffect(() => {
-    setRevealedOnce(post.mode !== "once" || Boolean(post.viewed));
-  }, [post.id, post.mode, post.viewed]);
-
-  React.useEffect(() => {
-    setIndex(0);
     setCommentsOpen(Boolean(initialCommentsOpen));
-    onceViewedAtOpenRef.current = Boolean(post.mode === "once" && post.viewed);
-  }, [post.id, post.viewed, initialCommentsOpen]);
+  }, [initialCommentsOpen]);
 
   React.useEffect(() => {
     const track = post.musicTrack;
@@ -844,9 +845,9 @@ export function Viewer({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             onToggleMusic={toggleMusic}
             distanceLabel={distanceLabel}
             revealedOnce={revealedOnce}
-            onceViewedAtOpen={onceViewedAtOpenRef.current}
+            onceViewedAtOpen={onceLocked}
             onReveal={() => {
-              if (post.mode !== "once" || revealedOnce) return;
+              if (post.mode !== "once" || onceLocked || revealedOnce) return;
               setRevealedOnce(true);
               onMarkViewed?.(post.id);
             }}

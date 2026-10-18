@@ -51,7 +51,7 @@ vi.mock("../features/profile/BoardStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/ProfileStudio.jsx", () => ({ default: () => null }));
 vi.mock("../features/profile/EditProfile.jsx", () => ({ default: () => <div>Edit Profile</div> }));
 vi.mock("../features/discovery/Discovery.jsx", () => ({
-  default: ({ onUserSelect }) => {
+  default: function DiscoveryMock({ onUserSelect }) {
     const [searched, setSearched] = React.useState(false);
 
     const maren = {
