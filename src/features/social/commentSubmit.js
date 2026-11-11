@@ -1,7 +1,9 @@
 import { sendCommentMedia } from "./commentMediaApi.js";
 import { addComment } from "./interactionsApi.js";
+import { captureAuthScope } from "../../app/authScope.js";
 
-export async function submitComment(dumpId, input) {
+export async function submitComment(dumpId, input, context) {
+  const scope = captureAuthScope(context);
   if (input && typeof input === "object" && input.media_type) {
     if (!["audio", "video", "gif"].includes(input.media_type)) {
       throw new Error("Unsupported comment media type");
@@ -11,6 +13,7 @@ export async function submitComment(dumpId, input) {
       const mediaInput = {
         mediaType: input.media_type,
         mediaBlob: input.media_blob,
+        authScope: scope,
       };
       if (input.media_metadata != null) {
         mediaInput.mediaMetadata = input.media_metadata;
@@ -24,10 +27,10 @@ export async function submitComment(dumpId, input) {
       media_url: input.media_url ?? null,
       media_path: null,
       media_metadata: input.media_metadata ?? null,
-    });
+    }, scope);
   }
 
   const cleanText = String(input ?? "").trim();
   if (!cleanText) throw new Error("Comment cannot be empty");
-  return addComment(dumpId, cleanText);
+  return addComment(dumpId, cleanText, scope);
 }

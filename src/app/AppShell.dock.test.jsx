@@ -3,7 +3,9 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
+import { renderAccount } from '../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'u1', options);
 import AppShell from "./AppShell.jsx";
 
 beforeEach(cleanup);

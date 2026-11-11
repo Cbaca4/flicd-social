@@ -3,7 +3,9 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 
 const mocks = vi.hoisted(() => ({
   getMusicTracks: vi.fn(),
@@ -52,7 +54,7 @@ describe("OnRepeat", () => {
     fireEvent.click(await screen.findByRole("option"));
 
     await waitFor(() => {
-      expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith("song-1");
+      expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith("song-1", expect.objectContaining({user:'me'}));
       expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
       expect(screen.getByText("Night Drive")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Remove profile music" })).toBeInTheDocument();

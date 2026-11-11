@@ -5,6 +5,7 @@ import { getPublicProfile, getRelationshipCounts } from "../social/socialApi.js"
 import { getMusicTrack } from "../music/musicApi.js";
 import OnRepeat from "../music/OnRepeat.jsx";
 import RelationshipList from "../social/RelationshipList.jsx";
+import AccountSafety from "../social/AccountSafety.jsx";
 
 export default function PublicProfile({ profile, onBack, onUserSelect }) {
   const [resolvedProfile, setResolvedProfile] = React.useState(profile || null);
@@ -123,6 +124,7 @@ export default function PublicProfile({ profile, onBack, onUserSelect }) {
             <div>
               <div className="eyebrow">Public profile</div>
               <h1 className="title">@{resolvedProfile?.username || "unknown"}</h1>
+              {import.meta.env.VITE_MEDIA_GATEWAY_URL && resolvedProfile?.id && <AccountSafety key={resolvedProfile.id} accountId={resolvedProfile.id} />}
             </div>
           </div>
 

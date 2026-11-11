@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 
 export const MEDIA_BUCKET = "flicd-media"; // Legacy public media; retained for existing profiles and archives.
 export const PRIVATE_DUMP_MEDIA_BUCKET = "flicd-dump-private";
@@ -49,16 +50,20 @@ async function getCurrentUserId() {
   return user.id;
 }
 
-export async function uploadDumpImages(files) {
+export async function uploadDumpImages(files, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
+  const { assertCurrent, isCurrent } = scope;
   const selected = validateMediaFiles(files);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const uploadedPaths = [];
 
   try {
     for (const file of selected) {
+      assertCurrent();
       const extension = extensionForType(file.type);
       const path = `${userId}/${createMediaId()}.${extension}`;
-      const { data, error } = await supabase.storage
+      const { data, error } = await client.storage
         .from(PRIVATE_DUMP_MEDIA_BUCKET)
         .upload(path, file, {
           cacheControl: "60",
@@ -67,17 +72,21 @@ export async function uploadDumpImages(files) {
         });
       if (error) throw error;
       uploadedPaths.push(data.path);
+      assertCurrent();
     }
     return uploadedPaths;
   } catch (error) {
-    if (uploadedPaths.length) await removeDumpImages(uploadedPaths);
+    // Never issue cleanup using a different account's current SDK credentials.
+    if (isCurrent() && uploadedPaths.length) await removeDumpImages(uploadedPaths, PRIVATE_DUMP_MEDIA_BUCKET, scope);
     throw error;
   }
 }
 
-export async function removeDumpImages(paths, bucket = PRIVATE_DUMP_MEDIA_BUCKET) {
+export async function removeDumpImages(paths, bucket = PRIVATE_DUMP_MEDIA_BUCKET, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const cleanPaths = Array.from(new Set((paths || []).filter(Boolean)));
   if (!cleanPaths.length) return;
-  const { error } = await supabase.storage.from(bucket).remove(cleanPaths);
+  if (cleanPaths.some(path => !String(path).startsWith(scope.user + "/"))) throw new Error("Media owner changed.");
+  const { error } = await client.storage.from(bucket).remove(cleanPaths);
   if (error) console.error("Failed to clean up uploaded media:", error);
 }

@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 
 export const COMMENT_MEDIA_BUCKET = "flicd-media";
 export const MAX_COMMENT_VIDEO_DURATION = 15;
@@ -49,15 +50,19 @@ export function validateCommentVideoDuration(duration) {
   return duration;
 }
 
-export async function uploadCommentMedia(file, { mediaType, createId = () => crypto.randomUUID() } = {}) {
+export async function uploadCommentMedia(file, { mediaType, createId = () => crypto.randomUUID(), authScope } = {}) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const extension = validateCommentMediaFile(file, mediaType);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const path = `${userId}/comments/${createId()}.${extension}`;
-  const { data, error } = await supabase.storage.from(COMMENT_MEDIA_BUCKET).upload(path, file, {
+  scope.assertCurrent();
+  const { data, error } = await client.storage.from(COMMENT_MEDIA_BUCKET).upload(path, file, {
     cacheControl: "31536000",
     contentType: file.type,
     upsert: false,
   });
   if (error) throw error;
+  scope.assertCurrent();
   return data.path;
 }

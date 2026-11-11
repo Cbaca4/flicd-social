@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import { supabase } from '../../lib/supabase';
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 const getUser = vi.hoisted(() => vi.fn());
 const upload = vi.hoisted(() => vi.fn());
 const getPublicUrl = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/supabase", () => ({
+  createAccountClient: () => supabase,
   supabase: {
     auth: { getUser },
     storage: {
@@ -25,7 +28,7 @@ describe("profile photo storage", () => {
     const { uploadProfilePhoto } = await import("./profileMedia.js");
     const file = new File(["avatar"], "avatar.png", { type: "image/png" });
 
-    await expect(uploadProfilePhoto(file)).resolves.toBe("https://cdn.example/profile-photo.png");
+    await expect(uploadProfilePhoto(file, testAuthScope('user-1'))).resolves.toBe("https://cdn.example/profile-photo.png");
     expect(upload).toHaveBeenCalledWith(
       expect.stringMatching(/^user-1\/profile\/.*\.png$/),
       file,
@@ -43,7 +46,7 @@ describe("profile photo storage", () => {
     const { uploadProfileBackground } = await import("./profileMedia.js");
     const file = new File(["background"], "background.png", { type: "image/png" });
 
-    await expect(uploadProfileBackground(file)).resolves.toMatchObject({
+    await expect(uploadProfileBackground(file, testAuthScope('user-1'))).resolves.toMatchObject({
       url: "https://cdn.example/profile-background.png",
       type: "image",
       mimeType: "image/png",
@@ -66,3 +69,13 @@ describe("profile photo storage", () => {
 
     await expect(validateProfileBackgroundVideo(file)).rejects.toThrow(/50 MB or smaller/i);
   });
+
+it.each(["uploadProfilePhoto", "uploadProfileBackground"])("%s cannot upload a prior account's file after identity lookup", async name => {
+  const api = await import("./profileMedia.js");
+  let finish; getUser.mockReset().mockImplementation(() => new Promise(resolve => { finish = resolve; })); upload.mockClear();
+  let active = true;
+  const pending = api[name](new File(["synthetic"], "private.png", { type: "image/png" }), testAuthScope('A', () => active)).catch(error => error);
+  await vi.waitFor(() => expect(finish).toBeTypeOf("function"));
+  active = false; finish({ data: { user: { id: "B" } }, error: null });
+  expect(await pending).toBeInstanceOf(Error); expect(upload).not.toHaveBeenCalled();
+});

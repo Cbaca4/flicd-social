@@ -1,8 +1,10 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import { Check, UserRoundX, X } from "lucide-react";
 import { approveFollowRequest, declineFollowRequest, getPendingFollowRequests } from "./socialApi.js";
 
-export default function FollowRequests() {
+export default function FollowRequests({ authScope } = {}) {
+  const account = useAccountScope(authScope);
   const [requests, setRequests] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [busyId, setBusyId] = React.useState(null);
@@ -10,27 +12,33 @@ export default function FollowRequests() {
   const load = React.useCallback(async () => {
     try {
       const data = await getPendingFollowRequests();
+      if (!account.isCurrent()) return;
       setRequests(data);
     } catch (error) {
+      if (!account.isCurrent()) return;
       console.error("Failed to load follow requests:", error);
     } finally {
-      setLoading(false);
+      if (account.isCurrent()) setLoading(false);
     }
-  }, []);
+  }, [account]);
 
   React.useEffect(() => { load(); }, [load]);
 
   const respond = async (followerId, approve) => {
     if (busyId) return;
+    let scope;
     try {
+      scope = account.capture();
       setBusyId(followerId);
-      if (approve) await approveFollowRequest(followerId);
-      else await declineFollowRequest(followerId);
+      if (approve) await approveFollowRequest(followerId, scope);
+      else await declineFollowRequest(followerId, scope);
+      if (!scope.isCurrent()) return;
       setRequests((current) => current.filter((request) => request.follower_id !== followerId));
     } catch (error) {
+      if (!account.isCurrent() || (scope && !scope.isCurrent())) return;
       console.error("Failed to respond to follow request:", error);
     } finally {
-      setBusyId(null);
+      if (scope?.isCurrent()) setBusyId(null);
     }
   };
 

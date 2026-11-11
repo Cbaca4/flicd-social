@@ -1,0 +1,816 @@
+diff --git a/supabase/migrations/20261019010000_per_account_view_once.sql b/supabase/migrations/20261019010000_per_account_view_once.sql
+new file mode 100644
+index 0000000..a57f4c8
+--- /dev/null
++++ b/supabase/migrations/20261019010000_per_account_view_once.sql
+@@ -0,0 +1,197 @@
++-- LOCAL REVIEW DRAFT. Never apply to hosted staging without operator approval.
++-- Requires the separately approved synthetic staging marker. No media is copied/deleted.
++begin;
++do $$ begin
++  if not exists(select 1 from public.__flicd_staging_marker where label='SYNTHETIC_STAGING_ONLY')
++     or to_regclass('auth.sessions') is null then
++    raise exception 'Synthetic staging marker and Auth sessions required';
++  end if;
++end $$;
++create schema if not exists private;
++revoke create on schema public from public,anon,authenticated;
++create table private.account_blocks(
++  blocker_id uuid not null references auth.users(id) on delete cascade,
++  blocked_id uuid not null references auth.users(id) on delete cascade,
++  primary key(blocker_id,blocked_id),check(blocker_id<>blocked_id)
++);
++create table private.media_account_restrictions(
++  user_id uuid primary key references auth.users(id) on delete cascade,
++  suspended boolean not null default false
++);
++create table private.view_once_claims(
++  dump_id uuid not null references public.dumps(id) on delete cascade,
++  viewer_user_id uuid not null references auth.users(id) on delete cascade,
++  claim_id uuid not null unique default gen_random_uuid(),
++  auth_session_id uuid,
++  attempt_id uuid,
++  binding_hash text,
++  claimed_at timestamptz not null default clock_timestamp(),
++  lease_until timestamptz not null,
++  closed_at timestamptz,
++  primary key(dump_id,viewer_user_id),
++  check(binding_hash is null or binding_hash ~ '^[0-9a-f]{64}$')
++);
++alter table private.account_blocks enable row level security;
++alter table private.media_account_restrictions enable row level security;
++alter table private.view_once_claims enable row level security;
++revoke all on private.account_blocks,private.media_account_restrictions,private.view_once_claims from public,anon,authenticated;
++-- Preserve only known per-user historical consumption. Global timestamps do not consume others.
++insert into private.view_once_claims(dump_id,viewer_user_id,lease_until,closed_at)
++select v.dump_id,v.user_id,'-infinity',clock_timestamp() from public.dump_views v
++join public.dumps d on d.id=v.dump_id where d.expiry='once'
++on conflict do nothing;
++drop trigger if exists dump_views_archive_once on public.dump_views;
++revoke insert,update,delete on public.dump_views from public,anon,authenticated;
++
++create function private.media_actor_valid(p_user uuid,p_session uuid) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select p_user is not null and p_session is not null
++ and exists(select 1 from auth.sessions s where s.id=p_session and s.user_id=p_user)
++ and not exists(select 1 from private.media_account_restrictions r where r.user_id=p_user and r.suspended)
++$$;
++create function private.media_blocked(p_a uuid,p_b uuid) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select exists(select 1 from private.account_blocks b where
++ (b.blocker_id=p_a and b.blocked_id=p_b) or (b.blocker_id=p_b and b.blocked_id=p_a))
++$$;
++create function private.media_post_visible(p_user uuid,p_dump uuid) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select p_user is not null and exists(select 1 from auth.users where id=p_user)
++ and exists(select 1 from public.dumps d join public.profiles p on p.id=d.user_id
++ where d.id=p_dump and not private.media_blocked(p_user,d.user_id)
++ and (d.user_id=p_user or not p.is_private or exists(select 1 from public.follows f
++ where f.follower_id=p_user and f.following_id=d.user_id and f.status='accepted')))
++$$;
++create function private.media_current_post_visible(p_dump uuid) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select private.media_post_visible(auth.uid(),p_dump)
++$$;
++revoke all on function private.media_actor_valid(uuid,uuid),private.media_blocked(uuid,uuid),
++ private.media_post_visible(uuid,uuid),private.media_current_post_visible(uuid) from public,anon,authenticated;
++grant execute on function private.media_current_post_visible(uuid) to authenticated;
++grant usage on schema private to authenticated,service_role;
++create policy "Media account safety limits existing post visibility" on public.dumps
++as restrictive for select to authenticated using(private.media_current_post_visible(id));
++create policy "Once item paths require trusted delivery" on public.dump_items
++as restrictive for select to authenticated using(exists(select 1 from public.dumps d
++ where d.id=dump_items.dump_id and d.expiry<>'once'));
++
++-- Old Keep paths must remain protected even after a legacy Board row is removed.
++create table private.legacy_keep_objects(bucket_id text not null,name text not null,primary key(bucket_id,name));
++insert into private.legacy_keep_objects
++select distinct coalesce(snapshot_bucket,'flicd-media'),saved_image_path from public.board_items
++where saved_image_path is not null on conflict do nothing;
++alter table private.legacy_keep_objects enable row level security;
++revoke all on private.legacy_keep_objects from public,anon,authenticated;
++create function private.media_protected_object(p_bucket text,p_name text) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select p_bucket='flicd-keeps-private'
++ or (p_bucket='flicd-archive' and split_part(p_name,'/',2)='boards')
++ or exists(select 1 from private.legacy_keep_objects x where x.bucket_id=p_bucket and x.name=p_name)
++ or exists(select 1 from public.dump_items i join public.dumps d on d.id=i.dump_id
++ where d.expiry='once' and i.media_bucket=p_bucket and i.image_path=p_name)
++ or exists(select 1 from public.flicd_archive_items a join public.dumps d on d.id=a.dump_id
++ where d.expiry='once' and p_bucket='flicd-archive' and a.archive_path=p_name)
++$$;
++revoke all on function private.media_protected_object(text,text) from public,anon;
++grant execute on function private.media_protected_object(text,text) to authenticated;
++create policy "Protected media cannot be signed or downloaded directly" on storage.objects
++as restrictive for select to authenticated using(not private.media_protected_object(bucket_id,name));
++create policy "Protected originals are not browser mutable" on storage.objects
++as restrictive for update to authenticated
++using(not private.media_protected_object(bucket_id,name)) with check(not private.media_protected_object(bucket_id,name));
++create policy "Protected originals are not browser removable" on storage.objects
++as restrictive for delete to authenticated using(not private.media_protected_object(bucket_id,name));
++
++create function public.media_claim_view_once(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare
++ u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid;
++ d uuid=(p->>'dump_id')::uuid; attempt uuid=(p->>'attempt_id')::uuid;
++ binding text=p->>'binding_hash'; expiry_mode text; c private.view_once_claims%rowtype;
++ fresh boolean=false; frames jsonb;
++begin
++ if not private.media_actor_valid(u,s) or not private.media_post_visible(u,d) then
++   raise exception using errcode='42501',message='media_forbidden'; end if;
++ if attempt is null or binding is null or binding !~ '^[0-9a-f]{64}$' then
++   raise exception using errcode='22023',message='invalid_page_binding'; end if;
++ select expiry into expiry_mode from public.dumps where id=d for key share;
++ if expiry_mode is distinct from 'once' then raise exception 'not_view_once'; end if;
++ if not exists(select 1 from public.dump_items where dump_id=d)
++ or exists(select 1 from public.dump_items i join public.dumps source on source.id=i.dump_id
++ where i.dump_id=d and (i.media_bucket<>'flicd-dump-private' or i.image_path is null
++ or split_part(i.image_path,'/',1)<>source.user_id::text
++ or not exists(select 1 from storage.objects o where o.bucket_id=i.media_bucket and o.name=i.image_path))) then
++   raise exception 'media_unavailable'; end if;
++ insert into private.view_once_claims(dump_id,viewer_user_id,auth_session_id,attempt_id,binding_hash,lease_until)
++ values(d,u,s,attempt,binding,clock_timestamp()+interval '120 seconds')
++ on conflict(dump_id,viewer_user_id) do nothing returning * into c;
++ fresh=found;
++ if not fresh then
++   select * into c from private.view_once_claims where dump_id=d and viewer_user_id=u for update;
++   if c.closed_at is not null or c.lease_until<=clock_timestamp()
++      or c.auth_session_id is distinct from s or c.attempt_id is distinct from attempt
++      or c.binding_hash is distinct from binding then
++     raise exception using errcode='42501',message='media_consumed'; end if;
++ end if;
++ -- Read-only compatibility status; no global archiving trigger remains.
++ insert into public.dump_views(dump_id,user_id) values(d,u) on conflict do nothing;
++ select jsonb_agg(jsonb_build_object('id',id,'position',position,'note',note) order by position)
++ into frames from public.dump_items where dump_id=d;
++ return jsonb_build_object('status',case when fresh then 'claimed' else 'recovered' end,
++   'dump_id',d,'claim_id',c.claim_id,'lease_until',c.lease_until,'items',frames);
++end $$;
++
++create function public.media_once_frame(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid;
++ c private.view_once_claims%rowtype; result jsonb;
++begin
++ select * into c from private.view_once_claims where claim_id=(p->>'claim_id')::uuid for update;
++ if not found or not private.media_actor_valid(u,s) or c.viewer_user_id<>u
++ or c.auth_session_id is distinct from s or c.binding_hash is distinct from p->>'binding_hash'
++ or c.closed_at is not null or c.lease_until<=clock_timestamp()
++ or not private.media_post_visible(u,c.dump_id) then
++   raise exception using errcode='42501',message='media_session_denied'; end if;
++ if p->>'item_id' is not null then
++   select jsonb_build_object('bucket',i.media_bucket,'path',i.image_path,'item_id',i.id)
++   into result from public.dump_items i where i.dump_id=c.dump_id and i.id=(p->>'item_id')::uuid;
++   if result is null then raise exception using errcode='42501',message='wrong_session_item'; end if;
++ else result=jsonb_build_object('active',true); end if;
++ update private.view_once_claims set lease_until=clock_timestamp()+interval '120 seconds'
++ where claim_id=c.claim_id;
++ return result;
++end $$;
++create function public.media_close_view_once(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid;
++begin
++ if not private.media_actor_valid(u,s) then raise exception using errcode='42501',message='media_forbidden'; end if;
++ update private.view_once_claims set closed_at=coalesce(closed_at,clock_timestamp())
++ where claim_id=(p->>'claim_id')::uuid and viewer_user_id=u and auth_session_id=s
++ and binding_hash=p->>'binding_hash';
++ if not found then raise exception using errcode='42501',message='media_session_denied'; end if;
++ return jsonb_build_object('closed',true);
++end $$;
++create function public.media_post_metadata(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid; d uuid=(p->>'dump_id')::uuid;
++ result jsonb;
++begin
++ if not private.media_actor_valid(u,s) or not private.media_post_visible(u,d) then
++   raise exception using errcode='42501',message='media_forbidden'; end if;
++ select jsonb_build_object('id',source.id,'user_id',source.user_id,'expiry',source.expiry,
++ 'context',source.context,'created_at',source.created_at,'type',source.type,'mood',source.mood,
++ 'allow_others_to_keep',source.allow_others_to_keep,
++ 'viewed',exists(select 1 from private.view_once_claims c where c.dump_id=d and c.viewer_user_id=u),
++ 'dump_items',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'position',i.position,'note',i.note)
++ order by i.position) from public.dump_items i where i.dump_id=d),'[]'::jsonb))
++ into result from public.dumps source where id=d;
++ return result;
++end $$;
++revoke all on function public.media_claim_view_once(jsonb),public.media_once_frame(jsonb),
++ public.media_close_view_once(jsonb),public.media_post_metadata(jsonb) from public,anon,authenticated;
++grant execute on function public.media_claim_view_once(jsonb),public.media_once_frame(jsonb),
++ public.media_close_view_once(jsonb),public.media_post_metadata(jsonb) to service_role;
++comment on table private.view_once_claims is 'Permanent per-account consumption; 120s renewable transport lease is NOT a post expiration or reset.';
++commit;
+diff --git a/supabase/migrations/20261019011000_managed_photo_keeps.sql b/supabase/migrations/20261019011000_managed_photo_keeps.sql
+new file mode 100644
+index 0000000..35bff36
+--- /dev/null
++++ b/supabase/migrations/20261019011000_managed_photo_keeps.sql
+@@ -0,0 +1,283 @@
++-- LOCAL REVIEW DRAFT. Atomic Keep/deletion rollout; no backfill or Storage IO.
++begin;
++do $$ begin
++ if not exists(select 1 from public.__flicd_staging_marker where label='SYNTHETIC_STAGING_ONLY') then raise exception 'Synthetic staging marker required'; end if;
++end $$;
++-- Normalize only the single-column source FKs; reject an unexpected schema.
++-- Draft requires review of existing FK definitions before any hosted application.
++do $$ declare child regclass;f record;n integer;begin
++ foreach child in array array['public.dump_items'::regclass,'public.dump_views'::regclass] loop
++  n=0;
++  for f in select c.conname,c.confdeltype from pg_constraint c
++   where c.conrelid=child and c.confrelid='public.dumps'::regclass and c.contype='f'
++   and c.conkey=array[(select attnum from pg_attribute where attrelid=child and attname='dump_id')] loop
++   n=n+1;
++   if f.confdeltype<>'c' then
++    execute format('alter table %s drop constraint %I',child,f.conname);
++    execute format('alter table %s add constraint %I foreign key(dump_id) references public.dumps(id) on delete cascade',child,f.conname);
++   end if;
++  end loop;
++  if n<>1 then raise exception 'Unexpected source FK shape: %',child;end if;
++ end loop;
++end $$;
++create unique index managed_item_position_unique on public.dump_items(dump_id,position);
++create unique index managed_private_source_unique on public.dump_items(media_bucket,image_path)
++where image_path is not null and media_bucket='flicd-dump-private';
++create unique index managed_item_dump_unique on public.dump_items(id,dump_id);
++create unique index managed_dump_author_unique on public.dumps(id,user_id);
++create table private.photo_keeps(
++ id uuid primary key default gen_random_uuid(),
++ saver_id uuid not null references auth.users(id) on delete cascade,
++ source_item_id uuid not null,
++ source_dump_id uuid not null,
++ source_author_id uuid not null,
++ saved_note text not null default '',
++ saved_at timestamptz not null default clock_timestamp(),
++ foreign key(source_item_id,source_dump_id) references public.dump_items(id,dump_id) on delete cascade,
++ foreign key(source_dump_id,source_author_id) references public.dumps(id,user_id) on delete cascade,
++ unique(saver_id,source_item_id)
++);
++create table private.keep_board_memberships(
++ keep_id uuid not null references private.photo_keeps(id) on delete cascade,
++ board_id uuid not null references public.boards(id) on delete cascade,
++ primary key(keep_id,board_id)
++);
++create table private.media_cleanup_jobs(
++ id uuid primary key default gen_random_uuid(),bucket_id text not null,name text not null,
++ status text not null default 'pending' check(status in('pending','leased','done')),
++ attempts integer not null default 0,next_attempt_at timestamptz not null default clock_timestamp(),
++ lease_token uuid,lease_until timestamptz,last_error_code text,completed_at timestamptz,
++ unique(bucket_id,name)
++);
++create index media_cleanup_ready on private.media_cleanup_jobs(status,next_attempt_at,lease_until);
++alter table private.photo_keeps enable row level security;
++alter table private.keep_board_memberships enable row level security;
++alter table private.media_cleanup_jobs enable row level security;
++revoke all on private.photo_keeps,private.keep_board_memberships,private.media_cleanup_jobs from public,anon,authenticated;
++-- Retire the old client snapshot write API; legacy rows await reviewed backfill.
++revoke insert,update on public.board_items from public,anon,authenticated;
++-- All addresses are permanently tombstoned: completed jobs must not simply be purged.
++create function private.media_tombstoned(p_bucket text,p_name text) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select exists(select 1 from private.media_cleanup_jobs j where j.bucket_id=p_bucket and j.name=p_name)
++$$;
++revoke all on function private.media_tombstoned(text,text) from public,anon;
++grant execute on function private.media_tombstoned(text,text) to authenticated;
++create policy "Deleted media stays unreadable before and after cleanup" on storage.objects
++as restrictive for select to authenticated using(not private.media_tombstoned(bucket_id,name));
++create policy "Deleted object addresses cannot be reused" on storage.objects
++as restrictive for insert to authenticated with check(not private.media_tombstoned(bucket_id,name));
++create policy "Deleted object addresses cannot be rewritten" on storage.objects
++as restrictive for update to authenticated
++using(not private.media_tombstoned(bucket_id,name)) with check(not private.media_tombstoned(bucket_id,name));
++
++create function private.media_immutable_source() returns trigger language plpgsql set search_path=pg_catalog as $$
++begin
++ if tg_table_name='dumps' then
++  if new.user_id is distinct from old.user_id or new.expiry is distinct from old.expiry then raise exception 'immutable_post_media_mode'; end if;
++ else
++  if new.dump_id is distinct from old.dump_id or new.position is distinct from old.position
++    or new.image_path is distinct from old.image_path or new.media_bucket is distinct from old.media_bucket then
++   raise exception 'immutable_source_photo_delete_and_create_instead'; end if;
++ end if;
++ return new;
++end $$;
++revoke all on function private.media_immutable_source() from public,anon,authenticated;
++create trigger managed_immutable_post before update on public.dumps for each row execute function private.media_immutable_source();
++create trigger managed_immutable_photo before update on public.dump_items for each row execute function private.media_immutable_source();
++create function private.media_enqueue_source(p_dump uuid,p_item uuid default null) returns void
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++begin
++ insert into private.media_cleanup_jobs(bucket_id,name)
++ select i.media_bucket,i.image_path from public.dump_items i join public.dumps d on d.id=i.dump_id
++ where d.id=p_dump and (p_item is null or i.id=p_item) and i.image_path is not null
++ and i.media_bucket in('flicd-dump-private','flicd-media') and split_part(i.image_path,'/',1)=d.user_id::text
++ on conflict do nothing;
++ insert into private.media_cleanup_jobs(bucket_id,name)
++ select 'flicd-archive',a.archive_path from public.flicd_archive_items a join public.dumps d on d.id=a.dump_id
++ join public.dump_items i on i.dump_id=d.id and i.position=a.item_position
++ where d.id=p_dump and (p_item is null or i.id=p_item) and a.user_id=d.user_id
++ and starts_with(a.archive_path,d.user_id::text||'/'||d.id::text||'/')
++ on conflict do nothing;
++ insert into private.media_cleanup_jobs(bucket_id,name)
++ select b.snapshot_bucket,b.saved_image_path from public.board_items b
++ join public.dump_items i on i.dump_id=b.dump_id and i.position=b.item_position
++ where b.dump_id=p_dump and (p_item is null or i.id=p_item)
++ and b.saved_image_path is not null and b.snapshot_bucket in('flicd-archive','flicd-media')
++ and starts_with(b.saved_image_path,b.user_id::text||'/boards/')
++ on conflict do nothing;
++ -- Do not leave SET NULL legacy rows that retain private snapshot capabilities.
++ delete from public.board_items b where b.dump_id=p_dump
++ and (p_item is null or exists(select 1 from public.dump_items i where i.id=p_item and i.position=b.item_position));
++end $$;
++create function private.media_delete_source() returns trigger
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++begin
++ if tg_table_name='dumps' then perform private.media_enqueue_source(old.id);
++ else perform private.media_enqueue_source(old.dump_id,old.id); end if;
++ return old;
++end $$;
++revoke all on function private.media_enqueue_source(uuid,uuid),private.media_delete_source() from public,anon,authenticated;
++create trigger managed_dump_delete before delete on public.dumps for each row execute function private.media_delete_source();
++create trigger managed_photo_delete before delete on public.dump_items for each row execute function private.media_delete_source();
++
++create function private.media_source_location(p_item uuid) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare result jsonb;
++begin
++ select jsonb_build_object('bucket',i.media_bucket,'path',i.image_path) into result
++ from public.dump_items i join public.dumps d on d.id=i.dump_id where i.id=p_item
++ and i.media_bucket='flicd-dump-private' and split_part(i.image_path,'/',1)=d.user_id::text
++ and exists(select 1 from storage.objects o where o.bucket_id=i.media_bucket and o.name=i.image_path);
++ if result is null then
++  select jsonb_build_object('bucket','flicd-archive','path',a.archive_path) into result
++  from public.dump_items i join public.dumps d on d.id=i.dump_id
++  join public.flicd_archive_items a on a.dump_id=d.id and a.item_position=i.position and a.user_id=d.user_id
++  where i.id=p_item and starts_with(a.archive_path,d.user_id::text||'/'||d.id::text||'/')
++  and exists(select 1 from storage.objects o where o.bucket_id='flicd-archive' and o.name=a.archive_path);
++ end if;
++ if result is null then raise exception 'media_unavailable'; end if;
++ return result;
++end $$;
++revoke all on function private.media_source_location(uuid) from public,anon,authenticated;
++create function public.media_owner_archive(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;result jsonb;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'media_forbidden'; end if;
++ select coalesce(jsonb_agg(jsonb_build_object('id',d.id,'user_id',d.user_id,'expiry',d.expiry,
++ 'type',d.type,'mood',d.mood,'context',d.context,'created_at',d.created_at,
++ 'archive',jsonb_build_object('reason',case when d.expiry='once' then 'view_once' else '24h_expired' end,
++ 'archived_at',coalesce(a.archived_at,d.created_at)),
++ 'dump_items',coalesce((select jsonb_agg(jsonb_build_object('id',i.id,'position',i.position,'note',i.note) order by i.position)
++ from public.dump_items i where i.dump_id=d.id),'[]'::jsonb)) order by d.created_at desc),'[]'::jsonb)
++ into result from public.dumps d left join public.flicd_archive a on a.dump_id=d.id and a.user_id=u
++ where d.user_id=u and (d.expiry='once' or (d.expiry='24h' and d.created_at<=clock_timestamp()-interval '24 hours') or a.dump_id is not null);
++ return result;
++end $$;
++create function public.media_owner_frame(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;item uuid=(p->>'item_id')::uuid;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid)
++ or not exists(select 1 from public.dump_items i join public.dumps d on d.id=i.dump_id
++ where i.id=item and d.user_id=u) then raise exception 'media_forbidden'; end if;
++ return private.media_source_location(item);
++end $$;
++create function public.media_save_photo(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;d public.dumps%rowtype;i public.dump_items%rowtype;k private.photo_keeps%rowtype;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'keep_forbidden'; end if;
++ select * into d from public.dumps where id=(p->>'dump_id')::uuid for update;
++ select * into i from public.dump_items where dump_id=d.id and position=(p->>'item_position')::integer for update;
++ if d.id is null or i.id is null or private.media_blocked(u,d.user_id) or d.expiry<>'24h' then raise exception 'keep_forbidden'; end if;
++ select * into k from private.photo_keeps where saver_id=u and source_item_id=i.id;
++ if not found then
++  if (d.user_id<>u and d.created_at<=clock_timestamp()-interval '24 hours') or not private.media_post_visible(u,d.id)
++    or (d.user_id<>u and not d.allow_others_to_keep) or i.media_bucket<>'flicd-dump-private'
++    or split_part(i.image_path,'/',1) is distinct from d.user_id::text then raise exception 'keep_forbidden'; end if;
++  perform private.media_source_location(i.id);
++  insert into private.photo_keeps(saver_id,source_item_id,source_dump_id,source_author_id,saved_note)
++  values(u,i.id,d.id,d.user_id,coalesce(i.note,'')) returning * into k;
++ end if;
++ if p->>'board_id' is not null then
++  if not exists(select 1 from public.boards where id=(p->>'board_id')::uuid and user_id=u) then raise exception 'keep_forbidden'; end if;
++  insert into private.keep_board_memberships values(k.id,(p->>'board_id')::uuid) on conflict do nothing;
++ end if;
++ return to_jsonb(k);
++end $$;
++create function public.media_keep_frame(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;k private.photo_keeps%rowtype;
++begin
++ select * into k from private.photo_keeps where id=(p->>'keep_id')::uuid and saver_id=u;
++ if not found or not private.media_actor_valid(u,(p->>'auth_session_id')::uuid)
++ or private.media_blocked(u,k.source_author_id) then raise exception 'keep_forbidden'; end if;
++ return private.media_source_location(k.source_item_id);
++end $$;
++create function public.media_list_keeps(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;result jsonb;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'keep_forbidden'; end if;
++ select coalesce(jsonb_agg(to_jsonb(k)||jsonb_build_object('source_username',profile.username,
++ 'is_own_photo',k.source_author_id=u,'board_ids',coalesce((select jsonb_agg(m.board_id) from private.keep_board_memberships m where m.keep_id=k.id),'[]'::jsonb)) order by k.saved_at desc),'[]'::jsonb)
++ into result from private.photo_keeps k join public.profiles profile on profile.id=k.source_author_id
++ where k.saver_id=u and not private.media_blocked(u,k.source_author_id);
++ return result;
++end $$;
++create function public.media_link_keep(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;k private.photo_keeps%rowtype;
++begin
++ select * into k from private.photo_keeps where id=(p->>'keep_id')::uuid and saver_id=u for update;
++ if not found or not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) or private.media_blocked(u,k.source_author_id)
++ or not exists(select 1 from public.boards where id=(p->>'board_id')::uuid and user_id=u) then raise exception 'keep_forbidden'; end if;
++ insert into private.keep_board_memberships values(k.id,(p->>'board_id')::uuid) on conflict do nothing;
++ return jsonb_build_object('linked',true);
++end $$;
++create function public.media_remove_board_photo(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid)
++ or not exists(select 1 from private.photo_keeps where id=(p->>'keep_id')::uuid and saver_id=u)
++ or not exists(select 1 from public.boards where id=(p->>'board_id')::uuid and user_id=u) then raise exception 'keep_forbidden'; end if;
++ delete from private.keep_board_memberships where keep_id=(p->>'keep_id')::uuid and board_id=(p->>'board_id')::uuid;
++ return jsonb_build_object('removed',true);
++end $$;
++create function public.media_remove_keep(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;k private.photo_keeps%rowtype;
++begin
++ select * into k from private.photo_keeps where id=(p->>'keep_id')::uuid and saver_id=u for update;
++ if not found or not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'keep_forbidden'; end if;
++ if exists(select 1 from private.keep_board_memberships where keep_id=k.id) then raise exception 'keep_still_organized'; end if;
++ delete from private.photo_keeps where id=k.id;
++ return jsonb_build_object('removed',true);
++end $$;
++create function public.media_reconcile_cleanup(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare n integer;
++begin
++ update private.media_cleanup_jobs j set status='pending',next_attempt_at=clock_timestamp(),completed_at=null
++ where id in(select x.id from private.media_cleanup_jobs x where x.status='done'
++ and exists(select 1 from storage.objects o where o.bucket_id=x.bucket_id and o.name=x.name) limit 100);
++ get diagnostics n=row_count;return jsonb_build_object('requeued',n);
++end $$;
++create function public.media_lease_cleanup(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare result jsonb;
++begin
++ with eligible as(select id from private.media_cleanup_jobs
++ where (status='pending' and next_attempt_at<=clock_timestamp()) or (status='leased' and lease_until<clock_timestamp())
++ order by next_attempt_at for update skip locked limit 20),leased as(
++ update private.media_cleanup_jobs j set status='leased',lease_token=gen_random_uuid(),
++ lease_until=clock_timestamp()+interval '60 seconds',attempts=attempts+1 from eligible e where j.id=e.id returning j.*)
++ select coalesce(jsonb_agg(to_jsonb(leased)),'[]'::jsonb) into result from leased;
++ return result;
++end $$;
++create function public.media_finish_cleanup(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++begin
++ update private.media_cleanup_jobs set status='done',completed_at=clock_timestamp(),last_error_code=null
++ where id=(p->>'job_id')::uuid and lease_token=(p->>'lease_token')::uuid and status='leased' and lease_until>clock_timestamp();
++ return jsonb_build_object('completed',found);
++end $$;
++create function public.media_fail_cleanup(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++begin
++ update private.media_cleanup_jobs set status='pending',last_error_code='transient_storage_failure',
++ next_attempt_at=clock_timestamp()+make_interval(secs=>least(3600,power(2,least(attempts,12))::integer))
++ where id=(p->>'job_id')::uuid and lease_token=(p->>'lease_token')::uuid and status='leased' and lease_until>clock_timestamp();
++ return jsonb_build_object('rescheduled',found);
++end $$;
++do $$ declare f text;begin
++ foreach f in array array['media_owner_archive','media_owner_frame','media_save_photo','media_keep_frame','media_list_keeps','media_link_keep','media_remove_board_photo','media_remove_keep',
++ 'media_reconcile_cleanup','media_lease_cleanup','media_finish_cleanup','media_fail_cleanup'] loop
++  execute format('revoke all on function public.%I(jsonb) from public,anon,authenticated',f);
++  execute format('grant execute on function public.%I(jsonb) to service_role',f);
++ end loop;
++end $$;
++commit;
+diff --git a/supabase/migrations/20261020010000_keep_library_and_legacy_review.sql b/supabase/migrations/20261020010000_keep_library_and_legacy_review.sql
+new file mode 100644
+index 0000000..8784b82
+--- /dev/null
++++ b/supabase/migrations/20261020010000_keep_library_and_legacy_review.sql
+@@ -0,0 +1,120 @@
++-- LOCAL REVIEW DRAFT: canonical library contract and conservative legacy recovery.
++-- No Storage IO or destructive legacy cleanup. Backfill is an explicit service job.
++begin;
++do $$ begin
++ if not exists(select 1 from public.__flicd_staging_marker where label='SYNTHETIC_STAGING_ONLY') then raise exception 'Synthetic staging marker required'; end if;
++end $$;
++-- Independent preserved records survive Board deletion. Capture stable source ID
++-- now; never retarget a legacy grant if a deleted position is later reused.
++create table private.legacy_saved_records(
++ id uuid primary key,user_id uuid not null references auth.users(id) on delete cascade,
++ board_id uuid references public.boards(id) on delete set null,
++ dump_id uuid references public.dumps(id) on delete cascade,
++ source_item_id uuid references public.dump_items(id) on delete cascade,
++ item_position integer,note text,created_at timestamptz,
++ snapshot_bucket text,snapshot_path text
++);
++alter table private.legacy_saved_records enable row level security;
++revoke all on private.legacy_saved_records from public,anon,authenticated;
++create function private.media_preserve_legacy_records() returns void
++language sql security definer set search_path=pg_catalog set row_security=off as $$
++ insert into private.legacy_saved_records
++ select b.id,b.user_id,case when board.user_id=b.user_id then b.board_id else null end,
++ b.dump_id,i.id,b.item_position,b.note,b.created_at,b.snapshot_bucket,b.saved_image_path
++ from public.board_items b left join public.boards board on board.id=b.board_id
++ left join public.dump_items i on i.dump_id=b.dump_id and i.position=b.item_position
++ on conflict(id) do nothing
++$$;
++revoke all on function private.media_preserve_legacy_records() from public,anon,authenticated;
++select private.media_preserve_legacy_records();
++
++create table private.legacy_keep_reviews(
++ legacy_item_id uuid primary key references private.legacy_saved_records(id) on delete cascade,
++ source_item_id uuid not null references public.dump_items(id) on delete cascade,
++ saver_id uuid not null references auth.users(id) on delete cascade,
++ reviewed_by uuid not null references auth.users(id),
++ evidence_reference text not null check(length(trim(evidence_reference))>0),
++ reviewed_at timestamptz not null default clock_timestamp()
++);
++create table private.legacy_keep_migrations(
++ legacy_item_id uuid primary key references private.legacy_saved_records(id) on delete cascade,
++ keep_id uuid references private.photo_keeps(id) on delete set null,
++ migrated_at timestamptz not null default clock_timestamp()
++);
++alter table private.legacy_keep_reviews enable row level security;
++alter table private.legacy_keep_migrations enable row level security;
++revoke all on private.legacy_keep_reviews,private.legacy_keep_migrations from public,anon,authenticated;
++-- Legacy records are preserved, not offered as raw snapshot/signing capabilities.
++revoke select,delete on public.board_items from public,anon,authenticated;
++
++create function public.media_backfill_legacy_keeps(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare b private.legacy_saved_records%rowtype;d public.dumps%rowtype;i public.dump_items%rowtype;k uuid;n integer=0;
++begin
++ perform private.media_preserve_legacy_records();
++ for b in select * from private.legacy_saved_records order by id for update loop
++  if exists(select 1 from private.legacy_keep_migrations m where m.legacy_item_id=b.id) then continue;end if;
++  select * into d from public.dumps where id=b.dump_id for update;
++  select * into i from public.dump_items where id=b.source_item_id and dump_id=d.id and position=b.item_position for update;
++  if d.id is null or i.id is null or d.expiry<>'24h'
++   or (b.board_id is not null and not exists(select 1 from public.boards where id=b.board_id and user_id=b.user_id)) then continue;end if;
++  -- Historical browser-writable rows/username snapshots do NOT prove opt-in.
++  -- Owners need no opt-in; every other legacy grant needs separately audited evidence.
++  if d.user_id<>b.user_id and not exists(select 1 from private.legacy_keep_reviews r
++    where r.legacy_item_id=b.id and r.source_item_id=i.id and r.saver_id=b.user_id) then continue;end if;
++  begin
++   perform private.media_source_location(i.id);
++  exception when raise_exception then
++   if sqlerrm='media_unavailable' then continue;else raise;end if;
++  end;
++  insert into private.photo_keeps(saver_id,source_item_id,source_dump_id,source_author_id,saved_note,saved_at)
++  values(b.user_id,i.id,d.id,d.user_id,coalesce(b.note,''),coalesce(b.created_at,clock_timestamp()))
++  on conflict(saver_id,source_item_id) do update set saver_id=excluded.saver_id returning id into k;
++  if b.board_id is not null then insert into private.keep_board_memberships values(k,b.board_id) on conflict do nothing;end if;
++  insert into private.legacy_keep_migrations(legacy_item_id,keep_id) values(b.id,k);
++  n=n+1;
++ end loop;
++ return jsonb_build_object('imported',n);
++end $$;
++revoke all on function public.media_backfill_legacy_keeps(jsonb) from public,anon,authenticated;
++grant execute on function public.media_backfill_legacy_keeps(jsonb) to service_role;
++
++create or replace function public.media_list_keeps(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;result jsonb;legacy jsonb;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'keep_forbidden';end if;
++ select coalesce(jsonb_agg(to_jsonb(k)||jsonb_build_object('source_username',profile.username,
++  'item_position',i.position,'is_own_photo',k.source_author_id=u,
++  'board_ids',coalesce((select jsonb_agg(m.board_id order by m.board_id) from private.keep_board_memberships m where m.keep_id=k.id),'[]'::jsonb)) order by k.saved_at desc),'[]'::jsonb)
++ into result from private.photo_keeps k join public.dump_items i on i.id=k.source_item_id
++ left join public.profiles profile on profile.id=k.source_author_id
++ where k.saver_id=u and not private.media_blocked(u,k.source_author_id);
++ select coalesce(jsonb_agg(jsonb_build_object('id',b.id,'legacy_status',
++  case when d.id is null then 'source_unverified' when d.expiry='once' then 'view_once_disallowed' else 'needs_review' end,
++  'saved_note',coalesce(b.note,''),'saved_at',b.created_at,
++  'board_ids',case when exists(select 1 from public.boards where id=b.board_id and user_id=u) then jsonb_build_array(b.board_id) else '[]'::jsonb end)
++  order by b.created_at desc),'[]'::jsonb)
++ into legacy from private.legacy_saved_records b left join public.dumps d on d.id=b.dump_id
++ where b.user_id=u and not exists(select 1 from private.legacy_keep_migrations m where m.legacy_item_id=b.id)
++ and (d.id is null or not private.media_blocked(u,d.user_id));
++ return result||legacy;
++end $$;
++revoke all on function public.media_list_keeps(jsonb) from public,anon,authenticated;
++grant execute on function public.media_list_keeps(jsonb) to service_role;
++
++-- Preserved snapshot inventory still schedules cleanup if its old Board is gone.
++create function private.media_delete_legacy_record() returns trigger
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++begin
++ if old.snapshot_bucket in('flicd-media','flicd-archive')
++ and starts_with(old.snapshot_path,old.user_id::text||'/boards/')
++ and old.snapshot_path !~ '(^|/)\.\.?(/|$)' then
++  insert into private.media_cleanup_jobs(bucket_id,name) values(old.snapshot_bucket,old.snapshot_path) on conflict do nothing;
++ end if;
++ return old;
++end $$;
++revoke all on function private.media_delete_legacy_record() from public,anon,authenticated;
++create trigger managed_legacy_record_delete before delete on private.legacy_saved_records
++for each row execute function private.media_delete_legacy_record();
++commit;
+diff --git a/supabase/migrations/20261020011000_media_authority_final_boundaries.sql b/supabase/migrations/20261020011000_media_authority_final_boundaries.sql
+new file mode 100644
+index 0000000..d26a527
+--- /dev/null
++++ b/supabase/migrations/20261020011000_media_authority_final_boundaries.sql
+@@ -0,0 +1,192 @@
++-- LOCAL REVIEW DRAFT. Shared immutable original/archive provenance and tombstones.
++begin;
++do $$ begin
++ if not exists(select 1 from public.__flicd_staging_marker where label='SYNTHETIC_STAGING_ONLY') then raise exception 'Synthetic staging marker required';end if;
++end $$;
++-- A provider session row may remain until delayed cleanup after its hard expiry.
++create or replace function private.media_actor_valid(p_user uuid,p_session uuid) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select p_user is not null and p_session is not null
++ and exists(select 1 from auth.sessions s where s.id=p_session and s.user_id=p_user
++  and (s.not_after is null or s.not_after>clock_timestamp()))
++ and not exists(select 1 from private.media_account_restrictions r where r.user_id=p_user and r.suspended)
++$$;
++revoke all on function private.media_actor_valid(uuid,uuid) from public,anon,authenticated;
++
++create or replace function private.media_source_location(p_item uuid) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare result jsonb;
++begin
++ select jsonb_build_object('bucket',i.media_bucket,'path',i.image_path) into result
++ from public.dump_items i join public.dumps d on d.id=i.dump_id where i.id=p_item
++ and i.media_bucket='flicd-dump-private' and split_part(i.image_path,'/',1)=d.user_id::text
++ and not private.media_tombstoned(i.media_bucket,i.image_path)
++ and exists(select 1 from storage.objects o where o.bucket_id=i.media_bucket and o.name=i.image_path);
++ if result is null then
++  select jsonb_build_object('bucket','flicd-archive','path',a.archive_path) into result
++  from public.dump_items i join public.dumps d on d.id=i.dump_id
++  join public.flicd_archive_items a on a.dump_id=d.id and a.item_position=i.position and a.user_id=d.user_id
++  where i.id=p_item and starts_with(a.archive_path,d.user_id::text||'/'||d.id::text||'/')
++  and not private.media_tombstoned('flicd-archive',a.archive_path)
++  and exists(select 1 from storage.objects o where o.bucket_id='flicd-archive' and o.name=a.archive_path);
++ end if;
++ if result is null then raise exception 'media_unavailable'; end if;
++ return result;
++end $$;
++
++create or replace function public.media_claim_view_once(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare
++ u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid;
++ d uuid=(p->>'dump_id')::uuid; attempt uuid=(p->>'attempt_id')::uuid;
++ binding text=p->>'binding_hash'; expiry_mode text; c private.view_once_claims%rowtype;
++ fresh boolean=false; frames jsonb; frame record;
++begin
++ if not private.media_actor_valid(u,s) or not private.media_post_visible(u,d) then
++   raise exception using errcode='42501',message='media_forbidden'; end if;
++ if attempt is null or binding is null or binding !~ '^[0-9a-f]{64}$' then
++   raise exception using errcode='22023',message='invalid_page_binding'; end if;
++ select expiry into expiry_mode from public.dumps where id=d for key share;
++ if expiry_mode is distinct from 'once' then raise exception 'not_view_once'; end if;
++ if not exists(select 1 from public.dump_items where dump_id=d) then raise exception 'media_unavailable';end if;
++ for frame in select id from public.dump_items where dump_id=d loop
++  perform private.media_source_location(frame.id);
++ end loop;
++ insert into private.view_once_claims(dump_id,viewer_user_id,auth_session_id,attempt_id,binding_hash,lease_until)
++ values(d,u,s,attempt,binding,clock_timestamp()+interval '120 seconds')
++ on conflict(dump_id,viewer_user_id) do nothing returning * into c;
++ fresh=found;
++ if not fresh then
++   select * into c from private.view_once_claims where dump_id=d and viewer_user_id=u for update;
++   if c.closed_at is not null or c.lease_until<=clock_timestamp()
++      or c.auth_session_id is distinct from s or c.attempt_id is distinct from attempt
++      or c.binding_hash is distinct from binding then
++     raise exception using errcode='42501',message='media_consumed'; end if;
++ end if;
++ -- Read-only compatibility status; no global archiving trigger remains.
++ insert into public.dump_views(dump_id,user_id) values(d,u) on conflict do nothing;
++ select jsonb_agg(jsonb_build_object('id',id,'position',position,'note',note) order by position)
++ into frames from public.dump_items where dump_id=d;
++ return jsonb_build_object('status',case when fresh then 'claimed' else 'recovered' end,
++   'dump_id',d,'claim_id',c.claim_id,'lease_until',c.lease_until,'items',frames);
++end $$;
++
++create or replace function public.media_once_frame(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid; s uuid=(p->>'auth_session_id')::uuid;
++ c private.view_once_claims%rowtype; result jsonb;
++begin
++ select * into c from private.view_once_claims where claim_id=(p->>'claim_id')::uuid for update;
++ if not found or not private.media_actor_valid(u,s) or c.viewer_user_id<>u
++ or c.auth_session_id is distinct from s or c.binding_hash is distinct from p->>'binding_hash'
++ or c.closed_at is not null or c.lease_until<=clock_timestamp()
++ or not private.media_post_visible(u,c.dump_id) then
++   raise exception using errcode='42501',message='media_session_denied'; end if;
++ if p->>'item_id' is not null then
++   if not exists(select 1 from public.dump_items where dump_id=c.dump_id and id=(p->>'item_id')::uuid) then
++    raise exception using errcode='42501',message='wrong_session_item';end if;
++   result=private.media_source_location((p->>'item_id')::uuid)||jsonb_build_object('item_id',(p->>'item_id')::uuid);
++ else result=jsonb_build_object('active',true); end if;
++ update private.view_once_claims set lease_until=clock_timestamp()+interval '120 seconds'
++ where claim_id=c.claim_id;
++ return result;
++end $$;
++create or replace function public.media_save_photo(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;d public.dumps%rowtype;i public.dump_items%rowtype;k private.photo_keeps%rowtype;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) then raise exception 'keep_forbidden';end if;
++ select * into d from public.dumps where id=(p->>'dump_id')::uuid for update;
++ select * into i from public.dump_items where dump_id=d.id and position=(p->>'item_position')::integer for update;
++ if d.id is null or i.id is null or (p ? 'item_id' and i.id is distinct from (p->>'item_id')::uuid)
++ or private.media_blocked(u,d.user_id) or d.expiry<>'24h' then raise exception 'keep_forbidden';end if;
++ select * into k from private.photo_keeps where saver_id=u and source_item_id=i.id;
++ if not found then
++  if (d.user_id<>u and d.created_at<=clock_timestamp()-interval '24 hours') or not private.media_post_visible(u,d.id)
++   or (d.user_id<>u and not d.allow_others_to_keep) then raise exception 'keep_forbidden';end if;
++  perform private.media_source_location(i.id);
++  insert into private.photo_keeps(saver_id,source_item_id,source_dump_id,source_author_id,saved_note)
++  values(u,i.id,d.id,d.user_id,coalesce(i.note,'')) returning * into k;
++ end if;
++ if p->>'board_id' is not null then
++  if not exists(select 1 from public.boards where id=(p->>'board_id')::uuid and user_id=u) then raise exception 'keep_forbidden';end if;
++  insert into private.keep_board_memberships values(k.id,(p->>'board_id')::uuid) on conflict do nothing;
++ end if;
++ return to_jsonb(k);
++end $$;
++revoke all on function public.media_save_photo(jsonb) from public,anon,authenticated;
++grant execute on function public.media_save_photo(jsonb) to service_role;
++
++-- Preserve existing legacy archive provenance; new browser writes cannot retarget it.
++revoke insert,update on public.flicd_archive_items from public,anon,authenticated;
++revoke all on function private.media_source_location(uuid) from public,anon,authenticated;
++revoke all on function public.media_claim_view_once(jsonb),public.media_once_frame(jsonb) from public,anon,authenticated;
++grant execute on function public.media_claim_view_once(jsonb),public.media_once_frame(jsonb) to service_role;
++create function public.media_account_block_status(p jsonb) returns jsonb
++language plpgsql stable security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;a uuid=(p->>'account_id')::uuid;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) or a is null then raise exception 'media_forbidden';end if;
++ return jsonb_build_object('is_self',u=a,'blocked_by_me',exists(select 1 from private.account_blocks where blocker_id=u and blocked_id=a));
++end $$;
++create function public.media_set_account_block(p jsonb) returns jsonb
++language plpgsql security definer set search_path=pg_catalog set row_security=off as $$
++declare u uuid=(p->>'viewer_id')::uuid;a uuid=(p->>'account_id')::uuid;
++begin
++ if not private.media_actor_valid(u,(p->>'auth_session_id')::uuid) or a is null or u=a
++ or jsonb_typeof(p->'blocked') is distinct from 'boolean' then raise exception 'media_forbidden';end if;
++ if (p->>'blocked')::boolean then
++  insert into private.account_blocks values(u,a) on conflict do nothing;
++ else delete from private.account_blocks where blocker_id=u and blocked_id=a;end if;
++ return public.media_account_block_status(p);
++end $$;
++revoke all on function public.media_account_block_status(jsonb),public.media_set_account_block(jsonb) from public,anon,authenticated;
++grant execute on function public.media_account_block_status(jsonb),public.media_set_account_block(jsonb) to service_role;
++
++-- Existing permissive ordinary-media policies cannot bypass a bilateral block.
++create function private.media_current_object_safe(b text,n text) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select not exists(select 1 from private.media_account_restrictions r where r.user_id=auth.uid() and r.suspended)
++ and not exists(select 1 from public.dump_items i join public.dumps d on d.id=i.dump_id
++  where i.media_bucket=b and i.image_path=n and (not private.media_post_visible(auth.uid(),d.id)
++   or (d.expiry='24h' and d.user_id<>auth.uid() and d.created_at<=clock_timestamp()-interval '24 hours')))
++ and not exists(select 1 from public.flicd_archive_items a join public.dumps d on d.id=a.dump_id
++  where b='flicd-archive' and a.archive_path=n and (a.user_id is distinct from auth.uid() or private.media_blocked(auth.uid(),d.user_id)))
++ and (b not in('flicd-dump-private','flicd-archive','flicd-keeps-private')
++  or split_part(n,'/',1)=auth.uid()::text
++  or exists(select 1 from public.dump_items i where i.media_bucket=b and i.image_path=n))
++$$;
++revoke all on function private.media_current_object_safe(text,text) from public,anon;
++grant execute on function private.media_current_object_safe(text,text) to authenticated;
++create policy "Bilateral media blocks limit every signed original" on storage.objects
++as restrictive for select to authenticated using(private.media_current_object_safe(bucket_id,name));
++-- A posted source's bytes must not be replaceable behind canonical entitlements.
++-- Deleting the DB source runs revocation/outbox first; only the trusted worker
++-- removes the associated object. Unassociated uploads retain ordinary cleanup.
++create function private.media_bound_source_object(b text,n text) returns boolean
++language sql stable security definer set search_path=pg_catalog set row_security=off as $$
++ select exists(select 1 from public.dump_items i where i.media_bucket=b and i.image_path=n)
++ or exists(select 1 from public.flicd_archive_items a where b='flicd-archive' and a.archive_path=n)
++$$;
++revoke all on function private.media_bound_source_object(text,text) from public,anon;
++grant execute on function private.media_bound_source_object(text,text) to authenticated;
++create policy "Posted original bytes cannot be browser replaced" on storage.objects
++as restrictive for update to authenticated
++using(not private.media_bound_source_object(bucket_id,name)) with check(not private.media_bound_source_object(bucket_id,name));
++create policy "Source revocation precedes object removal" on storage.objects
++as restrictive for delete to authenticated using(not private.media_bound_source_object(bucket_id,name));
++-- Old permissive policies combine with OR. An anonymous grant must never open
++-- private media or permit an unauthenticated overwrite behind an entitlement.
++create policy "Anonymous policies cannot open private media" on storage.objects
++as restrictive for all to anon
++using(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private'))
++with check(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private'));
++create policy "Private object inserts remain owner scoped under policy overlap" on storage.objects
++as restrictive for insert to authenticated with check(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private') or split_part(name,'/',1)=auth.uid()::text);
++create policy "Private object updates remain owner scoped under policy overlap" on storage.objects
++as restrictive for update to authenticated
++using(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private') or split_part(name,'/',1)=auth.uid()::text)
++with check(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private') or split_part(name,'/',1)=auth.uid()::text);
++create policy "Private object deletes remain owner scoped under policy overlap" on storage.objects
++as restrictive for delete to authenticated using(bucket_id not in('flicd-dump-private','flicd-archive','flicd-keeps-private') or split_part(name,'/',1)=auth.uid()::text);
++commit;

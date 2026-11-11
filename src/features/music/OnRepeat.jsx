@@ -1,4 +1,5 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import { ExternalLink, Pause, Play, Search, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
 import { getActiveAudio, pauseAudio, playAudioUrl, resumeAudio, stopAudio } from "./audioController.js";
@@ -11,13 +12,16 @@ export default function OnRepeat({
   onTogglePlay,
   className = "card",
   style,
+  authScope,
 }) {
+  const account = useAccountScope(authScope);
   const [track, setTrack] = React.useState(initialTrack);
   const [tracks, setTracks] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [localPlaying, setLocalPlaying] = React.useState(false);
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
+  const [saveError, setSaveError] = React.useState("");
   const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
@@ -50,22 +54,24 @@ export default function OnRepeat({
     };
   }, [controlled, track?.audio_url]);
 
-  const selectTrack = async (nextTrack) => {
-    await setProfileMusicTrack(nextTrack.id);
-    if (!controlled) stopAudio();
-    setLocalPlaying(false);
-    setTrack(nextTrack);
-    onTrackChange?.(nextTrack);
-    setQuery("");
+  const persistTrack = async (nextTrack) => {
+    let scope;
+    try {
+      scope = account.capture();
+      setSaveError("");
+      await setProfileMusicTrack(nextTrack?.id || null, scope);
+      if (!scope.isCurrent()) return;
+      if (!controlled) stopAudio();
+      setLocalPlaying(false);
+      setTrack(nextTrack);
+      onTrackChange?.(nextTrack);
+      setQuery("");
+    } catch (error) {
+      if (scope?.isCurrent()) setSaveError(error.message || "Could not update profile music.");
+    }
   };
-
-  const removeTrack = async () => {
-    await setProfileMusicTrack(null);
-    if (!controlled) stopAudio();
-    setLocalPlaying(false);
-    setTrack(null);
-    onTrackChange?.(null);
-  };
+  const selectTrack = (nextTrack) => persistTrack(nextTrack);
+  const removeTrack = () => persistTrack(null);
 
   const togglePlay = async () => {
     if (controlled) {
@@ -120,12 +126,13 @@ export default function OnRepeat({
       }
     }, 220);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); searchRequestRef.current += 1; };
   }, [editable, track, query]);
 
   return (
     <div className={className} style={style}>
       <h2 className="profile-space-panel-title">On Repeat</h2>
+      {saveError && <p role="alert">{saveError}</p>}
 
       {track ? (
         <div className="row" style={{ marginTop: 10, alignItems: "center" }}>

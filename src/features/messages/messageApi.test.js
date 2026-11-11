@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { supabase } from '../../lib/supabase';
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 const updateMock = vi.fn();
 
 vi.mock("../../lib/supabase", () => ({
+  createAccountClient: () => supabase,
   supabase: {
     auth: {
       getUser: vi.fn().mockResolvedValue({
@@ -36,7 +39,7 @@ describe("Messaging", () => {
     const { sendMessage } = await import("./messageApi.js");
 
     await expect(
-      sendMessage("test-conversation-id", "   ")
+      sendMessage("test-conversation-id", "   ", testAuthScope('recipient-user-id'))
     ).rejects.toThrow("Message cannot be empty.");
   });
 
@@ -65,7 +68,7 @@ describe("Messaging", () => {
 
     const result = await sendMessage(
       "conversation-123",
-      "  Hello Flic'd!  "
+      "  Hello Flic'd!  ", testAuthScope('recipient-user-id')
     );
 
     expect(insertMock).toHaveBeenCalledWith({
@@ -110,7 +113,7 @@ describe("Messaging", () => {
 
     const { acceptRequest } = await import("./messageApi.js");
 
-    const result = await acceptRequest("request-123");
+    const result = await acceptRequest("request-123", testAuthScope('recipient-user-id'));
 
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -166,7 +169,7 @@ describe("Messaging", () => {
 
     const { declineRequest } = await import("./messageApi.js");
 
-    const result = await declineRequest("request-456");
+    const result = await declineRequest("request-456", testAuthScope('recipient-user-id'));
 
     expect(updateMock).toHaveBeenCalledWith(
       expect.objectContaining({

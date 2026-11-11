@@ -1,8 +1,10 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import { Bell, Check, Image as ImageIcon } from "lucide-react";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "./notificationsApi.js";
 
 export default function Notifications({ onBack, onOpenDump, onChanged }) {
+  const account = useAccountScope();
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -27,29 +29,35 @@ export default function Notifications({ onBack, onOpenDump, onChanged }) {
   const markAllRead = async () => {
     if (saving) return;
     setSaving(true);
+    let scope;
     try {
-      await markAllNotificationsRead();
+      scope = account.capture();
+      await markAllNotificationsRead(scope);
+      if (!scope.isCurrent()) return;
       setItems((current) => current.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
       onChanged?.();
     } catch (markError) {
-      setError(markError.message || "Could not update notifications.");
+      if (scope?.isCurrent()) setError(markError.message || "Could not update notifications.");
     } finally {
-      setSaving(false);
+      if (scope?.isCurrent()) setSaving(false);
     }
   };
 
   const openItem = async (item) => {
+    if (!account.isCurrent()) return;
+    const scope = account.capture();
     if (!item.read_at) {
       try {
-        await markNotificationRead(item.id);
+        await markNotificationRead(item.id, scope);
       } catch {
         // The notification can still open even when the read update fails.
       }
+      if (!scope.isCurrent()) return;
       setItems((current) => current.map((entry) => entry.id === item.id ? { ...entry, read_at: new Date().toISOString() } : entry));
       onChanged?.();
     }
 
-    if (item.dump_id) onOpenDump?.(item.dump_id);
+    if (scope.isCurrent() && item.dump_id) onOpenDump?.(item.dump_id);
   };
 
   return (

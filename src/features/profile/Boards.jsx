@@ -1,5 +1,8 @@
 import React from "react";
-import { getDumpItemMediaUrl } from "../home/mediaUrl.js";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
+import { captureAuthScope } from "../../app/authScope.js";
+import KeepPhoto from "./KeepPhoto.jsx";
+import KeepLibrary from "./KeepLibrary.jsx";
 import {
   ArrowLeft,
   Pin,
@@ -14,7 +17,7 @@ import {
   deleteBoardItem,
   getBoardItems,
   getBoards,
-  saveBoardItem,
+  linkBoardItem,
   updateBoard,
 } from "./boardApi";
 import BoardStudio from "./BoardStudio";
@@ -201,6 +204,7 @@ function BoardDetail({
   onBack,
   onDeleteItem,
   onAddExistingItem,
+  onRefresh,
 }) {
   const style = board?.style_config || {};
   const columns = Math.min(
@@ -278,6 +282,7 @@ function BoardDetail({
           <Copy size={15} />
           Add saved items
         </button>
+        <button type="button" className="btn" onClick={onRefresh}>Refresh Saves</button>
 
         <span className="subtitle">
           {resolvedItems.length} saved {resolvedItems.length === 1 ? "item" : "items"}
@@ -324,8 +329,7 @@ function BoardDetail({
         >
           {resolvedItems.map((item) => {
             const dump = item.dump;
-            const frame = dump?.items?.[item.item_position];
-            const imagePath = item.saved_image_url || getDumpItemMediaUrl(item.saved_image_path, item.snapshot_bucket || "flicd-media") || frame?.imageUrl || null;
+            const frame = dump?.items?.find(entry => entry.position === item.item_position);
             const mood = item.mood || dump?.mood || "Saved";
             const note = item.note || frame?.note || "";
             
@@ -365,30 +369,7 @@ function BoardDetail({
                         : undefined,
                   }}
                 >
-                  {imagePath ? (
-                    <img
-                      src={imagePath}
-                      alt=""
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        position: "absolute",
-                        inset: 0,
-                        display: "grid",
-                        placeItems: "center",
-                        opacity: 0.35,
-                        fontSize: 12,
-                      }}
-                    >
-                      Saved Flic'd
-                    </div>
-                  )}
+                  <KeepPhoto item={item} />
                 </div>
 
                 <div
@@ -412,7 +393,7 @@ function BoardDetail({
                           marginTop: 3,
                         }}
                       >
-                        {item.note}
+                        {note}
                       </strong>
                     )}
                   </div>
@@ -420,6 +401,7 @@ function BoardDetail({
                   <button
                     type="button"
                     className="btn icon-btn"
+                    disabled={Boolean(item.legacy_status)}
                     onClick={() =>
                       onDeleteItem(item.id)
                     }
@@ -450,14 +432,14 @@ function AddItemsModal({
   const existingKeys = new Set(
     board.currentItems.map(
       (item) =>
-        `${item.dump_id}:${item.item_position}`
+        item.id
     )
   );
 
   const available = keptItems.filter(
     (item) =>
       !existingKeys.has(
-        `${item.dumpId}:${item.seed}`
+        item.id
       )
   );
 
@@ -530,7 +512,7 @@ function AddItemsModal({
             style={{ marginTop: 16 }}
           >
             {available.map((item) => {
-              const key = `${item.dumpId}:${item.seed}`;
+              const key = item.id;
               const checked = selected.has(key);
 
               return (
@@ -561,7 +543,7 @@ function AddItemsModal({
                           "Saved Flic'd"}
                       </strong>
                       <p className="subtitle">
-                        {item.author || "Saved item"}
+                        {item.source_username || "Saved item"}
                       </p>
                     </div>
                   </div>
@@ -604,12 +586,20 @@ function AddItemsModal({
 
 export default function Boards({
   dumps = [],
-  keptItems = [],
   onBack,
   onToast,
   initialBoardId = null,
+  authScope,
 }) {
+  const account = useAccountScope(authScope);
   const [boards, setBoards] = React.useState([]);
+  const [library, setLibrary] = React.useState([]);
+  const [libraryMode, setLibraryMode] = React.useState("Custom Boards");
+  const [loadError, setLoadError] = React.useState("");
+  const [libraryVersion, setLibraryVersion] = React.useState(0);
+  const requestVersion = React.useRef(0);
+  const activeBoardIdRef = React.useRef(null);
+  const initialOpened = React.useRef(null);
   const [counts, setCounts] = React.useState({});
   const [activeBoard, setActiveBoard] =
     React.useState(null);
@@ -617,6 +607,7 @@ export default function Boards({
     React.useState([]);
   const [showCreate, setShowCreate] =
     React.useState(false);
+  const createGeneration = React.useRef(0);
   const [editingBoard, setEditingBoard] =
     React.useState(null);
   const [addingItems, setAddingItems] =
@@ -630,21 +621,25 @@ export default function Boards({
 
   const refresh = React.useCallback(
     async () => {
+      const generation = ++requestVersion.current;
       setLoading(true);
-
+      let scope;
       try {
+        scope = account.capture();
         const [boardRows, itemRows] =
           await Promise.all([
             getBoards(),
-            getBoardItems(),
+            getBoardItems(null, scope),
           ]);
 
-        setBoards(boardRows);
+        if (!scope.isCurrent() || generation !== requestVersion.current) return;
+        setBoards(boardRows); setLibrary(itemRows); setLoadError("");
+        setLibraryVersion(value => value + 1);
+        if (activeBoardIdRef.current) setActiveItems(itemRows.filter(item => item.board_ids.includes(activeBoardIdRef.current)));
 
         const nextCounts = itemRows.reduce(
           (result, item) => {
-            result[item.board_id] =
-              (result[item.board_id] || 0) + 1;
+            for (const id of item.board_ids) result[id] = (result[id] || 0) + 1;
             return result;
           },
           {}
@@ -652,6 +647,8 @@ export default function Boards({
 
         setCounts(nextCounts);
       } catch (error) {
+        if (!scope?.isCurrent() || generation !== requestVersion.current) return;
+        setLibrary([]); setActiveItems([]); setLoadError(error.message || "Could not load Saves.");
         console.error(
           "Failed to load Boards:",
           error
@@ -661,18 +658,19 @@ export default function Boards({
             "Could not load Boards."
         );
       } finally {
-        setLoading(false);
+        if (scope?.isCurrent() && generation === requestVersion.current) setLoading(false);
       }
     },
-    [onToast]
+    [onToast, account]
   );
 
   React.useEffect(() => {
     refresh();
+    return () => { requestVersion.current += 1; };
   }, [refresh]);
 
   React.useEffect(() => {
-    if (!initialBoardId || activeBoard || !boards.length) {
+    if (!initialBoardId || initialOpened.current === initialBoardId || activeBoard || !boards.length) {
       return;
     }
 
@@ -681,17 +679,24 @@ export default function Boards({
     );
 
     if (target) {
+      initialOpened.current = initialBoardId;
       openBoard(target);
     }
   }, [boards, initialBoardId, activeBoard]);
 
   async function openBoard(board) {
+    if (!account.isCurrent()) return;
+    const generation = ++requestVersion.current;
+    activeBoardIdRef.current = board.id;
+    setActiveBoard(board); setActiveItems([]);
     try {
+      const scope = account.capture();
       const items =
-        await getBoardItems(board.id);
-      setActiveBoard(board);
+        await getBoardItems(board.id, scope);
+      if (!scope.isCurrent() || generation !== requestVersion.current) return;
       setActiveItems(items);
     } catch (error) {
+      if (!account.isCurrent() || generation !== requestVersion.current) return;
       console.error(error);
       onToast?.(
         error.message ||
@@ -700,15 +705,34 @@ export default function Boards({
     }
   }
 
+  function openCreate() {
+    createGeneration.current += 1;
+    setName("");
+    setDescription("");
+    setShowCreate(true);
+  }
+
+  function cancelCreate() {
+    // Invalidate before React commits the hidden/replacement form. The same
+    // predicate reaches identity lookup, SDK credentials and final dispatch.
+    createGeneration.current += 1;
+    setShowCreate(false);
+  }
+
   async function handleCreate(event) {
     event.preventDefault();
-
+    if (!showCreate) return;
+    const generation = ++createGeneration.current;
+    let scope;
     try {
+      scope = captureAuthScope(account.capture(), () => createGeneration.current === generation);
       const created = await createBoard({
         name,
         description,
         pinned: false,
-      });
+      }, scope);
+      if (!scope.isCurrent()) return;
+      createGeneration.current += 1;
 
       setBoards((current) => [
         ...current,
@@ -725,6 +749,7 @@ export default function Boards({
       setShowCreate(false);
       onToast?.("Board created");
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       console.error(error);
       onToast?.(
         error.message ||
@@ -734,18 +759,21 @@ export default function Boards({
   }
 
   async function togglePin(board) {
+    let scope;
     if (!board.pinned && !canPinBoard(boards, board.id)) {
       onToast?.(`You can pin up to ${MAX_PINNED_BOARDS} Boards to your profile.`);
       return;
     }
 
     try {
+      scope = account.capture();
       const updated = await updateBoard(
         board.id,
         {
           pinned: !board.pinned,
-        }
+        }, scope
       );
+      if (!scope.isCurrent()) return;
 
       setBoards((current) =>
         current
@@ -779,6 +807,7 @@ export default function Boards({
           : "Unpinned"
       );
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       console.error(error);
       onToast?.(
         error.message ||
@@ -788,6 +817,7 @@ export default function Boards({
   }
 
   async function removeBoard(board) {
+    let scope;
     if (board.name === "Saved") {
       onToast?.(
         "The Saved Board cannot be deleted."
@@ -797,14 +827,16 @@ export default function Boards({
 
     if (
       !window.confirm(
-        `Delete "${board.name}"? Its saved items will also be removed.`
+        `Delete "${board.name}"? Only its memberships are removed; your Keeps remain in the library.`
       )
     ) {
       return;
     }
 
     try {
-      await deleteBoard(board.id);
+      scope = account.capture();
+      await deleteBoard(board.id, scope);
+      if (!scope.isCurrent()) return;
 
       setBoards((current) =>
         current.filter(
@@ -828,6 +860,7 @@ export default function Boards({
 
       onToast?.("Board deleted");
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       console.error(error);
       onToast?.(
         error.message ||
@@ -837,8 +870,13 @@ export default function Boards({
   }
 
   async function removeItem(itemId) {
+    const boardId = activeBoard.id;
+    let scope;
     try {
-      await deleteBoardItem(itemId);
+      scope = account.capture();
+      await deleteBoardItem(itemId, boardId, scope);
+      if (!scope.isCurrent()) return;
+      setLibrary(current => current.map(item => item.id === itemId ? { ...item, board_ids: item.board_ids.filter(id => id !== boardId) } : item));
 
       setActiveItems((current) =>
         current.filter(
@@ -859,6 +897,7 @@ export default function Boards({
 
       onToast?.("Removed from Board");
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       console.error(error);
       onToast?.(
         error.message ||
@@ -869,30 +908,29 @@ export default function Boards({
 
   async function addExistingItems(keys) {
     if (!activeBoard) return;
-
+    let scope;
     try {
-      const selectedItems = keptItems.filter(
+      scope = account.capture();
+      const selectedItems = library.filter(
         (item) =>
           keys.includes(
-            `${item.dumpId}:${item.seed}`
+            item.id
           )
       );
 
       for (const item of selectedItems) {
-        await saveBoardItem({
-          boardId: activeBoard.id,
-          dumpId: item.dumpId,
-          itemPosition: item.seed,
-          note: item.note || "",
-          mood: item.mood || "",
-        });
+        scope.assertCurrent();
+        await linkBoardItem(item.id, activeBoard.id, scope);
       }
+      scope.assertCurrent();
+      await refresh();
+      scope.assertCurrent();
 
       const updatedItems =
         await getBoardItems(
-          activeBoard.id
+          activeBoard.id, scope
         );
-
+      if (!scope.isCurrent()) return;
       setActiveItems(updatedItems);
       setCounts((current) => ({
         ...current,
@@ -902,6 +940,7 @@ export default function Boards({
       setAddingItems(false);
       onToast?.("Added to Board");
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       console.error(
         "Failed to add items:",
         error
@@ -914,6 +953,7 @@ export default function Boards({
   }
 
   function handleBoardSaved(updated) {
+    if (!account.isCurrent()) return;
     setBoards((current) =>
       current
         .map((entry) =>
@@ -944,10 +984,13 @@ export default function Boards({
           items={activeItems}
           dumps={dumps}
           onBack={() => {
+            activeBoardIdRef.current = null;
+            requestVersion.current += 1;
             setActiveBoard(null);
             setActiveItems([]);
           }}
           onDeleteItem={removeItem}
+          onRefresh={refresh}
           onAddExistingItem={() =>
             setAddingItems(true)
           }
@@ -959,7 +1002,7 @@ export default function Boards({
               ...activeBoard,
               currentItems: activeItems,
             }}
-            keptItems={keptItems}
+            keptItems={library.filter(item => !item.legacy_status)}
             onClose={() =>
               setAddingItems(false)
             }
@@ -1015,14 +1058,19 @@ export default function Boards({
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() =>
-              setShowCreate(true)
-            }
+            onClick={openCreate}
           >
             <Plus size={17} />
             New board
           </button>
         </div>
+
+        <nav className="row" style={{ flexWrap: "wrap", gap: 8 }} aria-label="Saved photo collections">
+          {["Custom Boards", "My Photos", "Kept from Others", "Legacy Saves"].map(mode => <button className="btn" key={mode} type="button" aria-pressed={libraryMode === mode} onClick={() => setLibraryMode(mode)}>{mode}</button>)}
+          <button className="btn" type="button" onClick={refresh} disabled={loading}>Refresh Saves</button>
+        </nav>
+        {loadError && <p role="alert">{loadError}</p>}
+        {!loading && !loadError && libraryMode !== "Custom Boards" && <KeepLibrary items={library} mode={libraryMode} boards={boards} onRefresh={refresh} version={libraryVersion} />}
 
         {showCreate && (
           <form
@@ -1077,9 +1125,7 @@ export default function Boards({
               <button
                 type="button"
                 className="btn"
-                onClick={() =>
-                  setShowCreate(false)
-                }
+                onClick={cancelCreate}
               >
                 Cancel
               </button>
@@ -1098,7 +1144,7 @@ export default function Boards({
           <div className="card">
             Loading Boards…
           </div>
-        ) : boards.length === 0 ? (
+        ) : libraryMode !== "Custom Boards" || loadError ? null : boards.length === 0 ? (
           <div
             className="card"
             style={{
@@ -1137,6 +1183,7 @@ export default function Boards({
 
       {editingBoard && (
         <BoardStudio
+          authScope={account.origin}
           boards={boards}
           initialBoardId={editingBoard.id}
           onClose={() =>

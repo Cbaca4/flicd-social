@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 const getUser = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/supabase", () => ({
   supabase: { auth: { getUser }, from },
+  createAccountClient: () => ({ from }),
 }));
 
 function chain(result) {
@@ -34,7 +36,7 @@ describe("social API", () => {
       .mockImplementationOnce(() => chain({ data: { status: "accepted" }, error: null }));
 
     const { followUser } = await import("./socialApi.js");
-    const result = await followUser("person-1");
+    const result = await followUser("person-1", testAuthScope('me'));
 
     expect(result).toBe("accepted");
   });

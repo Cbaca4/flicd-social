@@ -1,4 +1,5 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import {
   GripVertical,
   Save,
@@ -317,7 +318,10 @@ export default function ProfileStudio({
   profile = { handle: "you" },
   onChangeTheme,
   onSaved,
+  isCurrent = () => true,
+  authScope,
 }) {
+  const account = useAccountScope(authScope);
   const [draft, setDraft] = React.useState(() =>
     sanitizeProfileTheme(theme),
   );
@@ -422,9 +426,11 @@ export default function ProfileStudio({
 
     setSectionBackgroundSaving(section);
     setBackgroundError("");
-
+    let scope;
     try {
-      const uploaded = await uploadProfileBackground(file);
+      scope = account.capture();
+      const uploaded = await uploadProfileBackground(file, scope);
+      if (!scope.isCurrent() || !isCurrent()) return;
       setDraft((current) =>
         sanitizeProfileTheme({
           ...current,
@@ -445,9 +451,10 @@ export default function ProfileStudio({
         }),
       );
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       setBackgroundError(error?.message || "Could not upload that component photo.");
     } finally {
-      setSectionBackgroundSaving("");
+      if (scope?.isCurrent()) setSectionBackgroundSaving("");
     }
   };
 
@@ -512,13 +519,17 @@ export default function ProfileStudio({
 
     setBackgroundError("");
 
+    let scope;
     try {
+      scope = account.capture();
       if (file.type.startsWith("video/")) {
         await validateProfileBackgroundVideo(file);
       }
 
       setBackgroundSaving(true);
-      const uploaded = await uploadProfileBackground(file);
+      if (!scope.isCurrent() || !isCurrent()) return;
+      const uploaded = await uploadProfileBackground(file, scope);
+      if (!scope.isCurrent() || !isCurrent()) return;
 
       setDraft((current) =>
         sanitizeProfileTheme({
@@ -534,11 +545,12 @@ export default function ProfileStudio({
         }),
       );
     } catch (error) {
+      if (!scope?.isCurrent()) return;
       setBackgroundError(
         error?.message || "Could not upload that background.",
       );
     } finally {
-      setBackgroundSaving(false);
+      if (scope?.isCurrent()) setBackgroundSaving(false);
     }
   };
 
@@ -566,8 +578,11 @@ export default function ProfileStudio({
 
     try {
       setPrivacySaving(true);
-      setIsPrivate(await setPrivateAccount(!isPrivate));
+      const scope = account.capture();
+      const next = await setPrivateAccount(!isPrivate, scope);
+      if (scope.isCurrent() && isCurrent()) setIsPrivate(next);
     } catch (error) {
+      if (!account.isCurrent()) return;
       console.error("Failed to update privacy:", error);
     } finally {
       setPrivacySaving(false);

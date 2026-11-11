@@ -1,5 +1,6 @@
 
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import {
   Check,
   Clock,
@@ -19,6 +20,7 @@ import {
 } from "./messageApi.js";
 
 export default function Messages({ onToast, onChanged }) {
+  const account = useAccountScope();
   const [tab, setTab] = React.useState("pending");
   const [active, setActive] = React.useState(null);
   const [text, setText] = React.useState("");
@@ -31,24 +33,27 @@ export default function Messages({ onToast, onChanged }) {
 
   const [actionLoading, setActionLoading] = React.useState(false);
 
-  async function loadMessages() {
+  async function loadMessages(origin) {
     setLoading(true);
     setError("");
-
+    let scope;
     try {
+      scope = origin || account.capture();
+      scope.assertCurrent();
       const [requestData, chatData] = await Promise.all([
         getMessageRequests(),
         getChats(),
       ]);
-
+      if (!scope.isCurrent()) return;
       setRequests(requestData);
       setChats(chatData);
       onChanged?.(requestData.length);
     } catch (err) {
+      if (!scope?.isCurrent()) return;
       console.error("Messages loading error:", err);
       setError(err.message || "Unable to load messages.");
     } finally {
-      setLoading(false);
+      if (scope?.isCurrent()) setLoading(false);
     }
   }
 
@@ -59,38 +64,44 @@ export default function Messages({ onToast, onChanged }) {
   async function handleAccept(id) {
     setActionLoading(true);
     setError("");
-
+    let scope;
     try {
-      await acceptRequest(id);
-
-      await loadMessages();
+      scope = account.capture();
+      await acceptRequest(id, scope);
+      if (!scope.isCurrent()) return;
+      await loadMessages(scope);
+      if (!scope.isCurrent()) return;
       onChanged?.();
 
       onToast?.("Request accepted");
     } catch (err) {
+      if (!scope?.isCurrent()) return;
       console.error("Accept request error:", err);
       setError(err.message || "Unable to accept request.");
     } finally {
-      setActionLoading(false);
+      if (scope?.isCurrent()) setActionLoading(false);
     }
   }
 
   async function handleDecline(id) {
     setActionLoading(true);
     setError("");
-
+    let scope;
     try {
-      await declineRequest(id);
-
-      await loadMessages();
+      scope = account.capture();
+      await declineRequest(id, scope);
+      if (!scope.isCurrent()) return;
+      await loadMessages(scope);
+      if (!scope.isCurrent()) return;
       onChanged?.();
 
       onToast?.("Request declined");
     } catch (err) {
+      if (!scope?.isCurrent()) return;
       console.error("Decline request error:", err);
       setError(err.message || "Unable to decline request.");
     } finally {
-      setActionLoading(false);
+      if (scope?.isCurrent()) setActionLoading(false);
     }
   }
 
@@ -103,9 +114,11 @@ export default function Messages({ onToast, onChanged }) {
 
     setActionLoading(true);
     setError("");
-
+    let scope;
     try {
-      const newMessage = await sendMessage(active, value);
+      scope = account.capture();
+      const newMessage = await sendMessage(active, value, scope);
+      if (!scope.isCurrent()) return;
 
       setChats((currentChats) =>
         currentChats.map((chat) =>
@@ -121,10 +134,11 @@ export default function Messages({ onToast, onChanged }) {
 
       setText("");
     } catch (err) {
+      if (!scope?.isCurrent()) return;
       console.error("Send message error:", err);
       setError(err.message || "Unable to send message.");
     } finally {
-      setActionLoading(false);
+      if (scope?.isCurrent()) setActionLoading(false);
     }
   }
 

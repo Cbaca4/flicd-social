@@ -1,16 +1,17 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 
 const TRACK_FIELDS = "id,title,artist,cover_url,audio_url,genre,mood,duration,provider,provider_track_id,license_id,active,approved";
 
-async function withPlayableAudio(track) {
+async function withPlayableAudio(track, client = supabase) {
   if (!track?.audio_url || track.provider !== "Free Music Archive") return track;
-  const { data, error } = await supabase.storage.from("flicd-music").createSignedUrl(track.audio_url, 60 * 60);
+  const { data, error } = await client.storage.from("flicd-music").createSignedUrl(track.audio_url, 60 * 60);
   if (error) return { ...track, audio_url: null };
   return { ...track, audio_url: data?.signedUrl || null };
 }
 
 async function withPlayableAudioList(tracks) {
-  return Promise.all((tracks || []).map(withPlayableAudio));
+  return Promise.all((tracks || []).map(track => withPlayableAudio(track)));
 }
 
 export async function hydrateMusicTracks(tracks) {
@@ -64,9 +65,9 @@ export async function getMusicTracks({ search = "", limit = 50 } = {}) {
 
   return withPlayableAudioList(tracks);
 }
-export async function getMusicTrack(trackId) {
+export async function getMusicTrack(trackId, client = supabase) {
   if (!trackId) return null;
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("music_tracks")
     .select(TRACK_FIELDS)
     .eq("id", trackId)
@@ -75,23 +76,26 @@ export async function getMusicTrack(trackId) {
     .maybeSingle();
 
   if (error) throw error;
-  return withPlayableAudio(data);
+  return withPlayableAudio(data, client);
 }
 
-export async function setProfileMusicTrack(trackId) {
+export async function setProfileMusicTrack(trackId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const { data: userData, error: userError } = await supabase.auth.getUser();
+  scope.assertUser(userData?.user?.id);
   if (userError) throw userError;
   const userId = userData?.user?.id;
   if (!userId) throw new Error("You must be signed in to change profile music.");
 
-  if (trackId && !(await getMusicTrack(trackId))) {
+  if (trackId && !(await getMusicTrack(trackId, client))) {
     throw new Error("That track is no longer available.");
   }
 
-  const { data, error } = await supabase
+  scope.assertCurrent();
+  const { data, error } = await client
     .from("profiles")
     .update({ profile_music_track_id: trackId || null })
-    .eq("id", userId)
+    .eq("id", scope.user)
     .select("id,profile_music_track_id")
     .single();
 

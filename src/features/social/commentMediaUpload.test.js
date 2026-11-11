@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { supabase } from '../../lib/supabase';
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 const getUser = vi.hoisted(() => vi.fn());
 const upload = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/supabase", () => ({
+  createAccountClient: () => supabase,
   supabase: {
     auth: { getUser },
     storage: { from },
@@ -24,6 +27,7 @@ describe("comment media upload", () => {
     const file = new File(["voice"], "voice.webm", { type: "audio/webm" });
 
     const path = await uploadCommentMedia(file, {
+      authScope: testAuthScope('user-1'),
       mediaType: "audio",
       createId: () => "media-1",
     });
@@ -42,6 +46,7 @@ describe("comment media upload", () => {
     const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
 
     await uploadCommentMedia(file, {
+      authScope: testAuthScope('user-1'),
       mediaType: "video",
       createId: () => "media-2",
     });
@@ -58,6 +63,7 @@ describe("comment media upload", () => {
     const file = new File(["file"], "file.txt", { type: "text/plain" });
 
     await expect(uploadCommentMedia(file, {
+      authScope: testAuthScope('user-1'),
       mediaType: "audio",
       createId: () => "media-3",
     })).rejects.toThrow("Only supported audio and video files can be attached to comments.");
