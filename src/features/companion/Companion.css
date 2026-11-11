@@ -31,6 +31,12 @@
   pointer-events: none;
 }
 
+/* Let the keyboard outline extend beyond the paint-contained patrol area. */
+.companion-zone:focus-within {
+  overflow: visible;
+  contain: layout;
+}
+
 
 .companion-walker {
   --companion-width: 96px;
@@ -53,6 +59,7 @@
 
 .companion-character {
   position: relative;
+  inset: auto;
   width: var(--companion-width);
   height: 78px;
   border: 0;
@@ -62,7 +69,7 @@
   display: grid;
   place-items: end center;
   cursor: pointer;
-  transform: scaleX(var(--capy-facing, 1)) scale(var(--companion-scale, 1));
+  transform: scaleX(var(--capy-facing, 1));
   transform-origin: center bottom;
 }
 
@@ -73,29 +80,24 @@
 }
 
 .capybara-pixel-sprite {
-  --costume-accent: transparent;
-  --costume-dark: transparent;
-  --costume-light: transparent;
   position: relative;
   display: block;
   width: 96px;
   height: 72px;
   image-rendering: pixelated;
-  background-image: url("/companion/companion-sprite.svg");
+  background-image: url("/companion/companion-fitted-sprite.svg");
   background-repeat: no-repeat;
-  background-size: 1152px 360px;
+  background-size: 1152px 1584px;
   background-position: 0 calc(var(--sprite-row, 0) * -72px);
-  overflow: visible;
+  overflow: hidden;
 }
 
-/* Costume overlays stay inside the capybara's same 96x72 frame. */
+/* Validated fitted art contains every layer. Disable legacy overlays in either
+   CSS order; the approved comparison retains its own untouched legacy styles. */
 .capybara-pixel-sprite::before,
 .capybara-pixel-sprite::after {
-  content: "";
-  position: absolute;
-  display: block;
-  pointer-events: none;
-  z-index: 2;
+  content: none;
+  display: none;
 }
 
 .companion-costume-hero::before {
@@ -275,15 +277,17 @@
   transform: rotate(45deg);
 }
 
-.companion-walk.companion-motion-walking .capybara-pixel-sprite {
+.capybara-pixel-sprite[data-pose="walk"] {
   animation: capySpriteWalk var(--companion-walk-cycle, 1400ms) steps(1, end) infinite;
 }
 
-.companion-walk.companion-motion-idle .capybara-pixel-sprite {
-  animation: capyIdle 2.2s ease-in-out infinite;
+.capybara-pixel-sprite[data-pose="idle"] {
+  animation: capyIdle 2.2s steps(1, end) infinite;
 }
 
-.companion-sit .capybara-pixel-sprite {
+.capybara-pixel-sprite[data-pose="sit"] {
+  /* Keep a seated frame even when reduced motion disables the animation. */
+  background-position-x: -960px;
   animation: capySpriteSit 850ms step-end infinite;
 }
 
@@ -419,7 +423,7 @@
 
 .companion-preview {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   margin-top: 2px;
@@ -430,17 +434,13 @@
 }
 
 .companion-preview-sprite {
-  position: relative;
-  width: 58px;
-  height: 44px;
-  display: block;
-  image-rendering: pixelated;
-  background-image: url("/companion/companion-sprite.svg");
-  background-repeat: no-repeat;
-  background-size: 697px 218px;
-  background-position: 0 calc(var(--sprite-row, 0) * -43.5px);
   transform: none;
   transform-origin: center;
+}
+
+.companion-preview > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .companion-exclusive-note {
@@ -527,13 +527,11 @@
   }
 
   .companion-walker {
-    --companion-width: 86px;
     height: 74px;
   }
 
   .companion-character {
     height: 74px;
-    --companion-scale: 0.88;
   }
 
   .companion-reaction {
@@ -542,15 +540,24 @@
   }
 
   .companion-preview {
-    grid-template-columns: 52px minmax(0, 1fr) auto;
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .companion-preview > svg {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .companion-walker,
+  /* The shared stylesheet cancels every transition immediately. Keep this one
+     measurable until the media listener freezes it at its current position;
+     that same update sets its duration to zero and cancels further patrol. */
+  .companion-walker {
+    transition: left var(--companion-travel-duration, 0ms) linear !important;
+  }
+
   .companion-character,
-  .companion-walk .capybara-pixel-sprite,
-  .companion-sit .capybara-pixel-sprite,
+  .capybara-pixel-sprite[data-pose],
   .companion-reaction {
     animation: none;
     transition-duration: 0ms !important;
