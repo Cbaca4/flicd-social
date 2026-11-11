@@ -1,4 +1,6 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
+import { captureAuthScope } from "../../app/authScope.js";
 import { Palette, Pin, Save, X } from "lucide-react";
 import { updateBoard } from "./boardApi";
 
@@ -140,7 +142,10 @@ export default function BoardStudio({
   onClose,
   onBoardSaved,
   onToast,
+  isCurrent = () => true,
+  authScope,
 }) {
+  const account = useAccountScope(authScope);
   const firstBoardId =
     initialBoardId || boards[0]?.id || null;
 
@@ -176,6 +181,12 @@ export default function BoardStudio({
     );
   const [saving, setSaving] =
     React.useState(false);
+  const lifetime = React.useRef(0);
+  const mounted = React.useRef(false);
+  React.useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; lifetime.current += 1; };
+  }, []);
 
   const selectedBoard = boards.find(
     (board) =>
@@ -183,7 +194,16 @@ export default function BoardStudio({
   );
 
   React.useEffect(() => {
-    if (!selectedBoard) return;
+    lifetime.current += 1;
+    setSaving(false);
+  }, [selectedBoard?.id]);
+
+  React.useEffect(() => {
+    if (!selectedBoard) {
+      setDraft(normalizeStyle()); setName(""); setDescription(""); setCoverUrl("");
+      setSelectedBoardId(boards[0]?.id || null); setSaving(false);
+      return;
+    }
 
     setDraft(
       normalizeStyle(
@@ -216,6 +236,9 @@ export default function BoardStudio({
 
   async function handleSave(event) {
     event.preventDefault();
+    const version = lifetime.current;
+    const current = () => mounted.current && lifetime.current === version && isCurrent() && account.isCurrent();
+    if (!current()) return;
 
     if (!selectedBoard) {
       onToast?.(
@@ -234,13 +257,16 @@ export default function BoardStudio({
           description,
           coverUrl,
           styleConfig: draft,
-        }
+        },
+        captureAuthScope(account.capture(), current)
       );
 
+      if (!current()) return;
       onBoardSaved?.(updated);
       onToast?.("Board customized");
       onClose?.();
     } catch (error) {
+      if (!current()) return;
       console.error(
         "Failed to customize Board:",
         error
@@ -250,7 +276,7 @@ export default function BoardStudio({
           "Could not customize Board."
       );
     } finally {
-      setSaving(false);
+      if (current()) setSaving(false);
     }
   }
 

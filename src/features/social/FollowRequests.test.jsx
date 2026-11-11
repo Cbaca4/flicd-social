@@ -2,7 +2,9 @@
 
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 import FollowRequests from "./FollowRequests.jsx";
 
 const { getPendingFollowRequests, approveFollowRequest, declineFollowRequest } = vi.hoisted(() => ({
@@ -29,6 +31,6 @@ describe("FollowRequests", () => {
     expect(await screen.findByText("@alex")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /accept/i }));
 
-    await waitFor(() => expect(approveFollowRequest).toHaveBeenCalledWith("u1"));
+    await waitFor(() => expect(approveFollowRequest).toHaveBeenCalledWith("u1", expect.objectContaining({user:'me'})));
   });
 });

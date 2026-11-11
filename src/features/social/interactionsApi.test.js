@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 const getUser = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 
 vi.mock("../../lib/supabase", () => ({
   supabase: { auth: { getUser }, from },
+  createAccountClient: () => ({ from }),
 }));
 
 function chain(result) {
@@ -34,7 +36,7 @@ describe("social interactions API", () => {
     from.mockReturnValue(addLike);
 
     const { likeDump } = await import("./interactionsApi.js");
-    await likeDump("dump-1");
+    await likeDump("dump-1", testAuthScope('me'));
 
     expect(addLike.upsert).toHaveBeenCalledWith(
       { dump_id: "dump-1", user_id: "me" },
@@ -47,7 +49,7 @@ describe("social interactions API", () => {
     from.mockReturnValue(removeLike);
 
     const { unlikeDump } = await import("./interactionsApi.js");
-    await unlikeDump("dump-1");
+    await unlikeDump("dump-1", testAuthScope('me'));
 
     expect(removeLike.delete).toHaveBeenCalled();
     expect(removeLike.eq).toHaveBeenCalledWith("dump_id", "dump-1");
@@ -59,7 +61,7 @@ describe("social interactions API", () => {
     from.mockReturnValue(query);
 
     const { addComment } = await import("./interactionsApi.js");
-    const comment = await addComment("dump-1", "  hello  ");
+    const comment = await addComment("dump-1", "  hello  ", testAuthScope('me'));
 
     expect(comment.text).toBe("hello");
     expect(query.insert).toHaveBeenCalledWith({
@@ -95,7 +97,7 @@ describe("social interactions API", () => {
       media_url: "https://media.giphy.com/media/abc/giphy.gif",
       media_path: null,
       media_metadata: { provider: "giphy", id: "abc" },
-    }));
+    }, testAuthScope('me')));
 
     expect(query.insert).toHaveBeenCalledWith({
       dump_id: "dump-1",
@@ -111,13 +113,13 @@ describe("social interactions API", () => {
   it("rejects empty comments", async () => {
     const { addComment } = await import("./interactionsApi.js");
 
-    await expect(addComment("dump-1", "   ")).rejects.toThrow("Comment cannot be empty");
+    await expect(addComment("dump-1", "   ", testAuthScope('me'))).rejects.toThrow("Comment cannot be empty");
   });
 
   it("rejects comments over the maximum length", async () => {
     const { addComment } = await import("./interactionsApi.js");
 
-    await expect(addComment("dump-1", "x".repeat(501))).rejects.toThrow("500 characters or fewer");
+    await expect(addComment("dump-1", "x".repeat(501), testAuthScope('me'))).rejects.toThrow("500 characters or fewer");
   });
 
   it("deletes a comment for the current user", async () => {
@@ -125,7 +127,7 @@ describe("social interactions API", () => {
     from.mockReturnValue(query);
 
     const { deleteComment } = await import("./interactionsApi.js");
-    await deleteComment("comment-1");
+    await deleteComment("comment-1", testAuthScope('me'));
 
     expect(query.delete).toHaveBeenCalled();
     expect(query.eq).toHaveBeenCalledWith("id", "comment-1");
@@ -137,7 +139,7 @@ describe("social interactions API", () => {
     from.mockReturnValue(query);
 
     const { reportComment } = await import("./interactionsApi.js");
-    await reportComment("comment-2", "spam");
+    await reportComment("comment-2", "spam", testAuthScope('me'));
 
     expect(query.insert).toHaveBeenCalledWith({
       comment_id: "comment-2",

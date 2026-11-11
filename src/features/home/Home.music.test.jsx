@@ -3,9 +3,15 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 import { DumpCard, Viewer } from "./Home.jsx";
 import { getActiveAudio, playAudioUrl, stopAudio } from "../music/audioController.js";
+vi.mock("./mediaSessionApi.js", () => ({ createOnceMediaSession: (dumpId) => ({
+  claim: async () => ({ status: "claimed", dump_id: dumpId, claim_id: "10000000-0000-4000-8000-000000000001", items: [{ id: "photo-1", note: "Photo" }] }),
+  loadFrames: async () => ["blob:music-test-frame"], close: async () => {},
+}) }));
 
 vi.mock("./mediaUrl.js", () => ({
   PRIVATE_DUMP_MEDIA_BUCKET: "flicd-dump-private",
@@ -170,7 +176,8 @@ describe("Feed music", () => {
 describe("Viewer music lifecycle", () => {
   it("keeps playing through a view acknowledgement and stops when the viewer closes", async () => {
     const oncePost = { ...post, mode: "once", viewed: false };
-    const { rerender, unmount } = render(<Viewer post={oncePost} currentUserId="me" />);
+    const onMarkViewed = vi.fn().mockResolvedValue(true);
+    const { rerender, unmount } = render(<Viewer post={oncePost} currentUserId="me" onMarkViewed={onMarkViewed} />);
     const audio = getActiveAudio();
     audio.currentTime = 12;
     fireEvent.click(screen.getByRole("button", { name: "Tap to view once" }));

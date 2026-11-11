@@ -3,8 +3,14 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 import { Viewer } from "./Home.jsx";
+vi.mock("./mediaSessionApi.js", () => ({ createOnceMediaSession: (dumpId) => ({
+  claim: async () => ({ status: "claimed", dump_id: dumpId, claim_id: "10000000-0000-4000-8000-000000000001", items: [{ id: "photo-1", note: "private moment" }] }),
+  loadFrames: async () => ["blob:private-frame"], close: async () => {},
+}) }));
 
 vi.mock("./mediaUrl.js", () => ({
   getDumpItemMediaUrl: (imagePath) => imagePath ? `https://cdn.example.com/${imagePath}` : null,
@@ -42,7 +48,7 @@ describe("Viewer", () => {
   });
 
   it("reveals a view-once photo and records the view", async () => {
-    const onMarkViewed = vi.fn();
+    const onMarkViewed = vi.fn().mockResolvedValue(true);
     const post = {
       id: "once-1",
       author: "maren_",
@@ -70,10 +76,10 @@ describe("Viewer", () => {
     expect(screen.getByRole("button", { name: "Tap to view once" })).toBeInTheDocument();
     screen.getByRole("button", { name: "Tap to view once" }).click();
 
-    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledWith("once-1"));
+    await waitFor(() => expect(onMarkViewed).toHaveBeenCalledWith("once-1", expect.objectContaining({ status: "claimed" })));
     expect(screen.getByRole("img", { name: /private moment/i })).toHaveAttribute(
       "src",
-      "https://cdn.example.com/user-1/private.jpg",
+      "blob:private-frame",
     );
   });
 
@@ -191,7 +197,8 @@ expect(image.getAttribute("src")).toBe(
       id: "layered-1",
       author: "baco",
       mood: "late night",
-      mode: "dump",
+      mode: "24h",
+      allowOthersToKeep: true,
       postedMinutesAgo: 2,
       likes: 9,
       liked: false,

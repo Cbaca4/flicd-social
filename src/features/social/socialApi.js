@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 
 export const DEFAULT_INTERESTS = [
   "Music", "Photography", "Fitness", "Gaming", "Fashion", "Travel", "Food",
@@ -30,34 +31,42 @@ export async function getPublicProfile(profileId) {
   return data;
 }
 
-export async function ensureCurrentProfile() {
+export async function ensureCurrentProfile(authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const { data: { user }, error: authError } = await supabase.auth.getUser();
+  scope.assertUser(user?.id);
   if (authError) throw authError;
   if (!user) throw new Error("You must be logged in.");
   const fallbackUsername = user.user_metadata?.username || `user_${user.id.slice(0, 8)}`;
-  const { data, error } = await supabase.from("profiles").upsert({ id: user.id, username: fallbackUsername }, { onConflict: "id" }).select("id,username,display_name,bio,avatar_url,profile_theme,interests,onboarding_completed,is_private").single();
+  const { data, error } = await client.from("profiles").upsert({ id: scope.user, username: fallbackUsername }, { onConflict: "id" }).select("id,username,display_name,bio,avatar_url,profile_theme,interests,onboarding_completed,is_private").single();
   if (error) throw error;
   return data;
 }
 
-export async function saveInterests(interests) {
+export async function saveInterests(interests, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const clean = Array.from(new Set((interests || []).map((value) => String(value).trim()).filter(Boolean))).slice(0, 30);
-  const { data, error } = await supabase.from("profiles").update({ interests: clean }).eq("id", userId).select("interests").single();
+  const { data, error } = await client.from("profiles").update({ interests: clean }).eq("id", scope.user).select("interests").single();
   if (error) throw error;
   return data.interests || [];
 }
 
-export async function completeOnboarding() {
+export async function completeOnboarding(authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("profiles").update({ onboarding_completed: true }).eq("id", userId).select("onboarding_completed").single();
+  scope.assertUser(userId);
+  const { data, error } = await client.from("profiles").update({ onboarding_completed: true }).eq("id", scope.user).select("onboarding_completed").single();
   if (error) throw error;
   return Boolean(data.onboarding_completed);
 }
 
-export async function setPrivateAccount(isPrivate) {
+export async function setPrivateAccount(isPrivate, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("profiles").update({ is_private: Boolean(isPrivate) }).eq("id", userId).select("is_private").single();
+  scope.assertUser(userId);
+  const { data, error } = await client.from("profiles").update({ is_private: Boolean(isPrivate) }).eq("id", scope.user).select("is_private").single();
   if (error) throw error;
   return Boolean(data.is_private);
 }
@@ -94,20 +103,25 @@ export async function getFollowStatus(targetUserId) {
   return data?.status || null;
 }
 
-export async function followUser(targetUserId) {
+export async function followUser(targetUserId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   if (userId === targetUserId) throw new Error("You cannot follow yourself.");
-  const { data: target, error: targetError } = await supabase.from("profiles").select("is_private").eq("id", targetUserId).single();
+  const { data: target, error: targetError } = await client.from("profiles").select("is_private").eq("id", targetUserId).single();
+  scope.assertCurrent();
   if (targetError) throw targetError;
   const status = target.is_private ? "pending" : "accepted";
-  const { data, error } = await supabase.from("follows").upsert({ follower_id: userId, following_id: targetUserId, status }, { onConflict: "follower_id,following_id" }).select("status").single();
+  const { data, error } = await client.from("follows").upsert({ follower_id: scope.user, following_id: targetUserId, status }, { onConflict: "follower_id,following_id" }).select("status").single();
   if (error) throw error;
   return data.status;
 }
 
-export async function unfollowUser(targetUserId) {
+export async function unfollowUser(targetUserId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { error } = await supabase.from("follows").delete().eq("follower_id", userId).eq("following_id", targetUserId);
+  scope.assertUser(userId);
+  const { error } = await client.from("follows").delete().eq("follower_id", scope.user).eq("following_id", targetUserId);
   if (error) throw error;
   return null;
 }
@@ -137,16 +151,20 @@ export async function getPendingFollowRequests() {
   return (requests || []).map((row) => ({ ...row, profile: byId[row.follower_id] })).filter((row) => row.profile);
 }
 
-export async function approveFollowRequest(followerId) {
+export async function approveFollowRequest(followerId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase.from("follows").update({ status: "accepted" }).eq("follower_id", followerId).eq("following_id", userId).eq("status", "pending").select("status").single();
+  scope.assertUser(userId);
+  const { data, error } = await client.from("follows").update({ status: "accepted" }).eq("follower_id", followerId).eq("following_id", scope.user).eq("status", "pending").select("status").single();
   if (error) throw error;
   return data.status;
 }
 
-export async function declineFollowRequest(followerId) {
+export async function declineFollowRequest(followerId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { error } = await supabase.from("follows").delete().eq("follower_id", followerId).eq("following_id", userId).eq("status", "pending");
+  scope.assertUser(userId);
+  const { error } = await client.from("follows").delete().eq("follower_id", followerId).eq("following_id", scope.user).eq("status", "pending");
   if (error) throw error;
 }
 

@@ -14,14 +14,15 @@ const EXPLORE_DUMP_FIELDS = `
   frame_count,
   created_at,
   allow_others_to_keep,
-  once_viewed_at,
+
   location_name,
   location_city,
   dump_items (
     id,
     position,
     note,
-    image_path
+    image_path,
+    media_bucket
   ),
   music_tracks:music_track_id (
     id,
@@ -46,12 +47,13 @@ function normalizeItems(items) {
       position: item.position,
       note: item.note || "",
       imagePath: item.image_path || null,
+      mediaBucket: item.media_bucket || "flicd-media",
     }));
 }
 
 function isLiveDump(dump) {
   if (!dump?.created_at) return true;
-  if (dump.expiry === "once") return !dump.once_viewed_at;
+  if (dump.expiry === "once") return true;
   if (dump.expiry === "24h") {
     return new Date(dump.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000;
   }
@@ -106,7 +108,7 @@ export async function getExploreCandidates({ limit = 90 } = {}) {
   const profilesById = new Map((profilesResult.data || []).map((profile) => [profile.id, profile]));
   const publicDumps = rawDumps.filter((dump) => {
     if (dump.user_id === userId) return true;
-    if (viewedIds.has(dump.id) && dump.expiry === "once") return false;
+
     return profilesById.get(dump.user_id)?.is_private === false;
   });
 

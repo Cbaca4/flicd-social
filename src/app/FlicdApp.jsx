@@ -1,6 +1,8 @@
 import React from "react";
+import { createAuthBoundary, captureAuthScope } from "./authScope.js";
+import { AuthScopeContext } from "./AuthScopeContext.js";
 
-import { supabase } from "../lib/supabase";
+import { supabase, createAccountClient } from "../lib/supabase";
 
 import Boards from "../features/profile/Boards.jsx";
 import BoardStudio from "../features/profile/BoardStudio.jsx";
@@ -17,6 +19,7 @@ import Auth from "../features/auth/Auth.jsx";
 import AppShell from "./AppShell.jsx";
 
 import Home, { Viewer } from "../features/home/Home.jsx";
+import { closeAllMediaSessions } from "../features/home/mediaSessionApi.js";
 
 import CreateChoose from "../features/capture/CreateChoose.jsx";
 import {
@@ -90,6 +93,9 @@ function formatDumpRecord(dump) {
     id: dump.id,
     channel: dump.space_id,
     author: dump.user_id,
+    authorId: dump.user_id,
+    type: dump.type,
+    frameCount: dump.frame_count,
     mood: dump.mood,
     mode: dump.expiry,
     allowOthersToKeep: Boolean(dump.allow_others_to_keep),
@@ -101,7 +107,7 @@ function formatDumpRecord(dump) {
     comments: [],
     items: (dump.dump_items || [])
       .sort((a, b) => a.position - b.position)
-      .map((item) => ({ note: item.note || "", imagePath: item.image_path || null, mediaBucket: item.media_bucket || "flicd-media" })),
+      .map((item) => ({ id: item.id, position: item.position, note: item.note || "", imagePath: item.image_path || null, mediaBucket: item.media_bucket || "flicd-media" })),
     context: dump.context || "",
     musicTrack: dump.music_tracks || null,
     location: dump.location_name
@@ -120,7 +126,38 @@ function formatDumpRecord(dump) {
 }
 
 export default function FlicdApp() {
-  const [session, setSession] = React.useState(null);
+  const [boundary] = React.useState(createAuthBoundary);
+  const [auth, setAuth] = React.useState(null);
+  React.useEffect(() => {
+    let active = true, receivedAuthEvent = false, previous = null;
+    const accept = (event, session) => {
+      if (!active) return;
+      const scope = boundary.accept(session, event);
+      if (previous && previous !== scope) {
+        void Promise.resolve(closeAllMediaSessions()).catch(() => {});
+        stopAudio();
+      }
+      previous = scope;
+      setAuth({ session, scope });
+    };
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      receivedAuthEvent = true;
+      accept(event, session);
+    });
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!receivedAuthEvent) accept("INITIAL_SESSION", data?.session);
+    }).catch(() => { if (!receivedAuthEvent) accept("SIGNED_OUT", null); });
+    return () => {
+      active = false; boundary.invalidate(); subscription.unsubscribe();
+      stopAudio(); void Promise.resolve(closeAllMediaSessions()).catch(() => {});
+    };
+  }, [boundary]);
+  if (!auth?.session) return <Auth onLogin={() => {}} />;
+  // Every account-owned surface and draft has this lifetime, including AppShell.
+  return <AuthScopeContext.Provider value={auth.scope}><AccountApp key={auth.scope.generation} session={auth.session} authScope={auth.scope} /></AuthScopeContext.Provider>;
+}
+
+function AccountApp({ session, authScope }) {
   const [screen, setScreen] = React.useState("home");
   const [spaces] = React.useState(seedSpaces);
   const [activeSpaceId, setActiveSpaceId] = React.useState("main");
@@ -145,17 +182,6 @@ export default function FlicdApp() {
   const [notificationsUnread, setNotificationsUnread] = React.useState(0);
   const [viewerCommentsOpen, setViewerCommentsOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    async function getSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-    }
-    getSession();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   React.useEffect(() => {
     if (!toast) return;
@@ -164,12 +190,15 @@ export default function FlicdApp() {
   }, [toast]);
 
   const refreshNotificationCount = React.useCallback(async () => {
+    const current = authScope.begin("notifications");
+    if (!current()) return;
     if (!session) {
       setNotificationsUnread(0);
       return;
     }
     try {
-      setNotificationsUnread(await getUnreadNotificationCount());
+      const unread = await getUnreadNotificationCount();
+      if (current()) setNotificationsUnread(unread);
     } catch {
       // Notification badges should never block the app.
     }
@@ -183,15 +212,17 @@ export default function FlicdApp() {
   }, [refreshNotificationCount, session]);
 
   const refreshMessageCount = React.useCallback(async () => {
+    const current = authScope.begin("messages");
+    if (!current()) return;
     if (!session) {
       setMessageUnread(0);
       return;
     }
     try {
       const requests = await getMessageRequests();
-      setMessageUnread(requests.length);
+      if (current()) setMessageUnread(requests.length);
     } catch {
-      setMessageUnread(0);
+      if (current()) setMessageUnread(0);
     }
   }, [session]);
 
@@ -233,6 +264,8 @@ export default function FlicdApp() {
   }, [profileMusicTrack?.audio_url, publicProfile, screen, session]);
 
   const toggleProfileMusic = React.useCallback(async () => {
+    const current = authScope.isCurrent;
+    if (!current()) return;
     const audioUrl = profileMusicTrack?.audio_url;
     if (!audioUrl) return;
 
@@ -247,16 +280,16 @@ export default function FlicdApp() {
       audio.muted = false;
       try {
         await audio.play();
-        setProfileMusicPlaying(true);
+        if (current()) setProfileMusicPlaying(true);
       } catch {
-        setProfileMusicPlaying(false);
+        if (current()) setProfileMusicPlaying(false);
       }
       return;
     }
 
     if (audio.paused) {
       const resumed = await resumeAudio();
-      setProfileMusicPlaying(Boolean(resumed && !resumed.paused));
+      if (current()) setProfileMusicPlaying(Boolean(resumed && !resumed.paused));
     } else {
       pauseAudio();
       setProfileMusicPlaying(false);
@@ -265,37 +298,51 @@ export default function FlicdApp() {
 
   React.useEffect(() => {
     async function loadProfile() {
+      const current = authScope.begin("profile");
+      if (!current()) return;
+      if (!session) return;
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user || user.id !== session.user.id || !current()) return;
       const { data, error } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
+      if (!current()) return;
       if (error) {
         console.error("Profile error:", error);
         return;
       }
       if (data) {
+        const track = data.profile_music_track_id ? await getMusicTrack(data.profile_music_track_id) : null;
+        if (!current()) return;
         setSupabaseProfile(data);
         if (data.profile_theme) setTheme(sanitizeProfileTheme(data.profile_theme));
-        setProfileMusicTrack(data.profile_music_track_id ? await getMusicTrack(data.profile_music_track_id) : null);
+        setProfileMusicTrack(track);
       }
     }
-    loadProfile();
+    void loadProfile().catch(() => {});
   }, [session]);
 
   const loadDumps = React.useCallback(async () => {
+    const current = authScope.begin("feed");
+    if (!current()) return;
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
       try {
-        await syncExpiredArchive();
+        await syncExpiredArchive(captureAuthScope(authScope, current));
       } catch (archiveError) {
+        if (!current()) return;
         console.error("Failed to sync archive:", archiveError);
       }
 
+      if (!current()) return;
       const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
-      setDumps(await hydrateDumpInteractions(formattedDumps));
+      if (!current()) return;
+      const hydrated = await hydrateDumpInteractions(formattedDumps);
+      if (!current()) return;
+      setDumps(hydrated);
       setFeedState({ status: "ready", error: "" });
     } catch (error) {
+      if (!current()) return;
       console.error("Failed to load social feed:", error);
       setDumps([]);
       setFeedState({ status: "error", error: error.message || "Failed to load social feed." });
@@ -320,22 +367,15 @@ export default function FlicdApp() {
 
   React.useEffect(() => {
     async function loadBoardItems() {
+      const current = authScope.begin("library");
+      if (!current()) return;
       if (!session) return;
       try {
-        const savedItems = await getBoardItems();
-        setKept(savedItems.map((item) => ({
-          id: item.id,
-          boardId: item.board_id,
-          dumpId: item.dump_id,
-          author: item.saved_author_username || "",
-          note: item.note || "",
-          mood: item.mood || "",
-          imagePath: item.saved_image_path || "",
-          imageUrl: item.saved_image_url || null,
-          mediaBucket: item.snapshot_bucket || "flicd-media",
-          seed: item.item_position || 0,
-        })));
+        const savedItems = await getBoardItems(null, captureAuthScope(authScope, current));
+        if (!current()) return;
+        setKept(savedItems);
       } catch (error) {
+        if (!current()) return;
         console.error("Failed to load board items:", error);
       }
     }
@@ -344,10 +384,14 @@ export default function FlicdApp() {
 
   React.useEffect(() => {
     async function loadBoards() {
+      const current = authScope.begin("boards");
+      if (!current()) return;
       if (!session) return;
       try {
-        setBoards(await getBoards());
+        const rows = await getBoards();
+        if (current()) setBoards(rows);
       } catch (error) {
+        if (!current()) return;
         console.error("Failed to load Boards:", error);
       }
     }
@@ -373,6 +417,7 @@ export default function FlicdApp() {
   const activePost = dumps.find((dump) => dump.id === activePostId);
 
   const primePostAudio = React.useCallback((post) => {
+    if (!authScope.isCurrent()) return;
     const audioUrl = post?.musicTrack?.audio_url;
     if (!audioUrl) return;
 
@@ -386,13 +431,17 @@ export default function FlicdApp() {
   }, []);
 
   const closeViewer = React.useCallback(() => {
+    if (!authScope.isCurrent()) return;
+    authScope.cancel("viewer");
     setViewerCommentsOpen(false);
     setActivePostId(null);
     setScreen("home");
   }, []);
-  const onToast = (message) => setToast(message);
-  const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.boardId === board.id).length }));
+  const onToast = authScope.guard((message) => setToast(message));
+  const profileBoards = boards.map((board) => ({ ...board, count: kept.filter((item) => item.board_ids?.includes(board.id)).length }));
   const openPublicProfile = React.useCallback((user) => {
+    if (!authScope.isCurrent()) return;
+    authScope.cancel("viewer");
     if (!user?.id) return;
     setViewerCommentsOpen(false);
     if (screen === "viewer") setActivePostId(null);
@@ -402,6 +451,8 @@ export default function FlicdApp() {
   }, [screen, activePost?.id, activePost?.mode, activePost?.viewed]);
 
   const openDumpById = React.useCallback(async (dumpId) => {
+    const current = authScope.begin("viewer");
+    if (!current()) return;
     const existing = dumps.find((dump) => dump.id === dumpId);
     if (existing) {
       setViewerCommentsOpen(false);
@@ -412,16 +463,19 @@ export default function FlicdApp() {
 
     try {
       const savedDump = await getDumpById(dumpId);
+      if (!current()) return;
       if (!savedDump) {
         onToast("That post is no longer available.");
         return;
       }
 
       const [formattedDump] = await hydrateDumpInteractions([formatDumpRecord(savedDump)]);
+      if (!current()) return;
       setDumps((current) => current.some((dump) => dump.id === formattedDump.id) ? current : [formattedDump, ...current]);
       setActivePostId(dumpId);
       setScreen("viewer");
     } catch (error) {
+      if (!current()) return;
       console.error("Failed to open post:", error);
       onToast(error.message || "Could not open that post.");
     }
@@ -430,6 +484,7 @@ export default function FlicdApp() {
   const [pendingLikeIds, setPendingLikeIds] = React.useState(() => new Set());
 
   const toggleLike = async (id) => {
+    if (!authScope.isCurrent()) return;
     if (pendingLikeIds.has(id)) return;
     const post = dumps.find((dump) => dump.id === id);
     if (!post) return;
@@ -438,13 +493,15 @@ export default function FlicdApp() {
     setPendingLikeIds((current) => new Set(current).add(id));
     setDumps((currentDumps) => currentDumps.map((item) => item.id === id ? { ...item, liked: nextLiked, likes: Math.max(0, item.likes + (nextLiked ? 1 : -1)) } : item));
     try {
-      if (nextLiked) await likeDump(id);
-      else await unlikeDump(id);
+      if (nextLiked) await likeDump(id, authScope);
+      else await unlikeDump(id, authScope);
     } catch (error) {
+      if (!authScope.isCurrent()) return;
       setDumps((currentDumps) => currentDumps.map((item) => item.id === id ? { ...item, liked: post.liked, likes: post.likes } : item));
       console.error("Failed to update like:", error);
       onToast(error.message || "Could not update like");
     } finally {
+      if (authScope.isCurrent())
       setPendingLikeIds((current) => {
         const next = new Set(current);
         next.delete(id);
@@ -454,89 +511,109 @@ export default function FlicdApp() {
   };
 
   const comment = React.useCallback(async (id, input) => {
+    if (!authScope.isCurrent()) return;
     if (typeof input === "string" && !input.trim()) return;
     return createCommentAction({
-      setDumps,
+      context: authScope,
+      setDumps: authScope.guard(setDumps),
       username: supabaseProfile?.username || "you",
       onToast,
     })(id, input);
   }, [supabaseProfile?.username]);
 
   const keep = async (post, index) => {
-    const isOwnPost = post.authorId === session?.user?.id || post.author === supabaseProfile?.username;
-    if (!isOwnPost && (!post.allowOthersToKeep || post.mode !== "24h")) {
+    const current = authScope.begin("keep");
+    if (!current()) return;
+    const isOwnPost = post.authorId === session?.user?.id || post.author === session?.user?.id;
+    if (post.mode !== "24h" || (!isOwnPost && !post.allowOthersToKeep)) {
       onToast("This Flic'd cannot be kept.");
       return;
     }
-    if (!isOwnPost && post.mode !== "24h") {
-      onToast("View once Flic'ds cannot be kept.");
+    const itemPosition = post.items[index]?.position;
+    if (!Number.isInteger(itemPosition) || itemPosition < 0) {
+      onToast("Original photo position is unavailable. Refresh this post.");
       return;
     }
     try {
-      const savedBoard = await getOrCreateDefaultBoard();
-      setBoards((current) => current.some((board) => board.id === savedBoard.id) ? current : [savedBoard, ...current]);
-      setPendingKeep({ post, index });
+      const scope = captureAuthScope(authScope, current);
+      const [savedBoard, photos, boardRows] = await Promise.all([getOrCreateDefaultBoard(scope), getBoardItems(null, scope), getBoards()]);
+      if (!current()) return;
+      setKept(photos);
+      setBoards(boardRows.some(board => board.id === savedBoard.id) ? boardRows : [savedBoard, ...boardRows]);
+      setPendingKeep({ post, itemPosition, itemId: post.items[index].id });
       setCreatingKeepBoard(false);
       setKeepBoardName("");
     } catch (error) {
+      if (!current()) return;
       console.error("Failed to prepare Save to Board:", error);
       onToast(error.message || "Could not open Save to Board");
     }
   };
 
   const saveKeepToBoard = async (board) => {
+    if (!authScope.isCurrent()) return;
     if (!pendingKeep || savingKeep) return;
-    const { post, index } = pendingKeep;
+    const { post, itemPosition, itemId } = pendingKeep;
     try {
       setSavingKeep(true);
-      const saved = await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition: index, note: post.items[index]?.note || "", mood: post.mood || "" });
-      setKept((current) => current.some((item) => item.id === saved.id) ? current : [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: saved.saved_author_username || post.author, note: saved.note || "", mood: saved.mood || "", imagePath: saved.saved_image_path || post.items[index]?.imagePath || "", imageUrl: saved.saved_image_url || null, mediaBucket: saved.snapshot_bucket || "flicd-media", seed: saved.item_position }]);
-      setBoards(await getBoards());
+      await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition, itemId }, authScope);
+      if (!authScope.isCurrent()) return;
+      const [photos, boardRows] = await Promise.all([getBoardItems(null, authScope), getBoards()]);
+      if (!authScope.isCurrent()) return;
+      setKept(photos); setBoards(boardRows);
       setPendingKeep(null);
       setCreatingKeepBoard(false);
       setKeepBoardName("");
       onToast(`Saved to ${board.name}`);
     } catch (error) {
+      if (!authScope.isCurrent()) return;
       console.error("Failed to save board item:", error);
       onToast(error.message || "Failed to save to Board");
     } finally {
-      setSavingKeep(false);
+      if (authScope.isCurrent()) setSavingKeep(false);
     }
   };
 
   const createKeepBoard = async (event) => {
     event.preventDefault();
+    if (!authScope.isCurrent()) return;
     const cleanName = keepBoardName.trim();
     if (!cleanName || !pendingKeep || savingKeep) return;
     try {
       setSavingKeep(true);
-      const board = await createBoard({ name: cleanName, description: "", pinned: false });
+      const board = await createBoard({ name: cleanName, description: "", pinned: false }, authScope);
+      if (!authScope.isCurrent()) return;
       setBoards((current) => [...current, board]);
-      const { post, index } = pendingKeep;
-      const saved = await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition: index, note: post.items[index]?.note || "", mood: post.mood || "" });
-      setKept((current) => [...current, { id: saved.id, boardId: saved.board_id, dumpId: saved.dump_id, author: post.author, note: saved.note || "", mood: saved.mood || "", seed: saved.item_position }]);
-      setBoards(await getBoards());
+      const { post, itemPosition, itemId } = pendingKeep;
+      await saveBoardItem({ boardId: board.id, dumpId: post.id, itemPosition, itemId }, authScope);
+      if (!authScope.isCurrent()) return;
+      const [photos, boardRows] = await Promise.all([getBoardItems(null, authScope), getBoards()]);
+      if (!authScope.isCurrent()) return;
+      setKept(photos); setBoards(boardRows);
       setPendingKeep(null);
       setCreatingKeepBoard(false);
       setKeepBoardName("");
       onToast(`Saved to ${board.name}`);
     } catch (error) {
+      if (!authScope.isCurrent()) return;
       console.error("Failed to create Board from Keep:", error);
       onToast(error.message || "Failed to create Board");
     } finally {
-      setSavingKeep(false);
+      if (authScope.isCurrent()) setSavingKeep(false);
     }
   };
 
   const postDump = async ({ mood, expiry, channel, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
+    const current = authScope.isCurrent;
+    if (!current()) return;
     let uploadedPaths = [];
-    const quota = await getPostingLimitStatus();
-    if (!quota.remaining) {
-      throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
-    }
     try {
+      const quota = await getPostingLimitStatus();
+      if (!current()) return;
+      if (!quota.remaining) throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
       const imageFiles = items.map((item) => item.imageFile).filter(Boolean);
-      uploadedPaths = await uploadDumpImages(imageFiles);
+      uploadedPaths = await uploadDumpImages(imageFiles, captureAuthScope(authScope, current));
+      if (!current()) return;
       let uploadIndex = 0;
       const itemsWithPaths = items.map((item) => ({
         note: item.note || "",
@@ -556,7 +633,8 @@ export default function FlicdApp() {
         location,
         taggedUserIds: taggedUsers.map((user) => user.id),
         allowOthersToKeep,
-      });
+      }, captureAuthScope(authScope, current));
+      if (!current()) return;
       const newDump = {
         id: savedDump.id,
         channel,
@@ -569,7 +647,7 @@ export default function FlicdApp() {
         likes: 0,
         liked: false,
         comments: [],
-        items: itemsWithPaths.map((item) => ({ note: item.note, imagePath: item.imagePath, mediaBucket: item.mediaBucket })),
+        items: formatDumpRecord(savedDump).items,
         context: itemsWithPaths[0]?.note || "new dump",
         musicTrack,
         location,
@@ -581,21 +659,25 @@ export default function FlicdApp() {
       setFeedState({ status: "ready", error: "" });
       onToast("Dump posted");
     } catch (error) {
-      if (uploadedPaths.length) await removeDumpImages(uploadedPaths);
+      if (!current()) return;
+      if (uploadedPaths.length) await removeDumpImages(uploadedPaths, PRIVATE_DUMP_MEDIA_BUCKET, authScope);
+      if (!current()) return;
       console.error("Failed to post dump:", error);
       throw error;
     }
   };
 
   const postRoll = async ({ mood, expiry, channel, frameCount, items, musicTrack = null, location = null, taggedUsers = [], allowOthersToKeep = true }) => {
+    const current = authScope.isCurrent;
+    if (!current()) return;
     let uploadedPaths = [];
-    const quota = await getPostingLimitStatus();
-    if (!quota.remaining) {
-      throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
-    }
     try {
+      const quota = await getPostingLimitStatus();
+      if (!current()) return;
+      if (!quota.remaining) throw new Error("You have reached the 3-post limit for the last 24 hours. Try again after your oldest post rolls out.");
       const imageFiles = (items || []).map((item) => item.imageFile).filter(Boolean);
-      uploadedPaths = await uploadDumpImages(imageFiles);
+      uploadedPaths = await uploadDumpImages(imageFiles, captureAuthScope(authScope, current));
+      if (!current()) return;
       const itemsWithPaths = (items || []).map((item, index) => ({ note: item.note || "", imagePath: uploadedPaths[index] || null, mediaBucket: PRIVATE_DUMP_MEDIA_BUCKET }));
       const savedDump = await createDump({
         type: "roll",
@@ -609,7 +691,8 @@ export default function FlicdApp() {
         location,
         taggedUserIds: taggedUsers.map((user) => user.id),
         allowOthersToKeep,
-      });
+      }, captureAuthScope(authScope, current));
+      if (!current()) return;
       const newRoll = {
         id: savedDump.id,
         channel,
@@ -622,7 +705,7 @@ export default function FlicdApp() {
         likes: 0,
         liked: false,
         comments: [],
-        items: itemsWithPaths,
+        items: formatDumpRecord(savedDump).items,
         context: `${frameCount} frame roll`,
         musicTrack,
         location,
@@ -634,7 +717,9 @@ export default function FlicdApp() {
       setFeedState({ status: "ready", error: "" });
       onToast("Roll posted");
     } catch (error) {
-      if (uploadedPaths.length) await removeDumpImages(uploadedPaths);
+      if (!current()) return;
+      if (uploadedPaths.length) await removeDumpImages(uploadedPaths, PRIVATE_DUMP_MEDIA_BUCKET, authScope);
+      if (!current()) return;
       console.error("Failed to post roll:", error);
       throw error;
     }
@@ -677,12 +762,16 @@ export default function FlicdApp() {
       error={feedState.status === "error" ? feedState.error : ""}
       onRetry={loadDumps}
       onOpen={(post) => {
+        if (!authScope.isCurrent()) return;
+        authScope.cancel("viewer");
         primePostAudio(post);
         setViewerCommentsOpen(false);
         setActivePostId(post.id);
         setScreen("viewer");
       }}
       onCommentOpen={(post) => {
+        if (!authScope.isCurrent()) return;
+        authScope.cancel("viewer");
         primePostAudio(post);
         setViewerCommentsOpen(true);
         setActivePostId(post.id);
@@ -700,6 +789,8 @@ export default function FlicdApp() {
       onToast={onToast}
       onUserSelect={openPublicProfile}
       onOpenPost={(post) => {
+        if (!authScope.isCurrent()) return;
+        authScope.cancel("viewer");
         primePostAudio(post);
         setViewerCommentsOpen(false);
         setActivePostId(post.id);
@@ -714,14 +805,17 @@ export default function FlicdApp() {
     content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio
+      isCurrent={authScope.isCurrent}
       profile={profile}
       theme={theme}
       onClose={() => setScreen("profile")}
       onChangeTheme={setTheme}
       onSaved={async (updatedTheme) => {
+        const current = authScope.begin("profile-save");
+        if (!current()) return;
         if (!supabaseProfile?.id) throw new Error("Profile is still loading.");
         const normalized = sanitizeProfileTheme(updatedTheme);
-        const { data, error } = await supabase
+        const { data, error } = await createAccountClient(captureAuthScope(authScope, current))
           .from("profiles")
           .update({
             profile_theme: normalized,
@@ -729,8 +823,9 @@ export default function FlicdApp() {
           })
           .eq("id", supabaseProfile.id)
           .select()
-          .single();
+          .single().catch((error) => { if (current()) throw error; return {}; });
 
+        if (!current()) return;
         if (error) throw error;
         setSupabaseProfile(data);
         setTheme(normalized);
@@ -739,13 +834,15 @@ export default function FlicdApp() {
       }}
     />;
   } else if (screen === "boards") {
-    content = <Boards dumps={dumps} keptItems={kept} initialBoardId={openBoardId} onBack={() => { setOpenBoardId(null); setScreen("profile"); }} onToast={onToast} />;
+    content = <Boards authScope={authScope} dumps={dumps} keptItems={kept} initialBoardId={openBoardId} onBack={() => { setOpenBoardId(null); setScreen("profile"); }} onToast={onToast} />;
   } else if (screen === "edit-profile") {
     content = <EditProfile
+      isCurrent={authScope.isCurrent}
       profile={profile}
       profileTheme={theme}
       onBack={() => setScreen("profile")}
       onSaved={(updatedProfile) => {
+        if (!authScope.isCurrent()) return;
         setSupabaseProfile(updatedProfile);
         if (updatedProfile?.profile_theme) setTheme(sanitizeProfileTheme(updatedProfile.profile_theme));
         setScreen("profile");
@@ -761,11 +858,14 @@ export default function FlicdApp() {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={(dumpId) => {
+    content = activePost ? <Viewer post={activePost} currentUserId={session.user.id} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={async (dumpId, receipt) => {
+          if (!authScope.isCurrent()) throw new Error("Authenticated context changed.");
+          const confirmed = await markDumpViewed(dumpId, receipt);
+          if (confirmed !== true) throw new Error("View acknowledgement was not confirmed.");
+          if (!authScope.isCurrent()) throw new Error("Authenticated account changed.");
           setDumps((current) => current.map((item) => item.id === dumpId ? { ...item, viewed: true } : item));
-          markDumpViewed(dumpId)
-            .then(() => syncExpiredArchive())
-            .catch((error) => console.error("Failed to finish view-once archive:", error));
+          // A per-account claim never retires or archives the source for others.
+          return true;
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
@@ -777,6 +877,8 @@ export default function FlicdApp() {
         userId={session.user.id}
         screen={navigationScreen}
         onNavigate={(key) => {
+          if (!authScope.isCurrent()) return;
+          authScope.cancel("viewer");
           setPublicProfile(null);
           setViewerCommentsOpen(false);
           if (screen === "viewer") setActivePostId(null);
@@ -787,6 +889,8 @@ export default function FlicdApp() {
           setScreen(key);
         }}
         onCapture={() => {
+          if (!authScope.isCurrent()) return;
+          authScope.cancel("viewer");
           setPublicProfile(null);
           setViewerCommentsOpen(false);
           if (screen === "viewer") setActivePostId(null);
@@ -811,7 +915,7 @@ export default function FlicdApp() {
               <>
                 <div className="stack" style={{ marginTop: 16 }}>
                   {boards.map((board) => {
-                    const count = kept.filter((item) => item.boardId === board.id).length;
+                    const count = kept.filter((item) => item.board_ids?.includes(board.id)).length;
                     return <button key={board.id} type="button" className="card" disabled={savingKeep} onClick={() => saveKeepToBoard(board)} style={{ width: "100%", textAlign: "left", cursor: savingKeep ? "wait" : "pointer", opacity: savingKeep ? 0.65 : 1 }}><div className="row"><div style={{ width: 42, height: 42, borderRadius: 14, flexShrink: 0, background: board.style_config?.accent || "rgba(255,255,255,.08)", border: "1px solid rgba(255,255,255,.12)" }} /><div style={{ flex: 1, minWidth: 0 }}><strong>{board.name}</strong><p className="subtitle" style={{ marginTop: 3 }}>{count} {count === 1 ? "item" : "items"}{board.name === "Saved" ? " · default" : ""}</p></div></div></button>;
                   })}
                   <button type="button" className="card" disabled={savingKeep} onClick={() => setCreatingKeepBoard(true)} style={{ width: "100%", textAlign: "left", cursor: savingKeep ? "not-allowed" : "pointer", opacity: savingKeep ? 0.65 : 1 }}><strong>＋ New Board</strong><p className="subtitle" style={{ marginTop: 3 }}>Create a Board and save this moment there.</p></button>
@@ -825,7 +929,7 @@ export default function FlicdApp() {
         </div>
       )}
 
-      {boardStudioOpen && <BoardStudio boards={boards} onClose={() => setBoardStudioOpen(false)} onBoardSaved={(updated) => { setBoards((current) => current.map((board) => board.id === updated.id ? updated : board)); setBoardStudioOpen(false); }} onToast={onToast} />}
+      {boardStudioOpen && <BoardStudio isCurrent={authScope.isCurrent} boards={boards} onClose={() => setBoardStudioOpen(false)} onBoardSaved={authScope.guard((updated) => { setBoards((current) => current.map((board) => board.id === updated.id ? updated : board)); setBoardStudioOpen(false); })} onToast={onToast} />}
 
       {toast && <div className="toast">{toast}</div>}
     </>

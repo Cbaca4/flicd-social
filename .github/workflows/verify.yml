@@ -39,7 +39,10 @@ jobs:
       - name: Lint
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm run lint
-      - name: Test
+      - name: Account-generation, editing-dialog and credential-dispatch regressions
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test -- src/app/FlicdApp.accountIsolation.test.jsx src/app/AuthScopeContext.test.jsx src/lib/supabase.accountScope.test.js src/features/home/mediaSessionApi.dispatch.test.js src/features/profile/BoardStudio.lifecycle.test.jsx src/features/profile/EditProfile.accountIsolation.test.jsx src/features/social
+      - name: Full test suite
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: npm test
       - name: Build

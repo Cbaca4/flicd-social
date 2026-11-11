@@ -1,13 +1,16 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 import { getCurrentUserId } from "./socialApi.js";
 
 const MAX_COMMENT_LENGTH = 500;
 const COMMENT_MEDIA_TYPES = new Set(["text", "gif", "audio", "video"]);
 const COMMENT_REPORT_REASONS = new Set(["spam", "harassment", "hate", "violence", "sexual", "other"]);
 
-export async function likeDump(dumpId) {
+export async function likeDump(dumpId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { data, error } = await supabase
+  scope.assertUser(userId);
+  const { data, error } = await client
     .from("likes")
     .upsert(
       { dump_id: dumpId, user_id: userId },
@@ -19,9 +22,11 @@ export async function likeDump(dumpId) {
   return data;
 }
 
-export async function unlikeDump(dumpId) {
+export async function unlikeDump(dumpId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { error } = await supabase
+  scope.assertUser(userId);
+  const { error } = await client
     .from("likes")
     .delete()
     .eq("dump_id", dumpId)
@@ -69,11 +74,14 @@ function normalizeCommentPayload(payload) {
   };
 }
 
-export async function addComment(dumpId, payload) {
+export async function addComment(dumpId, payload, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const normalized = normalizeCommentPayload(payload);
 
-  const { data, error } = await supabase
+  scope.assertCurrent();
+  const { data, error } = await client
     .from("comments")
     .insert({ dump_id: dumpId, user_id: userId, ...normalized })
     .select("id,dump_id,user_id,text,media_type,media_url,media_path,media_metadata,created_at")
@@ -82,9 +90,11 @@ export async function addComment(dumpId, payload) {
   return data;
 }
 
-export async function deleteComment(commentId) {
+export async function deleteComment(commentId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
-  const { error } = await supabase
+  scope.assertUser(userId);
+  const { error } = await client
     .from("comments")
     .delete()
     .eq("id", commentId)
@@ -92,14 +102,17 @@ export async function deleteComment(commentId) {
   if (error) throw error;
 }
 
-export async function reportComment(commentId, reason) {
+export async function reportComment(commentId, reason, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const cleanReason = String(reason || "").trim().toLowerCase();
   if (!COMMENT_REPORT_REASONS.has(cleanReason)) {
     throw new Error("Choose a valid report reason");
   }
 
-  const { error } = await supabase
+  scope.assertCurrent();
+  const { error } = await client
     .from("comment_reports")
     .insert({
       comment_id: commentId,

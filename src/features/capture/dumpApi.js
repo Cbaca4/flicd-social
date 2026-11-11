@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 import { getCurrentUserId, getFollowingIds } from "../social/socialApi.js";
 import { hydrateMusicTracks } from "../music/musicApi.js";
 
@@ -36,10 +37,13 @@ export async function createDump({
   location = null,
   taggedUserIds = [],
   allowOthersToKeep = false,
-}) {
+}, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
+  const { assertCurrent } = scope;
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
 
-  const { data: dump, error: dumpError } = await supabase
+  const { data: dump, error: dumpError } = await client
     .from("dumps")
     .insert({
       user_id: userId,
@@ -60,25 +64,27 @@ export async function createDump({
     .select()
     .single();
 
+  assertCurrent();
   if (dumpError) {
     throw dumpError;
   }
 
-  if (items.length > 0) {
-    const dumpItems = items.map((item, index) => ({
+  const dumpItems = items.map((item, index) => ({
+      id: crypto.randomUUID(),
       dump_id: dump.id,
       position: index,
       note: item.note || "",
       image_path: item.imagePath || null,
       media_bucket: item.mediaBucket || "flicd-dump-private",
     }));
-
-    const { error: itemsError } = await supabase
+  if (dumpItems.length > 0) {
+    const { error: itemsError } = await client
       .from("dump_items")
       .insert(dumpItems);
 
+    assertCurrent();
     if (itemsError) {
-      await supabase.from("dumps").delete().eq("id", dump.id);
+      await client.from("dumps").delete().eq("id", dump.id);
       throw itemsError;
     }
   }
@@ -90,7 +96,7 @@ export async function createDump({
     .slice(0, 10);
 
   if (cleanTagIds.length) {
-    const { error: tagsError } = await supabase
+    const { error: tagsError } = await client
       .from("dump_tags")
       .insert(cleanTagIds.map((taggedUserId) => ({
         dump_id: dump.id,
@@ -98,13 +104,14 @@ export async function createDump({
         tagged_by_user_id: userId,
       })));
 
+    assertCurrent();
     if (tagsError) {
-      await supabase.from("dumps").delete().eq("id", dump.id);
+      await client.from("dumps").delete().eq("id", dump.id);
       throw tagsError;
     }
   }
 
-  return dump;
+  return { ...dump, dump_items: dumpItems };
 }
 
 export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
@@ -181,9 +188,9 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
     const viewedIds = new Set((viewsResult.data || []).map((row) => row.dump_id));
 
     return liveDumps
-      .filter((dump) => !(dump.expiry === "once" && (viewedIds.has(dump.id) || dump.once_viewed_at)))
       .map((dump) => ({
         ...dump,
+        ...(dump.expiry === "once" ? { viewed: viewedIds.has(dump.id) } : {}),
         ...(dump.music_tracks
           ? { music_tracks: trackById.get(dump.music_tracks.id) || dump.music_tracks }
           : {}),
@@ -193,19 +200,13 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
   return [];
 }
 
-export async function markDumpViewed(dumpId) {
-  const userId = await getCurrentUserId();
-  if (!dumpId) return false;
-
-  const { error } = await supabase
-    .from("dump_views")
-    .upsert(
-      { dump_id: dumpId, user_id: userId },
-      { onConflict: "dump_id,user_id", ignoreDuplicates: true },
-    );
-
-  if (error) throw error;
-  return true;
+export async function markDumpViewed(dumpId, receipt) {
+  // UI acknowledgement only. The gateway has already committed the database
+  // claim; this helper grants no media access and never writes consumption.
+  return Boolean(dumpId && receipt?.dump_id === dumpId &&
+    ["claimed", "recovered"].includes(receipt.status) &&
+    typeof receipt.claim_id === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(receipt.claim_id));
 }
 
 export async function getDumps() {
@@ -278,16 +279,14 @@ export async function getDumpById(dumpId) {
     : [];
 
   const userId = await getCurrentUserId();
-  const { data: view } = await supabase
+  const { data: view, error: viewError } = await supabase
     .from("dump_views")
     .select("dump_id")
     .eq("dump_id", dumpId)
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (data.expiry === "once" && (view || data.once_viewed_at)) {
-    return null;
-  }
+  if (viewError) throw viewError;
 
   if (
     data.expiry === "24h" &&
@@ -298,6 +297,7 @@ export async function getDumpById(dumpId) {
 
   return {
     ...data,
+    ...(data.expiry === "once" ? { viewed: Boolean(view) } : {}),
     ...(data.music_tracks
       ? { music_tracks: hydratedTracks[0] || data.music_tracks }
       : {}),

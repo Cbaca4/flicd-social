@@ -4,6 +4,20 @@ on:
     paths:
       - "supabase/migrations/**"
       - "tests/security/**"
+      - "src/app/**"
+      - "src/lib/**"
+      - "src/features/home/**"
+      - "src/features/music/**"
+      - "src/features/messages/**"
+      - "src/features/onboarding/**"
+      - "src/features/profile/**"
+      - "src/features/capture/mediaUpload*"
+      - "src/features/social/**"
+      - "scripts/verify-local-*.mjs"
+      - "scripts/verify-media-migration-artifacts.mjs"
+      - "server/media/**"
+      - "docs/evidence/*migration*.patch"
+      - "docs/evidence/privacy-blocker-remediation-forward-*.patch"
       - ".github/workflows/security-integration.yml"
   workflow_dispatch:
 
@@ -19,23 +33,31 @@ jobs:
         image: postgres:17
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test-only
+          # Disposable synthetic loopback fixture, not a provider credential.
+          # Local helpers deliberately ignore inherited PG credential settings.
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: postgres
         ports:
-          - 5432:5432
+          - "127.0.0.1:5432:5432"
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      PGHOST: localhost
+      PGHOST: 127.0.0.1
       PGPORT: "5432"
       PGUSER: postgres
-      PGPASSWORD: test-only
       PGDATABASE: postgres
+      FLICD_LOCAL_PSQL: psql
+      FLICD_LOCAL_PG_PORT: "5432"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify complete migration review payloads and dependency order
+        run: node scripts/verify-media-migration-artifacts.mjs
       - name: Create synthetic Supabase-style schema
         run: psql -X -v ON_ERROR_STOP=1 -f tests/security/bootstrap.sql
       - name: Apply privacy migration to synthetic database
@@ -46,3 +68,19 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261018170000_move_member_rls_helper_private.sql
       - name: Verify RLS for three synthetic identities
         run: psql -X -v ON_ERROR_STOP=1 -f tests/security/assertions.sql
+      - name: Verify per-account View Once authorization and races
+        run: node scripts/verify-local-media-security.mjs
+      - name: Verify canonical Keep authorization and cleanup
+        run: node scripts/verify-local-keeps.mjs
+      - name: Verify legacy library recovery and retention lifecycle
+        run: node scripts/verify-local-keep-library.mjs
+      - name: Verify archive, session, expiry and overlapping policy boundaries
+        run: node scripts/verify-local-media-edge-cases.mjs
+      - name: Verify bilateral blocking authorization
+        run: node scripts/verify-local-media-blocking.mjs
+      - name: Verify bound media identity and unresolved legacy evidence blockers
+        run: node scripts/verify-local-media-boundaries.mjs
+      - name: Verify forward upgrade of the existing four drafts
+        run: node scripts/verify-local-media-upgrade.mjs
+      - name: Verify actual loopback HTTP delivery and cleanup worker
+        run: node scripts/verify-local-media-http.mjs

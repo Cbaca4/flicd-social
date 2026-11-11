@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 import { createMediaId, MEDIA_BUCKET } from "../capture/mediaUpload.js";
 
 export const MAX_PROFILE_PHOTO_SIZE = 10 * 1024 * 1024;
@@ -248,20 +249,23 @@ async function optimizeProfileBackgroundImage(file) {
   });
 }
 
-export async function uploadProfilePhoto(file) {
+export async function uploadProfilePhoto(file, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
+  const { assertCurrent } = scope;
   const selected = validateProfilePhoto(file);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const extension = extensionForType(selected.type);
   const path = `${userId}/profile/${createMediaId()}.${extension}`;
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await client.storage
     .from(MEDIA_BUCKET)
     .upload(path, selected, {
       cacheControl: "31536000",
       contentType: selected.type,
       upsert: false,
     });
-
+  assertCurrent();
   if (error) throw error;
 
   const { data: publicData } = supabase.storage
@@ -271,14 +275,15 @@ export async function uploadProfilePhoto(file) {
   const publicUrl = publicData?.publicUrl;
 
   if (!publicUrl) {
-    await removeProfilePhoto(data.path);
+    await removeProfilePhoto(data.path, scope);
     throw new Error("Profile photo uploaded, but its public URL could not be created.");
   }
 
   return publicUrl;
 }
 
-export async function removeProfilePhoto(pathOrUrl) {
+export async function removeProfilePhoto(pathOrUrl, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   if (!pathOrUrl) return;
 
   const marker = `/storage/v1/object/public/${MEDIA_BUCKET}/`;
@@ -288,11 +293,14 @@ export async function removeProfilePhoto(pathOrUrl) {
 
   if (!path) return;
 
-  const { error } = await supabase.storage.from(MEDIA_BUCKET).remove([path]);
+  if (!path.startsWith(scope.user + "/")) throw new Error("Media owner changed.");
+  const { error } = await client.storage.from(MEDIA_BUCKET).remove([path]);
   if (error) console.error("Failed to clean up profile photo:", error);
 }
 
-export async function uploadProfileBackground(file) {
+export async function uploadProfileBackground(file, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
+  const { assertCurrent } = scope;
   const selected = validateBackgroundFile(file);
 
   if (selected.type.startsWith("video/")) {
@@ -304,18 +312,20 @@ export async function uploadProfileBackground(file) {
       ? await optimizeProfileBackgroundImage(selected)
       : selected;
 
+  assertCurrent();
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const extension = extensionForType(optimized.type);
   const path = userId + "/profile/background/" + createMediaId() + "." + extension;
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await client.storage
     .from(MEDIA_BUCKET)
     .upload(path, optimized, {
       cacheControl: "31536000",
       contentType: optimized.type,
       upsert: false,
     });
-
+  assertCurrent();
   if (error) throw error;
 
   const { data: publicData } = supabase.storage
@@ -324,7 +334,7 @@ export async function uploadProfileBackground(file) {
 
   const publicUrl = publicData?.publicUrl;
   if (!publicUrl) {
-    await removeProfilePhoto(data.path);
+    await removeProfilePhoto(data.path, scope);
     throw new Error("Background uploaded, but its public URL could not be created.");
   }
 

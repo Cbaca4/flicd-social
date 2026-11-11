@@ -1,6 +1,6 @@
-import { supabase } from "../../lib/supabase";
-import { MEDIA_BUCKET } from "../capture/mediaUpload.js";
-import { ARCHIVE_BUCKET } from "./archiveApi.js";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
+import { mediaApi } from "../home/mediaSessionApi.js";
 
 async function getCurrentUserId() {
   const {
@@ -49,18 +49,18 @@ export async function createBoard({
   coverUrl = "",
   pinned = false,
   styleConfig = {},
-}) {
+}, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const cleanName = String(name || "").trim();
 
   if (!cleanName) {
     throw new Error("Board name is required.");
   }
 
-  const { data, error } = await supabase
-    .from("boards")
-    .insert({
-      user_id: userId,
+  const payload = {
+      user_id: scope.user,
       name: cleanName,
       description:
         String(description || "").trim() || null,
@@ -68,7 +68,11 @@ export async function createBoard({
         String(coverUrl || "").trim() || null,
       pinned: Boolean(pinned),
       style_config: styleConfig || {},
-    })
+  };
+  scope.assertCurrent();
+  const { data, error } = await client
+    .from("boards")
+    .insert(payload)
     .select()
     .single();
 
@@ -78,9 +82,12 @@ export async function createBoard({
 
 export async function updateBoard(
   boardId,
-  updates = {}
+  updates = {},
+  authScope
 ) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
   const payload = {
     updated_at: new Date().toISOString(),
   };
@@ -111,7 +118,8 @@ export async function updateBoard(
     payload.style_config = updates.styleConfig || {};
   }
 
-  const { data, error } = await supabase
+  scope.assertCurrent();
+  const { data, error } = await client
     .from("boards")
     .update(payload)
     .eq("id", boardId)
@@ -123,10 +131,12 @@ export async function updateBoard(
   return data;
 }
 
-export async function deleteBoard(boardId) {
+export async function deleteBoard(boardId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
 
-  const { error } = await supabase
+  const { error } = await client
     .from("boards")
     .delete()
     .eq("id", boardId)
@@ -135,10 +145,12 @@ export async function deleteBoard(boardId) {
   if (error) throw error;
 }
 
-export async function getOrCreateDefaultBoard() {
+export async function getOrCreateDefaultBoard(authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const userId = await getCurrentUserId();
+  scope.assertUser(userId);
 
-  const { data: existing, error } = await supabase
+  const { data: existing, error } = await client
     .from("boards")
     .select("*")
     .eq("user_id", userId)
@@ -148,238 +160,39 @@ export async function getOrCreateDefaultBoard() {
     .maybeSingle();
 
   if (error) throw error;
+  scope.assertCurrent();
   if (existing) return existing;
 
   return createBoard({
     name: "Saved",
     description: "Your saved Flic'd items",
     pinned: true,
-  });
+  }, scope);
 }
 
-async function resolveBoardSnapshotUrl(item) {
-  if (!item?.saved_image_path) return null;
-  if (item.snapshot_bucket === ARCHIVE_BUCKET) {
-    const { data, error } = await supabase.storage
-      .from(ARCHIVE_BUCKET)
-      .createSignedUrl(item.saved_image_path, 600);
-    if (error) throw error;
-    return data?.signedUrl || null;
-  }
-  if (!item.snapshot_bucket || item.snapshot_bucket === MEDIA_BUCKET) {
-    return supabase.storage.from(MEDIA_BUCKET).getPublicUrl(item.saved_image_path).data?.publicUrl || null;
-  }
-  return null;
+// Board metadata remains owner-RLS managed. Media entitlements/memberships never
+// use browser Storage copies, signed URLs or direct legacy board_items writes.
+function normalizeKeep(item) {
+  return { ...item, dump_id: item.source_dump_id, note: item.saved_note || "",
+    saved_author_username: item.source_username || "", board_ids: item.board_ids || [] };
 }
 
-async function snapshotBoardImage(sourcePath, userId, boardId, dumpId, itemPosition, sourceBucket = MEDIA_BUCKET) {
-  if (!sourcePath) return null;
-
-  const { data: file, error: downloadError } = await supabase.storage
-    .from(sourceBucket)
-    .download(sourcePath);
-
-  if (downloadError) throw downloadError;
-  if (!file) throw new Error("Could not read the source image.");
-
-  const extension = String(sourcePath)
-    .split("?")[0]
-    .split(".")
-    .pop()
-    ?.replace(/[^a-z0-9]/gi, "")
-    .toLowerCase() || "jpg";
-
-  const snapshotPath =
-    userId + "/boards/" + boardId + "/" + dumpId + "-" + itemPosition + "." + extension;
-
-  const { data, error: uploadError } = await supabase.storage
-    .from(ARCHIVE_BUCKET)
-    .upload(snapshotPath, file, {
-      cacheControl: "600",
-      contentType: file.type || "image/jpeg",
-      upsert: false,
-    });
-
-  if (uploadError) throw uploadError;
-  return data?.path || snapshotPath;
-}
-
-export async function saveBoardItem({
-  dumpId,
-  itemPosition,
-  note = "",
-  mood = "",
-  boardId,
-}) {
-  const userId = await getCurrentUserId();
-  const targetBoard = boardId
-    ? await getBoard(boardId)
-    : await getOrCreateDefaultBoard();
-
+export async function saveBoardItem({ dumpId, itemPosition, itemId, boardId }, authScope) {
+  const scope = captureAuthScope(authScope);
+  if (!Number.isInteger(itemPosition) || itemPosition < 0) throw new Error("Original photo position is required.");
   if (!dumpId) throw new Error("A Flic'd post is required.");
-
-  const { data: sourceDump, error: sourceError } = await supabase
-    .from("dumps")
-    .select("id,user_id,expiry,created_at,allow_others_to_keep,dump_items(id,position,image_path,media_bucket,note,mood)")
-    .eq("id", dumpId)
-    .single();
-
-  if (sourceError) throw sourceError;
-
-  if (
-    sourceDump.user_id !== userId &&
-    !sourceDump.allow_others_to_keep
-  ) {
-    throw new Error("The owner does not allow this Flic'd to be kept.");
-  }
-
-  if (sourceDump.expiry !== "24h" && sourceDump.user_id !== userId) {
-    throw new Error("View once Flic'ds cannot be kept.");
-  }
-
-  if (
-    sourceDump.user_id !== userId &&
-    new Date(sourceDump.created_at || 0).getTime() <= Date.now() - 24 * 60 * 60 * 1000
-  ) {
-    throw new Error("That Flic'd has expired.");
-  }
-
-  const sourceItem = (sourceDump.dump_items || []).find(
-    (item) => Number(item.position) === Number(itemPosition),
-  );
-
-  if (!sourceItem) throw new Error("That saved moment is no longer available.");
-
-  const { data: archiveItem, error: archiveItemError } = await supabase
-    .from("flicd_archive_items")
-    .select("archive_path")
-    .eq("user_id", userId)
-    .eq("dump_id", dumpId)
-    .eq("item_position", Number(itemPosition))
-    .maybeSingle();
-
-  if (archiveItemError) throw archiveItemError;
-
-  const sourcePath = archiveItem?.archive_path || sourceItem.image_path;
-  const sourceBucket = archiveItem?.archive_path ? ARCHIVE_BUCKET : (sourceItem.media_bucket || MEDIA_BUCKET);
-
-  const { data: existingItem } = await supabase
-    .from("board_items")
-    .select("id,saved_image_path,snapshot_bucket")
-    .eq("user_id", userId)
-    .eq("board_id", targetBoard.id)
-    .eq("dump_id", dumpId)
-    .eq("item_position", itemPosition)
-    .maybeSingle();
-
-  const savedImagePath =
-    existingItem?.saved_image_path ||
-    await snapshotBoardImage(
-      sourcePath,
-      userId,
-      targetBoard.id,
-      dumpId,
-      itemPosition,
-      sourceBucket,
-    );
-
-  let sourceUsername = "";
-  const { data: sourceProfile } = await supabase
-    .from("profiles")
-    .select("username")
-    .eq("id", sourceDump.user_id)
-    .maybeSingle();
-  sourceUsername = sourceProfile?.username || "";
-
-  const { data, error } = await supabase
-    .from("board_items")
-    .upsert(
-      {
-        user_id: userId,
-        board_id: targetBoard.id,
-        dump_id: dumpId,
-        item_position: itemPosition,
-        note: note || sourceItem.note || "",
-        mood: mood || sourceItem.mood || "",
-        saved_image_path: savedImagePath,
-        snapshot_bucket: existingItem?.saved_image_path ? (existingItem.snapshot_bucket || MEDIA_BUCKET) : ARCHIVE_BUCKET,
-        saved_author_username: sourceUsername || null,
-      },
-      {
-        onConflict: "user_id,board_id,dump_id,item_position",
-      }
-    )
-    .select()
-    .single();
-
-  if (error) throw error;
-  return { ...data, saved_image_url: await resolveBoardSnapshotUrl(data) };
+  const targetId = boardId || (await getOrCreateDefaultBoard(scope)).id;
+  scope.assertCurrent();
+  return normalizeKeep(await mediaApi.json("keeps/save", { dumpId, itemPosition, ...(itemId !== undefined ? { itemId } : {}), boardId: targetId }, { authScope: scope }));
 }
 
-export async function getBoardItems(boardId = null) {
-  const userId = await getCurrentUserId();
-
-  let query = supabase
-    .from("board_items")
-    .select(
-      "id,user_id,board_id,dump_id,item_position,note,mood,saved_image_path,snapshot_bucket,saved_author_username,created_at"
-    )
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (boardId) {
-    query = query.eq("board_id", boardId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-  return Promise.all((data || []).map(async (item) => ({ ...item, saved_image_url: await resolveBoardSnapshotUrl(item) })));
+export async function getBoardItems(boardId = null, authScope) {
+  const scope = captureAuthScope(authScope);
+  const items = (await mediaApi.json("keeps/list", {}, { authScope: scope })).map(normalizeKeep);
+  scope.assertCurrent();
+  return boardId ? items.filter((item) => item.board_ids.includes(boardId)) : items;
 }
 
-export async function moveBoardItem(
-  boardItemId,
-  boardId
-) {
-  const userId = await getCurrentUserId();
-  const targetBoard = await getBoard(boardId);
-
-  const { data, error } = await supabase
-    .from("board_items")
-    .update({ board_id: targetBoard.id })
-    .eq("id", boardItemId)
-    .eq("user_id", userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function deleteBoardItem(boardItemId) {
-  const userId = await getCurrentUserId();
-
-  const { data: item, error: readError } = await supabase
-    .from("board_items")
-    .select("id,saved_image_path,snapshot_bucket")
-    .eq("id", boardItemId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (readError) throw readError;
-
-  const { error } = await supabase
-    .from("board_items")
-    .delete()
-    .eq("id", boardItemId)
-    .eq("user_id", userId);
-
-  if (error) throw error;
-
-  if (item?.saved_image_path) {
-    const { error: removeError } = await supabase.storage
-      .from(item.snapshot_bucket || MEDIA_BUCKET)
-      .remove([item.saved_image_path]);
-    if (removeError) console.error("Failed to remove Board snapshot:", removeError);
-  }
-}
+export const linkBoardItem = async (keepId, boardId, authScope) => mediaApi.json("keeps/link", { keepId, boardId }, { authScope: captureAuthScope(authScope) });
+export const deleteBoardItem = async (keepId, boardId, authScope) => mediaApi.json("keeps/unlink", { keepId, boardId }, { authScope: captureAuthScope(authScope) });
+export const removeKeep = async (keepId, authScope) => mediaApi.json("keeps/remove", { keepId }, { authScope: captureAuthScope(authScope) });

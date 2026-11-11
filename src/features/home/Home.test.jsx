@@ -3,7 +3,9 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 import Home, { DumpCard, Viewer } from "./Home.jsx";
 
 vi.mock("./mediaUrl.js", () => ({
@@ -225,7 +227,8 @@ describe("Post viewer", () => {
     id: "post-1",
     author: "baco",
     mood: "late night",
-    mode: "dump",
+    mode: "24h",
+    allowOthersToKeep: true,
     postedMinutesAgo: 20,
     liked: false,
     likes: 4,
@@ -427,7 +430,7 @@ describe("Post viewer", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Delete comment" }));
 
-    expect(onDeleteComment).toHaveBeenCalledWith("own");
+    expect(onDeleteComment).toHaveBeenCalledWith("own",expect.objectContaining({user:'me'}));
     expect(await screen.findByText("No comments yet.")).toBeInTheDocument();
   });
 
@@ -456,7 +459,7 @@ describe("Post viewer", () => {
     expect(screen.getByText("Report this comment")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Spam" }));
 
-    expect(onReportComment).toHaveBeenCalledWith("other", "spam");
+    expect(onReportComment).toHaveBeenCalledWith("other", "spam",expect.objectContaining({user:'me'}));
     expect(await screen.findByText("Comment reported.")).toBeInTheDocument();
   });
 

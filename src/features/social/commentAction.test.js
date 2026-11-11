@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 
 describe("comment action", () => {
   it("submits a voice comment and appends the saved multimedia comment to the matching post", async () => {
@@ -20,6 +21,7 @@ describe("comment action", () => {
     const onToast = vi.fn();
 
     const comment = createCommentAction({
+      context: testAuthScope('user-1'),
       submitComment,
       setDumps,
       username: "baco",
@@ -32,7 +34,7 @@ describe("comment action", () => {
     });
 
     expect(submitComment).toHaveBeenCalledTimes(1);
-    expect(submitComment).toHaveBeenCalledWith("dump-1", expect.objectContaining({ media_type: "audio" }));
+    expect(submitComment).toHaveBeenCalledWith("dump-1", expect.objectContaining({ media_type: "audio" }), expect.objectContaining({ user: 'user-1' }));
     expect(setDumps).toHaveBeenCalledTimes(1);
     expect(onToast).not.toHaveBeenCalled();
   });

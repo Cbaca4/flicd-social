@@ -2,7 +2,9 @@
 
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+const render = (ui, options) => renderAccount(ui, 'me', options);
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
 
@@ -24,9 +26,12 @@ describe("Profile Studio privacy", () => {
     render(<ProfileStudio theme={DEFAULT_THEME} setTheme={() => {}} onClose={() => {}} onSave={() => {}} profile={{ handle: "you" }} />);
 
     const button = await screen.findByRole("button", { name: "Public" });
+    // The label is present before asynchronous privacy loading enables input.
+    await waitFor(() => expect(button.disabled).toBe(false));
     fireEvent.click(button);
 
-    await waitFor(() => expect(setPrivateAccount).toHaveBeenCalledWith(true));
+    await waitFor(() => expect(setPrivateAccount).toHaveBeenCalledWith(true, expect.objectContaining({ isCurrent: expect.any(Function) })));
+    expect(setPrivateAccount.mock.calls[0][1].isCurrent()).toBe(true);
     expect(await screen.findByRole("button", { name: "Private" })).toBeTruthy();
   });
 });

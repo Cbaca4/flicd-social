@@ -1,8 +1,10 @@
 import React from 'react';
+import { useAccountScope } from '../../app/AuthScopeContext.js';
 import {Heart,MessageCircle,Eye,Bookmark,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
 import { getDumpItemMediaUrl, resolveDumpItemMediaUrl, PRIVATE_DUMP_MEDIA_BUCKET } from './mediaUrl.js';
+import { createOnceMediaSession } from './mediaSessionApi.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
 import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 import { getCurrentUserId } from '../social/socialApi.js';
@@ -15,7 +17,7 @@ import { distanceKm, formatDistanceKm } from './distance.js';
 import '../social/CommentComposer.css';
 
 function timeLeft(post){
-  if(post.mode==='once')return post.viewed?'expired':'view once';
+  if(post.mode==='once')return post.viewed?'media viewed':'view once';
   const left=Math.max(0,1440-post.postedMinutesAgo);
   return left<=0?'expired':`${Math.floor(left/60)}h ${left%60}m left`;
 }
@@ -518,10 +520,11 @@ const REPORT_REASONS=[
 ];
 
 export function Viewer(props){
-  return <ViewerSession key={JSON.stringify([props.post.id, props.post.mode])} {...props} />;
+  return <ViewerSession key={JSON.stringify([props.post.id, props.post.mode, props.currentUserId])} {...props} />;
 }
 
 function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
+  const account=useAccountScope();
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
   const [commentsOpen,setCommentsOpen]=React.useState(Boolean(initialCommentsOpen));
@@ -544,6 +547,9 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [viewerLocation,setViewerLocation]=React.useState(null);
   const [revealedOnce,setRevealedOnce]=React.useState(post.mode !== "once" || Boolean(post.viewed));
   const [unlockedMediaUrls,setUnlockedMediaUrls]=React.useState(null);
+  const [sessionItems,setSessionItems]=React.useState(null);
+  const [sessionEnded,setSessionEnded]=React.useState(false);
+  const [claimedHere,setClaimedHere]=React.useState(false);
   const [unlockingOnce,setUnlockingOnce]=React.useState(false);
   const [unlockError,setUnlockError]=React.useState('');
   const [reportError,setReportError]=React.useState('');
@@ -552,13 +558,28 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [videoPickerOpen,setVideoPickerOpen]=React.useState(false);
   const recorderRef=React.useRef(null);
   const unsubscribeRef=React.useRef(null);
-  const onceLocked=onceViewedAtOpen || Boolean(post.mode === "once" && post.viewed && !revealedOnce);
+  const mediaSessionRef=React.useRef(null);
+
+  const mountedRef=React.useRef(true);
+  const revealPendingRef=React.useRef(false);
+  const onceLocked=onceViewedAtOpen || sessionEnded || Boolean(post.mode === "once" && post.viewed && !revealedOnce && !claimedHere);
   const viewerPost = post.mode === "once"
-    ? { ...post, items: (post.items || []).map((item, itemIndex) => ({
+    ? { ...post, items: (sessionItems || (post.items?.length ? post.items : [{}])).map((item, itemIndex) => ({
         ...item,
-        imageUrl: revealedOnce ? unlockedMediaUrls?.[itemIndex] || null : null,
+        imagePath: null,
+        mediaBucket: PRIVATE_DUMP_MEDIA_BUCKET,
+        imageUrl: revealedOnce && !onceLocked ? unlockedMediaUrls?.[itemIndex] || null : null,
       })) }
     : post;
+
+  React.useEffect(() => {
+    mountedRef.current=true;
+    return () => { mountedRef.current=false; void mediaSessionRef.current?.close(); };
+  }, []);
+  const closeViewer=React.useCallback(() => {
+    void mediaSessionRef.current?.close();
+    onClose?.();
+  }, [onClose]);
 
   React.useEffect(() => {
     setCommentsOpen(Boolean(initialCommentsOpen));
@@ -685,11 +706,11 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   React.useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === "Escape") onClose?.();
+      if (event.key === "Escape") closeViewer();
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [closeViewer]);
 
   React.useEffect(()=>{
     if(!voiceReviewBlob){
@@ -799,8 +820,11 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     if(deletingCommentId)return;
     const handler=onDeleteComment||deleteComment;
     setDeletingCommentId(commentId);
+    let scope;
     try{
-      const result=await handler(commentId);
+      scope=account.capture();
+      const result=await handler(commentId,scope);
+      if(!scope.isCurrent())return;
       if(result!==false){
         setDeletedCommentIds((current)=>{
           const next=new Set(current);
@@ -808,8 +832,10 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
           return next;
         });
       }
+    }catch(error){
+      if(scope?.isCurrent())setReportMessage(error.message||'Could not delete this comment.');
     }finally{
-      setDeletingCommentId(null);
+      if(scope?.isCurrent())setDeletingCommentId(null);
     }
   };
 
@@ -818,8 +844,11 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     const handler=onReportComment||reportComment;
     setReporting(true);
     setReportError('');
+    let scope;
     try{
-      const result=await handler(reportingCommentId,reason);
+      scope=account.capture();
+      const result=await handler(reportingCommentId,reason,scope);
+      if(!scope.isCurrent())return;
       if(result!==false){
         setReportedCommentIds((current)=>{
           const next=new Set(current);
@@ -830,9 +859,9 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         setReportMessage('Comment reported.');
       }
     }catch(error){
-      setReportError(error.message||'Could not report this comment.');
+      if(scope?.isCurrent())setReportError(error.message||'Could not report this comment.');
     }finally{
-      setReporting(false);
+      if(scope?.isCurrent())setReporting(false);
     }
   };
 
@@ -840,7 +869,8 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const pendingType=pendingComment?.media_type;
   const openCommentAuthor=(comment)=>onUserSelect?.({id:comment.user_id,username:comment.from});
 
-  const canKeep = post.mode !== "once" && post.allowOthersToKeep !== false;
+  const isOwnPost = Boolean(resolvedCurrentUserId && (post.authorId === resolvedCurrentUserId || post.author === resolvedCurrentUserId));
+  const canKeep = post.mode === "24h" && (isOwnPost || Boolean(post.allowOthersToKeep));
   const distanceLabel = viewerLocation && post.location
     ? formatDistanceKm(distanceKm(
         viewerLocation.latitude,
@@ -852,7 +882,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   const authorLabel = post.authorName || post.author || "unknown";
   const hasCaption = Boolean(post.caption || post.items?.[0]?.note);
-  const mediaCount = post.items?.length || 1;
+  const mediaCount = viewerPost.items?.length || 1;
 
   return (
     <div
@@ -860,6 +890,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       role="dialog"
       aria-modal="true"
       aria-label={`Viewing @${authorLabel}`}
+      aria-busy={unlockingOnce}
     >
       <div className="viewer-surface">
         <div className="viewer-media-layer">
@@ -875,31 +906,50 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             revealedOnce={revealedOnce}
             onceViewedAtOpen={onceLocked}
             onReveal={async () => {
-              if (post.mode !== "once" || onceLocked || revealedOnce || unlockingOnce) return;
+              if (post.mode !== "once" || onceLocked || revealedOnce || revealPendingRef.current) return;
+              revealPendingRef.current=true;
               setUnlockingOnce(true);
               setUnlockError('');
               try {
-                // Sign before recording the view; the view acknowledgement revokes
-                // authorization for further signatures. The short-lived URLs permit
-                // this one open viewer session but can be replayed until expiration.
-                const urls = await Promise.all((post.items || []).map(resolveDumpItemMediaUrl));
-                if ((post.items || []).some((item, itemIndex) => item.imagePath && !urls[itemIndex])) {
-                  throw new Error("A media item is unavailable.");
-                }
+                if (typeof onMarkViewed !== "function") throw new Error("A view acknowledgement handler is required.");
+                if (!mediaSessionRef.current) mediaSessionRef.current=createOnceMediaSession(post.id, {
+                  authScope: account.capture(),
+                  onEnded: () => {
+                    if (!mountedRef.current || !account.isCurrent()) return;
+                    setSessionEnded(true); setRevealedOnce(false); setUnlockedMediaUrls(null);
+                    setUnlockError("This viewing session has ended. Its allowance remains consumed.");
+                  },
+                });
+                const receipt=await mediaSessionRef.current.claim();
+                if (!mountedRef.current) return;
+                setClaimedHere(true);
+                const confirmed = await onMarkViewed(post.id,receipt);
+                if (confirmed !== true) throw new Error("View acknowledgement was not confirmed.");
+                if (!mountedRef.current) return;
+                // Committed receipt precedes every byte request. No browser
+                // Storage signing or public-URL fallback for View Once.
+                const urls=await mediaSessionRef.current.loadFrames();
+                if (!mountedRef.current) return;
+                setSessionItems(receipt.items);
                 setUnlockedMediaUrls(urls);
                 setRevealedOnce(true);
-                onMarkViewed?.(post.id);
               } catch {
-                setUnlockError("Could not unlock this post. Try again.");
+                if (mountedRef.current) setUnlockError("Could not confirm this view. Check your connection and try again. If the request completed, the post may already be consumed.");
               } finally {
-                setUnlockingOnce(false);
+                revealPendingRef.current=false;
+                if (mountedRef.current) setUnlockingOnce(false);
               }
             }}
           />
-          {unlockError && <span role="alert" className="subtitle">{unlockError}</span>}
         </div>
 
         <div className="viewer-scrim-layer" aria-hidden="true" />
+
+        {(unlockingOnce || unlockError) && (
+          <span role={unlockError ? "alert" : "status"} className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)", pointerEvents: "none" }}>
+            {unlockError || "Confirming view…"}
+          </span>
+        )}
 
         <div className="viewer-top-layer">
           <div className="viewer-top-status">
@@ -915,7 +965,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             aria-valuenow={index + 1}
             style={{ "--viewer-segments": mediaCount }}
           >
-            {(post.items || [null]).map((_, itemIndex) => (
+            {(viewerPost.items || [null]).map((_, itemIndex) => (
               <span
                 key={`progress-${itemIndex}`}
                 className={`viewer-progress-segment${itemIndex === index ? " is-active" : ""}`}
@@ -927,7 +977,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
           <button
             className="btn icon-btn viewer-close-button"
             type="button"
-            onClick={onClose}
+            onClick={closeViewer}
             aria-label="Close"
           >
             ×

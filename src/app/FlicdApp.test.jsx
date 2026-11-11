@@ -134,6 +134,8 @@ describe("FlicdApp comment integration", () => {
     expect(submitComment).toHaveBeenCalledWith(
       "dump-1",
       expect.objectContaining({ media_type: "audio" }),
+      expect.objectContaining({ isCurrent: expect.any(Function) }),
     );
+    expect(submitComment.mock.calls[0][2].isCurrent()).toBe(true);
   });
 });

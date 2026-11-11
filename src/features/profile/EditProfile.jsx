@@ -1,6 +1,7 @@
 import React from "react";
+import { useAccountScope } from "../../app/AuthScopeContext.js";
 import { ArrowLeft, ImagePlus, Save } from "lucide-react";
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
 import { removeProfilePhoto, uploadProfilePhoto, validateProfilePhoto } from "./profileMedia.js";
 import { sanitizeProfileLinks, sanitizeProfileTheme } from "./profileTheme.js";
 
@@ -166,7 +167,13 @@ export default function EditProfile({
   onSaved,
   onToast,
   profileTheme = {},
+  isCurrent = () => true,
+  authScope,
 }) {
+  const account = useAccountScope(authScope);
+  const alive = React.useRef(false);
+  React.useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const current = () => alive.current && isCurrent() && account.isCurrent();
   const [username, setUsername] = React.useState(profile.handle || "");
   const [displayName, setDisplayName] = React.useState(
     profile.displayName || ""
@@ -198,25 +205,32 @@ export default function EditProfile({
   }
 
   async function handleCropConfirm(croppedFile) {
+    if (!current()) return;
     setPhotoError("");
     setPhotoSaving(true);
     let uploadedUrl = "";
+    let scope;
 
     try {
-      uploadedUrl = await uploadProfilePhoto(croppedFile);
+      scope = account.capture();
+      uploadedUrl = await uploadProfilePhoto(croppedFile, scope);
+      if (!current()) return;
 
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (!current() || (profile.id && user?.id !== profile.id)) return;
       if (!user) throw new Error("You must be logged in to change your profile photo.");
+      scope.assertUser(user.id);
 
-      const { data, error: updateError } = await supabase
+      const { data, error: updateError } = await createAccountClient(scope)
         .from("profiles")
         .update({ avatar_url: uploadedUrl })
         .eq("id", user.id)
         .select()
         .single();
 
+      if (!current()) return;
       if (updateError) throw updateError;
 
       setAvatarUrl(uploadedUrl);
@@ -224,14 +238,17 @@ export default function EditProfile({
       onSaved?.(data);
       onToast?.("Profile photo updated");
     } catch (photoUploadError) {
-      if (uploadedUrl) await removeProfilePhoto(uploadedUrl);
+      if (!current()) return;
+      if (uploadedUrl && scope?.isCurrent()) await removeProfilePhoto(uploadedUrl, scope);
+      if (!current()) return;
       setPhotoError(photoUploadError.message || "Could not update your profile photo.");
     } finally {
-      setPhotoSaving(false);
+      if (current()) setPhotoSaving(false);
     }
   }
   async function handleSave(event) {
     event.preventDefault();
+    if (!current()) return;
 
     const cleanUsername = username.trim().toLowerCase();
     const cleanDisplayName = displayName.trim();
@@ -249,44 +266,37 @@ export default function EditProfile({
 
     setError("");
     setSaving(true);
+    try {
+      const scope = account.capture();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!current()) return;
+      scope.assertUser(user?.id);
+      if (!user) throw new Error("You must be logged in to edit your profile.");
+      if (profile.id && user.id !== profile.id) throw new Error("Authenticated account changed.");
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      const { data, error: updateError } = await createAccountClient(scope)
+        .from("profiles")
+        .update({
+          username: cleanUsername,
+          display_name: cleanDisplayName || null,
+          bio: cleanBio || null,
+          avatar_url: avatarUrl || null,
+          profile_theme: nextTheme,
+        })
+        .eq("id", user.id)
+        .select()
+        .single();
 
-    if (!user) {
-      setError("You must be logged in to edit your profile.");
-      setSaving(false);
-      return;
+      if (!current()) return;
+      if (updateError) throw updateError;
+      onSaved?.(data);
+      onToast?.("Profile updated");
+    } catch (saveError) {
+      if (!current()) return;
+      setError(saveError.code === "23505" ? "That username is already taken." : saveError.message || "Could not update your profile.");
+    } finally {
+      if (current()) setSaving(false);
     }
-
-    const { data, error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        username: cleanUsername,
-        display_name: cleanDisplayName || null,
-        bio: cleanBio || null,
-        avatar_url: avatarUrl || null,
-        profile_theme: nextTheme,
-      })
-      .eq("id", user.id)
-      .select()
-      .single();
-
-    if (updateError) {
-      if (updateError.code === "23505") {
-        setError("That username is already taken.");
-      } else {
-        setError(updateError.message);
-      }
-
-      setSaving(false);
-      return;
-    }
-
-    onSaved?.(data);
-    onToast?.("Profile updated");
-    setSaving(false);
   }
 
   return (

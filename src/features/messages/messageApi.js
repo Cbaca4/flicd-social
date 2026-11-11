@@ -1,4 +1,5 @@
-import { supabase } from "../../lib/supabase";
+import { supabase, createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 
 export async function getCurrentUser() {
   const {
@@ -40,10 +41,12 @@ export async function getMessageRequests() {
   return data ?? [];
 }
 
-export async function acceptRequest(requestId) {
+export async function acceptRequest(requestId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const user = await getCurrentUser();
+  scope.assertUser(user.id);
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("message_requests")
     .update({
       status: "accepted",
@@ -60,10 +63,12 @@ export async function acceptRequest(requestId) {
   return data;
 }
 
-export async function declineRequest(requestId) {
+export async function declineRequest(requestId, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const user = await getCurrentUser();
+  scope.assertUser(user.id);
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("message_requests")
     .update({
       status: "declined",
@@ -147,8 +152,10 @@ export async function getChats() {
   });
 }
 
-export async function sendMessage(conversationId, text) {
+export async function sendMessage(conversationId, text, authScope) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   const user = await getCurrentUser();
+  scope.assertUser(user.id);
 
   const body = text.trim();
 
@@ -156,7 +163,8 @@ export async function sendMessage(conversationId, text) {
     throw new Error("Message cannot be empty.");
   }
 
-  const { data, error } = await supabase
+  scope.assertCurrent();
+  const { data, error } = await client
     .from("messages")
     .insert({
       conversation_id: conversationId,

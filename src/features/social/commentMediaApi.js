@@ -1,15 +1,18 @@
-import { supabase } from "../../lib/supabase";
+import { createAccountClient } from "../../lib/supabase";
+import { captureAuthScope } from "../../app/authScope.js";
 import { uploadCommentMedia } from "./commentMediaUpload.js";
 import { addComment } from "./interactionsApi.js";
 
-export async function sendCommentMedia(dumpId, { mediaType, mediaBlob, mediaMetadata = null } = {}) {
+export async function sendCommentMedia(dumpId, { mediaType, mediaBlob, mediaMetadata = null, authScope } = {}) {
+  const scope = captureAuthScope(authScope), client = createAccountClient(scope);
   if (!dumpId) throw new Error("A dump is required for a comment.");
   if (!(mediaBlob instanceof Blob)) throw new Error("Comment media is required.");
   if (!["audio", "video"].includes(mediaType)) {
     throw new Error("Only audio and video comments can be uploaded.");
   }
 
-  const mediaPath = await uploadCommentMedia(mediaBlob, { mediaType });
+  const mediaPath = await uploadCommentMedia(mediaBlob, { mediaType, authScope: scope });
+  scope.assertCurrent();
 
   try {
     return await addComment(dumpId, {
@@ -18,9 +21,10 @@ export async function sendCommentMedia(dumpId, { mediaType, mediaBlob, mediaMeta
       media_url: null,
       media_path: mediaPath,
       media_metadata: mediaMetadata,
-    });
+    }, scope);
   } catch (error) {
-    await supabase.storage.from("flicd-media").remove([mediaPath]).catch(() => {});
+    if (!scope.isCurrent()) throw error;
+    await client.storage.from("flicd-media").remove([mediaPath]).catch(() => {});
     throw error;
   }
 }
