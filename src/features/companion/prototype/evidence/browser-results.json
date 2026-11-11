@@ -1,0 +1,236 @@
+{
+  "url": "http://127.0.0.1:52002/",
+  "rasterCases": [
+    {
+      "costume": "hero",
+      "frame": 0,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 1,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 2,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 3,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 4,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 5,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 6,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 7,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 8,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 9,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 10,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "hero",
+      "frame": 11,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 0,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 1,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 2,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 3,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 4,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 5,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 6,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 7,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 8,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 9,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 10,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "santa",
+      "frame": 11,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 0,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 1,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 2,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 3,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 4,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 5,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 6,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 7,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 8,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 9,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 10,
+      "passed": true,
+      "failures": []
+    },
+    {
+      "costume": "witch",
+      "frame": 11,
+      "passed": true,
+      "failures": []
+    }
+  ],
+  "checks": [
+    "36 real-browser raster cases: opaque torso containment, protected facial/ear/foot pixels, sharp costume edges",
+    "Current-art comparison uses the app build's stylesheet order, including its existing override conflict",
+    "Direction reversal mirrors current and fitted frames together at exact 2x scale",
+    "Walk control advances frames; live reduced-motion preference stops playback and disables animation",
+    "390px mobile viewport has no horizontal document overflow and renders at exact 1x",
+    "Native direction control is focusable; explicit labels and focus styles remain available (not a full accessibility audit)",
+    "Self-contained review.html opens directly from disk and passes the same 36 raster cases without a server",
+    "No JavaScript exceptions or console.error calls"
+  ],
+  "screenshots": [
+    "desktop-right.png",
+    "desktop-left.png",
+    "mobile-left-reduced-motion.png"
+  ]
+}

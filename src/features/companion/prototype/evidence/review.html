@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Companion costume fit — review prototype</title>
+  
+  <style>/* Keep every costume tied to the same 96x72 capybara frame. */
+.capybara-pixel-sprite {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.capybara-pixel-sprite::before,
+.capybara-pixel-sprite::after {
+  box-sizing: border-box;
+  transform-origin: center;
+}
+
+/* Permanent costumes: body-centered anchors so the outfit follows the sprite. */
+.companion-costume-hero::before {
+  left: 9px;
+  top: 28px;
+}
+
+.companion-costume-hero::after {
+  left: 55px;
+  top: 26px;
+}
+
+.companion-costume-speedster::before {
+  left: 52px;
+  top: 20px;
+}
+
+.companion-costume-speedster::after {
+  left: 17px;
+  top: 48px;
+  width: 62px;
+}
+
+.companion-costume-cosmic::before {
+  left: 12px;
+  top: 29px;
+  width: 52px;
+}
+
+.companion-costume-cosmic::after {
+  left: 60px;
+  top: 20px;
+}
+
+/* Seasonal costumes share the same centered head/body anchor. */
+.companion-costume-pumpkin-king::before,
+.companion-costume-vampire::before,
+.companion-costume-reaper::before,
+.companion-costume-elf::before,
+.companion-costume-reindeer::before {
+  left: 50px;
+  top: 18px;
+}
+
+.companion-costume-pumpkin-king::after,
+.companion-costume-vampire::after,
+.companion-costume-reindeer::after {
+  z-index: 3;
+}
+
+.companion-costume-gingerbread::before {
+  left: 29px;
+  top: 44px;
+}
+
+.companion-costume-cupid::before {
+  left: 28px;
+  top: 34px;
+}
+
+.companion-costume-cupid::after {
+  left: 61px;
+  top: 19px;
+}
+
+.companion-costume-love-letter::before {
+  left: 27px;
+  top: 42px;
+}
+
+.companion-costume-love-letter::after {
+  left: 49px;
+  top: 50px;
+}
+
+.flicd-app .app-frame {
+  height: calc(100dvh - 48px);
+}
+
+.flicd-app .app-content {
+  height: 100%;
+}
+
+.flicd-app .screen {
+  padding-bottom: 132px;
+}
+
+.flicd-app .viewer-screen {
+  padding-bottom: 190px;
+}
+
+.flicd-app .bottom-dock {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom));
+}
+
+.companion-zone {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: calc(91px + env(safe-area-inset-bottom));
+  height: 88px;
+  z-index: 45;
+  overflow: hidden;
+  contain: layout paint;
+  pointer-events: none;
+}
+
+
+.companion-walker {
+  --companion-width: 96px;
+  position: absolute;
+  bottom: 1px;
+  left: clamp(
+    2%,
+    var(--companion-position, 18%),
+    calc(100% - var(--companion-width) - 2%)
+  );
+  width: var(--companion-width);
+  height: 78px;
+  display: grid;
+  place-items: end center;
+  filter: drop-shadow(0 8px 13px rgba(0, 0, 0, 0.26));
+  pointer-events: none;
+  transition: left var(--companion-travel-duration, 0ms) linear;
+  will-change: left;
+}
+
+.companion-character {
+  position: relative;
+  width: var(--companion-width);
+  height: 78px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: auto;
+  display: grid;
+  place-items: end center;
+  cursor: pointer;
+  transform: scaleX(var(--capy-facing, 1)) scale(var(--companion-scale, 1));
+  transform-origin: center bottom;
+}
+
+.companion-character:focus-visible {
+  outline: 3px solid var(--cyan);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+.capybara-pixel-sprite {
+  --costume-accent: transparent;
+  --costume-dark: transparent;
+  --costume-light: transparent;
+  position: relative;
+  display: block;
+  width: 96px;
+  height: 72px;
+  image-rendering: pixelated;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221152%22%20height%3D%22360%22%20viewBox%3D%220%200%201152%20360%22%20shape-rendering%3D%22crispEdges%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3C!--%2096x72%20frame.%20Low%20body%2C%20long%20muzzle%2C%20tiny%20ear%2C%20four%20readable%20legs.%20--%3E%0A%20%20%20%20%3Cg%20id%3D%22base%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2210%22%20y%3D%2268%22%20width%3D%2278%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2237%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2255%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2272%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2235%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2253%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2270%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2231%22%20width%3D%2256%22%20height%3D%2225%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2219%22%20y%3D%2227%22%20width%3D%2248%22%20height%3D%2229%22%20fill%3D%22%239f6743%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2225%22%20width%3D%2239%22%20height%3D%2231%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2248%22%20width%3D%2248%22%20height%3D%228%22%20fill%3D%22%237a482f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2222%22%20y%3D%2229%22%20width%3D%2234%22%20height%3D%224%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.7%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2248%22%20y%3D%2222%22%20width%3D%2222%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2254%22%20y%3D%2219%22%20width%3D%2216%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2257%22%20y%3D%2214%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2259%22%20y%3D%2212%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2265%22%20y%3D%2229%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2275%22%20y%3D%2232%22%20width%3D%2212%22%20height%3D%2211%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2235%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2279%22%20y%3D%2243%22%20width%3D%227%22%20height%3D%223%22%20fill%3D%22%236a3d29%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2263%22%20y%3D%2228%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2227%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2210%22%20y%3D%2236%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%227%22%20y%3D%2238%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22walk0%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2217%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2252%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk1%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2253%22%20width%3D%228%22%20height%3D%2216%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2258%22%20y%3D%2248%22%20width%3D%228%22%20height%3D%2221%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk2%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%2255%22%20width%3D%228%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2247%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk3%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C1)%22%2F%3E%3Crect%20x%3D%2225%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk4%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2228%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2265%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk5%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2225%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2268%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk6%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2221%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk7%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C1)%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk8%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2258%22%20y%3D%2255%22%20width%3D%228%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk9%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2221%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2219%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2264%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%0A%20%20%20%20%3C!--%20Seated%20frames%20are%20separate%20art%20so%20Sit%20is%20visibly%20different%20immediately.%20--%3E%0A%20%20%20%20%3Cg%20id%3D%22sit0%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2268%22%20width%3D%2262%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2238%22%20width%3D%2243%22%20height%3D%2226%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2229%22%20y%3D%2233%22%20width%3D%2236%22%20height%3D%2229%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2227%22%20width%3D%2221%22%20height%3D%2227%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%2223%22%20width%3D%2214%22%20height%3D%2227%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2259%22%20y%3D%2218%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2261%22%20y%3D%2216%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2267%22%20y%3D%2233%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2277%22%20y%3D%2236%22%20width%3D%2211%22%20height%3D%2210%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2239%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2265%22%20y%3D%2232%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2266%22%20y%3D%2231%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2211%22%20y%3D%2243%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2245%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2229%22%20y%3D%2255%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2255%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2266%22%20width%3D%2218%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2248%22%20y%3D%2266%22%20width%3D%2218%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2235%22%20y%3D%2247%22%20width%3D%2224%22%20height%3D%225%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.55%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22sit1%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2268%22%20width%3D%2266%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2221%22%20y%3D%2240%22%20width%3D%2248%22%20height%3D%2225%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2235%22%20width%3D%2239%22%20height%3D%2229%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2251%22%20y%3D%2228%22%20width%3D%2221%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2257%22%20y%3D%2224%22%20width%3D%2214%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2260%22%20y%3D%2219%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2262%22%20y%3D%2217%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2268%22%20y%3D%2234%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2278%22%20y%3D%2237%22%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2240%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2266%22%20y%3D%2233%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2267%22%20y%3D%2232%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%229%22%20y%3D%2244%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%226%22%20y%3D%2246%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2255%22%20width%3D%2217%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2249%22%20y%3D%2255%22%20width%3D%2215%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2266%22%20width%3D%2221%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2247%22%20y%3D%2266%22%20width%3D%2219%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2234%22%20y%3D%2249%22%20width%3D%2225%22%20height%3D%225%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.55%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22frame-row%22%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk0%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23walk1%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23walk2%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23walk3%22%20x%3D%22288%22%2F%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk4%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23walk5%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23walk6%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23walk7%22%20x%3D%22672%22%2F%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk8%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23walk9%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23sit0%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23sit1%22%20x%3D%221056%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22santa%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%229%22%20width%3D%2219%22%20height%3D%225%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%225%22%20width%3D%2212%22%20height%3D%226%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%222%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23c83f46%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2251%22%20y%3D%2214%22%20width%3D%2221%22%20height%3D%224%22%20fill%3D%22%23f2e9df%22%2F%3E%3Crect%20x%3D%2265%22%20y%3D%222%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23f2e9df%22%2F%3E%3Crect%20x%3D%2230%22%20y%3D%2246%22%20width%3D%2231%22%20height%3D%228%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2246%22%20width%3D%224%22%20height%3D%228%22%20fill%3D%22%23f2e9df%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22ghost%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%229%22%20y%3D%2224%22%20width%3D%2274%22%20height%3D%2235%22%20fill%3D%22%23e8edf7%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2219%22%20width%3D%2261%22%20height%3D%2239%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%2229%22%20width%3D%227%22%20height%3D%227%22%20fill%3D%22%23303541%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2256%22%20width%3D%2213%22%20height%3D%225%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2235%22%20y%3D%2254%22%20width%3D%2213%22%20height%3D%227%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2253%22%20y%3D%2255%22%20width%3D%2213%22%20height%3D%226%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2270%22%20y%3D%2254%22%20width%3D%2211%22%20height%3D%227%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%2258%22%20width%3D%2272%22%20height%3D%223%22%20fill%3D%22%238a93a5%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22witch%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2214%22%20width%3D%2225%22%20height%3D%225%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%228%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%222%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2249%22%20y%3D%2219%22%20width%3D%2228%22%20height%3D%224%22%20fill%3D%22%23df9b43%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2247%22%20width%3D%2236%22%20height%3D%2211%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2234%22%20y%3D%2253%22%20width%3D%2223%22%20height%3D%227%22%20fill%3D%22%236b4192%22%2F%3E%3Crect%20x%3D%2251%22%20y%3D%2248%22%20width%3D%224%22%20height%3D%2211%22%20fill%3D%22%23df9b43%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22valentine%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2254%22%20y%3D%2245%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2261%22%20y%3D%2245%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2257%22%20y%3D%2250%22%20width%3D%229%22%20height%3D%227%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2257%22%20width%3D%224%22%20height%3D%223%22%20fill%3D%22%23b63862%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%2220%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2221%22%20width%3D%227%22%20height%3D%224%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2261%22%20y%3D%2221%22%20width%3D%227%22%20height%3D%224%22%20fill%3D%22%23e45c88%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%3C%2Fdefs%3E%0A%0A%20%20%3Cg%20transform%3D%22translate(0%2C0)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C72)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C144)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C216)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C288)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A");
+  background-repeat: no-repeat;
+  background-size: 1152px 360px;
+  background-position: 0 calc(var(--sprite-row, 0) * -72px);
+  overflow: visible;
+}
+
+/* Costume overlays stay inside the capybara's same 96x72 frame. */
+.capybara-pixel-sprite::before,
+.capybara-pixel-sprite::after {
+  content: "";
+  position: absolute;
+  display: block;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.companion-costume-hero::before {
+  left: 12px;
+  top: 30px;
+  width: 20px;
+  height: 28px;
+  background: linear-gradient(90deg, #4f69ff 0 55%, #f5f5ff 55% 75%, #d83a4b 75% 100%);
+  clip-path: polygon(0 0, 100% 12%, 76% 100%, 38% 78%, 0 100%);
+}
+
+.companion-costume-hero::after {
+  left: 53px;
+  top: 23px;
+  width: 16px;
+  height: 5px;
+  background: #f2d85f;
+  box-shadow: 3px 7px 0 #e0bb31;
+}
+
+.companion-costume-speedster::before {
+  left: 49px;
+  top: 18px;
+  width: 19px;
+  height: 7px;
+  background: #e85b43;
+  transform: skewX(-20deg);
+  box-shadow: -6px 7px 0 #f4cf4e;
+}
+
+.companion-costume-speedster::after {
+  left: 19px;
+  top: 50px;
+  width: 58px;
+  height: 8px;
+  background: linear-gradient(90deg, transparent, #ed4747 35%, #f5cd4a 65%, transparent);
+  opacity: 0.85;
+}
+
+.companion-costume-cosmic::before {
+  left: 14px;
+  top: 28px;
+  width: 48px;
+  height: 28px;
+  background: linear-gradient(90deg, #5142a8, #2562c7 55%, #19a7d8);
+  clip-path: polygon(0 10%, 22% 0, 100% 8%, 83% 100%, 15% 88%);
+  opacity: 0.9;
+}
+
+.companion-costume-cosmic::after {
+  left: 58px;
+  top: 18px;
+  width: 5px;
+  height: 5px;
+  background: #fff6a6;
+  box-shadow: 9px 8px 0 #ffffff, 1px 16px 0 #ffdc67;
+}
+
+.companion-costume-pumpkin-king::before,
+.companion-costume-vampire::before,
+.companion-costume-reaper::before,
+.companion-costume-elf::before,
+.companion-costume-gingerbread::before,
+.companion-costume-reindeer::before,
+.companion-costume-cupid::before,
+.companion-costume-love-letter::before {
+  top: 17px;
+  left: 50px;
+}
+
+.companion-costume-pumpkin-king::before {
+  width: 22px;
+  height: 8px;
+  background: #ef8f27;
+  box-shadow: 3px -4px 0 #ef8f27, 8px -7px 0 #ef8f27;
+}
+
+.companion-costume-pumpkin-king::after {
+  left: 57px;
+  top: 28px;
+  width: 12px;
+  height: 5px;
+  background: #f4c84f;
+  box-shadow: -5px 8px 0 #8b43a9;
+}
+
+.companion-costume-vampire::before {
+  width: 20px;
+  height: 7px;
+  background: #24202a;
+  box-shadow: 5px 6px 0 #7d314d;
+}
+
+.companion-costume-vampire::after {
+  left: 71px;
+  top: 45px;
+  width: 4px;
+  height: 8px;
+  background: #f1f1f1;
+  box-shadow: 7px 0 0 #f1f1f1;
+}
+
+.companion-costume-reaper::before {
+  width: 23px;
+  height: 8px;
+  background: #2b2631;
+  box-shadow: 4px 6px 0 #6e6175, -4px 12px 0 #2b2631;
+}
+
+.companion-costume-elf::before {
+  width: 21px;
+  height: 10px;
+  background: #49a66a;
+  clip-path: polygon(0 100%, 28% 0, 100% 40%, 58% 100%);
+  box-shadow: 4px 7px 0 #d84c4c;
+}
+
+.companion-costume-gingerbread::before {
+  left: 28px;
+  top: 45px;
+  width: 33px;
+  height: 8px;
+  background: #d39b5f;
+  box-shadow: 6px 5px 0 #fff3d4, 18px 5px 0 #fff3d4;
+}
+
+.companion-costume-reindeer::before {
+  width: 20px;
+  height: 7px;
+  background: #7a4a35;
+  transform: rotate(-12deg);
+  box-shadow: -6px 4px 0 #7a4a35, 11px 4px 0 #7a4a35;
+}
+
+.companion-costume-reindeer::after {
+  left: 75px;
+  top: 39px;
+  width: 6px;
+  height: 6px;
+  background: #d84747;
+}
+
+.companion-costume-cupid::before {
+  left: 26px;
+  top: 35px;
+  width: 34px;
+  height: 7px;
+  border: 3px solid #f08aae;
+  border-bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+
+.companion-costume-cupid::after {
+  left: 60px;
+  top: 18px;
+  width: 12px;
+  height: 7px;
+  background: #f08aae;
+  clip-path: polygon(0 50%, 100% 0, 80% 100%);
+}
+
+.companion-costume-love-letter::before {
+  left: 25px;
+  top: 43px;
+  width: 32px;
+  height: 20px;
+  background: #fff6f6;
+  border: 3px solid #e26483;
+}
+
+.companion-costume-love-letter::after {
+  left: 48px;
+  top: 51px;
+  width: 9px;
+  height: 9px;
+  background: #e26483;
+  transform: rotate(45deg);
+}
+
+.companion-walk.companion-motion-walking .capybara-pixel-sprite {
+  animation: capySpriteWalk var(--companion-walk-cycle, 1400ms) steps(1, end) infinite;
+}
+
+.companion-walk.companion-motion-idle .capybara-pixel-sprite {
+  animation: capyIdle 2.2s ease-in-out infinite;
+}
+
+.companion-sit .capybara-pixel-sprite {
+  animation: capySpriteSit 850ms step-end infinite;
+}
+
+.companion-season-halloween .companion-costume-none::after,
+.companion-season-halloween .companion-costume-hero::after,
+.companion-season-halloween .companion-costume-speedster::after,
+.companion-season-halloween .companion-costume-cosmic::after {
+  box-shadow: 9px 8px 0 #f28c28, 19px 1px 0 #8d4aa8;
+}
+
+.companion-season-christmas .companion-costume-none::before {
+  left: 48px;
+  top: 18px;
+  width: 22px;
+  height: 7px;
+  background: #f1f1f1;
+  box-shadow: 5px -5px 0 #cc414e, 10px -9px 0 #cc414e;
+}
+
+.companion-season-valentines .companion-costume-none::after {
+  left: 58px;
+  top: 21px;
+  width: 7px;
+  height: 7px;
+  background: #ee6d99;
+  transform: rotate(45deg);
+  box-shadow: 8px 3px 0 #f4a0bc;
+}
+
+.companion-rest-marker {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 54px;
+  height: 3px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Reactions intentionally have no visual container: only the emoji/phrase floats. */
+.companion-reaction {
+  --reaction-inset: 24px;
+  position: absolute;
+  left: clamp(
+    var(--reaction-inset),
+    var(--companion-bubble-position, 50%),
+    calc(100% - var(--reaction-inset))
+  );
+  bottom: 62px;
+  z-index: 4;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  white-space: nowrap;
+  pointer-events: none;
+  animation: companionReaction 1.6s ease both;
+}
+
+.companion-settings {
+  padding: 18px;
+}
+
+.companion-settings-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 181, 46, 0.2),
+    rgba(70, 218, 200, 0.12)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.setting-toggle-row,
+.check-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 15px;
+}
+
+.setting-toggle-row input[type="checkbox"] {
+  width: 46px;
+  height: 26px;
+  accent-color: var(--cyan);
+  flex: 0 0 auto;
+}
+
+.companion-customizer {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 15px;
+  border-radius: 17px;
+  background: rgba(0, 0, 0, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.setting-field {
+  display: grid;
+  gap: 6px;
+}
+
+.check-row {
+  justify-content: flex-start;
+}
+
+.check-row input {
+  margin: 0;
+  accent-color: var(--cyan);
+}
+
+.check-row .subtitle {
+  display: block;
+  margin-top: 2px;
+}
+
+.companion-preview {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 11px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.companion-preview-sprite {
+  position: relative;
+  width: 58px;
+  height: 44px;
+  display: block;
+  image-rendering: pixelated;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%221152%22%20height%3D%22360%22%20viewBox%3D%220%200%201152%20360%22%20shape-rendering%3D%22crispEdges%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3C!--%2096x72%20frame.%20Low%20body%2C%20long%20muzzle%2C%20tiny%20ear%2C%20four%20readable%20legs.%20--%3E%0A%20%20%20%20%3Cg%20id%3D%22base%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2210%22%20y%3D%2268%22%20width%3D%2278%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2237%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2255%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2272%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%237b4a30%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2235%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2253%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2270%22%20y%3D%2266%22%20width%3D%2212%22%20height%3D%224%22%20fill%3D%22%2352301f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2214%22%20y%3D%2231%22%20width%3D%2256%22%20height%3D%2225%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2219%22%20y%3D%2227%22%20width%3D%2248%22%20height%3D%2229%22%20fill%3D%22%239f6743%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2225%22%20width%3D%2239%22%20height%3D%2231%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2248%22%20width%3D%2248%22%20height%3D%228%22%20fill%3D%22%237a482f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2222%22%20y%3D%2229%22%20width%3D%2234%22%20height%3D%224%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.7%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2248%22%20y%3D%2222%22%20width%3D%2222%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2254%22%20y%3D%2219%22%20width%3D%2216%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2257%22%20y%3D%2214%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2259%22%20y%3D%2212%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2265%22%20y%3D%2229%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2275%22%20y%3D%2232%22%20width%3D%2212%22%20height%3D%2211%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2235%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2279%22%20y%3D%2243%22%20width%3D%227%22%20height%3D%223%22%20fill%3D%22%236a3d29%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2263%22%20y%3D%2228%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2264%22%20y%3D%2227%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2210%22%20y%3D%2236%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%227%22%20y%3D%2238%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22walk0%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2217%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2252%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk1%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2214%22%20y%3D%2253%22%20width%3D%228%22%20height%3D%2216%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2258%22%20y%3D%2248%22%20width%3D%228%22%20height%3D%2221%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk2%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2219%22%20y%3D%2255%22%20width%3D%228%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2247%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk3%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C1)%22%2F%3E%3Crect%20x%3D%2225%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk4%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2228%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2265%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk5%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2225%22%20y%3D%2251%22%20width%3D%228%22%20height%3D%2218%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2268%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk6%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2221%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2254%22%20width%3D%228%22%20height%3D%2215%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk7%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C1)%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk8%22%3E%3Cuse%20href%3D%22%23base%22%2F%3E%3Crect%20x%3D%2215%22%20y%3D%2249%22%20width%3D%228%22%20height%3D%2220%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2258%22%20y%3D%2255%22%20width%3D%228%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22walk9%22%3E%3Cuse%20href%3D%22%23base%22%20transform%3D%22translate(0%2C-1)%22%2F%3E%3Crect%20x%3D%2221%22%20y%3D%2250%22%20width%3D%228%22%20height%3D%2219%22%20fill%3D%22%2368402a%22%2F%3E%3Crect%20x%3D%2264%22%20y%3D%2252%22%20width%3D%228%22%20height%3D%2217%22%20fill%3D%22%2368402a%22%2F%3E%3C%2Fg%3E%0A%0A%20%20%20%20%3C!--%20Seated%20frames%20are%20separate%20art%20so%20Sit%20is%20visibly%20different%20immediately.%20--%3E%0A%20%20%20%20%3Cg%20id%3D%22sit0%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2218%22%20y%3D%2268%22%20width%3D%2262%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2238%22%20width%3D%2243%22%20height%3D%2226%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2229%22%20y%3D%2233%22%20width%3D%2236%22%20height%3D%2229%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2227%22%20width%3D%2221%22%20height%3D%2227%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%2223%22%20width%3D%2214%22%20height%3D%2227%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2259%22%20y%3D%2218%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2261%22%20y%3D%2216%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2267%22%20y%3D%2233%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2277%22%20y%3D%2236%22%20width%3D%2211%22%20height%3D%2210%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2239%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2265%22%20y%3D%2232%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2266%22%20y%3D%2231%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2211%22%20y%3D%2243%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%228%22%20y%3D%2245%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2229%22%20y%3D%2255%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2255%22%20width%3D%2214%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2266%22%20width%3D%2218%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2248%22%20y%3D%2266%22%20width%3D%2218%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2235%22%20y%3D%2247%22%20width%3D%2224%22%20height%3D%225%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.55%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22sit1%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2268%22%20width%3D%2266%22%20height%3D%222%22%20fill%3D%22%2334241b%22%20opacity%3D%22.24%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2221%22%20y%3D%2240%22%20width%3D%2248%22%20height%3D%2225%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2235%22%20width%3D%2239%22%20height%3D%2229%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2251%22%20y%3D%2228%22%20width%3D%2221%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2257%22%20y%3D%2224%22%20width%3D%2214%22%20height%3D%2228%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2260%22%20y%3D%2219%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2375462f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2262%22%20y%3D%2217%22%20width%3D%225%22%20height%3D%224%22%20fill%3D%22%23a86f49%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2268%22%20y%3D%2234%22%20width%3D%2218%22%20height%3D%2216%22%20fill%3D%22%23b97a4f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2278%22%20y%3D%2237%22%20width%3D%2210%22%20height%3D%2210%22%20fill%3D%22%23bd7f54%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2284%22%20y%3D%2240%22%20width%3D%226%22%20height%3D%226%22%20fill%3D%22%23221710%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2266%22%20y%3D%2233%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%2320160f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2267%22%20y%3D%2232%22%20width%3D%222%22%20height%3D%222%22%20fill%3D%22%23f4e9dc%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%229%22%20y%3D%2244%22%20width%3D%225%22%20height%3D%227%22%20fill%3D%22%2370432c%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%226%22%20y%3D%2246%22%20width%3D%224%22%20height%3D%224%22%20fill%3D%22%238e5738%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2227%22%20y%3D%2255%22%20width%3D%2217%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2249%22%20y%3D%2255%22%20width%3D%2215%22%20height%3D%2214%22%20fill%3D%22%2368402a%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2224%22%20y%3D%2266%22%20width%3D%2221%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2247%22%20y%3D%2266%22%20width%3D%2219%22%20height%3D%224%22%20fill%3D%22%234d2d1f%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2234%22%20y%3D%2249%22%20width%3D%2225%22%20height%3D%225%22%20fill%3D%22%23c18a5d%22%20opacity%3D%22.55%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22frame-row%22%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk0%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23walk1%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23walk2%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23walk3%22%20x%3D%22288%22%2F%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk4%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23walk5%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23walk6%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23walk7%22%20x%3D%22672%22%2F%3E%0A%20%20%20%20%20%20%3Cuse%20href%3D%22%23walk8%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23walk9%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23sit0%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23sit1%22%20x%3D%221056%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%0A%20%20%20%20%3Cg%20id%3D%22santa%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%229%22%20width%3D%2219%22%20height%3D%225%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%225%22%20width%3D%2212%22%20height%3D%226%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%222%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23c83f46%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2251%22%20y%3D%2214%22%20width%3D%2221%22%20height%3D%224%22%20fill%3D%22%23f2e9df%22%2F%3E%3Crect%20x%3D%2265%22%20y%3D%222%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23f2e9df%22%2F%3E%3Crect%20x%3D%2230%22%20y%3D%2246%22%20width%3D%2231%22%20height%3D%228%22%20fill%3D%22%23c83f46%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2246%22%20width%3D%224%22%20height%3D%228%22%20fill%3D%22%23f2e9df%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22ghost%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%229%22%20y%3D%2224%22%20width%3D%2274%22%20height%3D%2235%22%20fill%3D%22%23e8edf7%22%2F%3E%3Crect%20x%3D%2216%22%20y%3D%2219%22%20width%3D%2261%22%20height%3D%2239%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%2229%22%20width%3D%227%22%20height%3D%227%22%20fill%3D%22%23303541%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2216%22%20y%3D%2256%22%20width%3D%2213%22%20height%3D%225%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2235%22%20y%3D%2254%22%20width%3D%2213%22%20height%3D%227%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2253%22%20y%3D%2255%22%20width%3D%2213%22%20height%3D%226%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2270%22%20y%3D%2254%22%20width%3D%2211%22%20height%3D%227%22%20fill%3D%22%23eef1f8%22%2F%3E%3Crect%20x%3D%2211%22%20y%3D%2258%22%20width%3D%2272%22%20height%3D%223%22%20fill%3D%22%238a93a5%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22witch%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2250%22%20y%3D%2214%22%20width%3D%2225%22%20height%3D%225%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2256%22%20y%3D%228%22%20width%3D%2218%22%20height%3D%228%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2262%22%20y%3D%222%22%20width%3D%229%22%20height%3D%228%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2249%22%20y%3D%2219%22%20width%3D%2228%22%20height%3D%224%22%20fill%3D%22%23df9b43%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2228%22%20y%3D%2247%22%20width%3D%2236%22%20height%3D%2211%22%20fill%3D%22%2353317a%22%2F%3E%3Crect%20x%3D%2234%22%20y%3D%2253%22%20width%3D%2223%22%20height%3D%227%22%20fill%3D%22%236b4192%22%2F%3E%3Crect%20x%3D%2251%22%20y%3D%2248%22%20width%3D%224%22%20height%3D%2211%22%20fill%3D%22%23df9b43%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%20%20%3Cg%20id%3D%22valentine%22%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2254%22%20y%3D%2245%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2261%22%20y%3D%2245%22%20width%3D%227%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2257%22%20y%3D%2250%22%20width%3D%229%22%20height%3D%227%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2260%22%20y%3D%2257%22%20width%3D%224%22%20height%3D%223%22%20fill%3D%22%23b63862%22%2F%3E%0A%20%20%20%20%20%20%3Crect%20x%3D%2256%22%20y%3D%2220%22%20width%3D%225%22%20height%3D%225%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2250%22%20y%3D%2221%22%20width%3D%227%22%20height%3D%224%22%20fill%3D%22%23e45c88%22%2F%3E%3Crect%20x%3D%2261%22%20y%3D%2221%22%20width%3D%227%22%20height%3D%224%22%20fill%3D%22%23e45c88%22%2F%3E%0A%20%20%20%20%3C%2Fg%3E%0A%20%20%3C%2Fdefs%3E%0A%0A%20%20%3Cg%20transform%3D%22translate(0%2C0)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C72)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23santa%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C144)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23ghost%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C216)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23witch%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%20%20%3Cg%20transform%3D%22translate(0%2C288)%22%3E%3Cuse%20href%3D%22%23frame-row%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%220%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%2296%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22192%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22288%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22384%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22480%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22576%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22672%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22768%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22864%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%22960%22%2F%3E%3Cuse%20href%3D%22%23valentine%22%20x%3D%221056%22%2F%3E%3C%2Fg%3E%0A%3C%2Fsvg%3E%0A");
+  background-repeat: no-repeat;
+  background-size: 697px 218px;
+  background-position: 0 calc(var(--sprite-row, 0) * -43.5px);
+  transform: none;
+  transform-origin: center;
+}
+
+.companion-exclusive-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 11px 12px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.companion-exclusive-note .subtitle {
+  display: block;
+  margin-top: 3px;
+}
+
+.settings-section-label {
+  padding: 2px 2px 0;
+}
+
+@keyframes capySpriteWalk {
+  0% { background-position-x: 0; }
+  10% { background-position-x: -96px; }
+  20% { background-position-x: -192px; }
+  30% { background-position-x: -288px; }
+  40% { background-position-x: -384px; }
+  50% { background-position-x: -480px; }
+  60% { background-position-x: -576px; }
+  70% { background-position-x: -672px; }
+  80% { background-position-x: -768px; }
+  90% { background-position-x: -864px; }
+  100% { background-position-x: 0; }
+}
+
+@keyframes capyIdle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1px); }
+}
+
+@keyframes capySpriteSit {
+  0% { background-position-x: -960px; }
+  50% { background-position-x: -1056px; }
+  100% { background-position-x: -960px; }
+}
+
+@keyframes companionReaction {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.7);
+  }
+  18% {
+    opacity: 1;
+    transform: translate(-50%, -1px) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -18px) scale(1);
+  }
+}
+
+@media (max-width: 900px) {
+  .flicd-app .app-frame { height: 100dvh; }
+  .flicd-app .screen { padding-bottom: 126px; }
+  .flicd-app .viewer-screen { padding-bottom: 190px; }
+  .companion-zone {
+    left: 12px;
+    right: 12px;
+    bottom: calc(78px + env(safe-area-inset-bottom));
+    height: 84px;
+  }
+}
+
+@media (max-width: 620px) {
+  .flicd-app .bottom-dock {
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .companion-zone {
+    height: 78px;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .companion-walker {
+    --companion-width: 86px;
+    height: 74px;
+  }
+
+  .companion-character {
+    height: 74px;
+    --companion-scale: 0.88;
+  }
+
+  .companion-reaction {
+    --reaction-inset: 22px;
+    font-size: 14px;
+  }
+
+  .companion-preview {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .companion-walker,
+  .companion-character,
+  .companion-walk .capybara-pixel-sprite,
+  .companion-sit .capybara-pixel-sprite,
+  .companion-reaction {
+    animation: none;
+    transition-duration: 0ms !important;
+  }
+}
+</style>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #11151d; color: #edf0f6; font: 15px/1.5 system-ui, sans-serif; }
+    main { max-width: 1320px; margin: auto; padding: 28px; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); }
+    h2 { margin: 22px 0 10px; font-size: 19px; }
+    p { color: #b6bece; margin: 6px 0 16px; max-width: 90ch; }
+    .badge { color: #8ce4c3; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 18px 0; }
+    button, select { font: inherit; background: #252f41; color: inherit; border: 1px solid #64748b; border-radius: 6px; padding: 6px 12px; }
+    :focus-visible { outline: 3px solid #8ce4c3; outline-offset: 3px; }
+    .frames { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .frame { background: #1b2230; border: 1px solid #344056; border-radius: 10px; padding: 10px; min-width: 0; }
+    .frame h3 { margin: 0 0 5px; font-size: 13px; color: #c3ccda; }
+    .stage { display: grid; place-items: center; height: 148px; overflow: hidden; background: #151b26; }
+    .stage > .capybara-pixel-sprite, .stage > .fitted { transform: scaleX(var(--facing, 1)) scale(2); transform-origin: center; flex: none; }
+    .fitted { display: block; width: 96px; height: 72px; image-rendering: pixelated; }
+    .fitted svg { display: block; width: 96px; height: 72px; }
+    .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #9aa8bf; margin: 6px 0 2px; }
+    .label.after { color: #8ce4c3; }
+    .preview-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
+    .preview-row > div { padding: 10px; background: #1b2230; border-radius: 8px; }
+    .preview-row .fitted { transform: scaleX(var(--facing, 1)); }
+    #checks { padding: 12px; border: 1px solid #64748b; border-radius: 8px; margin: 20px 0 0; }
+    @media (max-width: 760px) {
+      main { padding: 16px; }
+      .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stage { height: 112px; }
+      .stage > .capybara-pixel-sprite, .stage > .fitted { transform: scaleX(var(--facing, 1)); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="badge">Review prototype · not wired into the app</div>
+  <h1>Same capybara. Costumes that fit.</h1>
+  <p>Current shipped art above; frame-fitted pixel art below. Original body, face, and feet are reused unchanged. Desktop comparisons are exactly 2×; narrow-screen comparisons and proposed Settings samples are native 1×.</p>
+  <div class="controls">
+    <button id="play" type="button" aria-pressed="false">Play walk frames</button>
+    <label>Facing <select id="facing"><option value="1">Right</option><option value="-1">Left</option></select></label>
+    <span id="motion-note"></span>
+  </div>
+  <div id="comparisons"></div>
+  <div id="checks" role="status" aria-live="polite">Running real-browser pixel checks…</div>
+  <p>Prototype scope: Superhero, Santa, Witch in a neutral seasonal context. All other presets, seasonal variations, app Settings, reactions, and patrol behavior remain untouched pending review.</p>
+</main>
+<script type="module">// Review-only experiment. This module is deliberately not imported by the app.
+const WALK_BOB = [0, -1, 0, 1, 0, -1, 0, 1, 0, -1];
+
+export function getPrototypePose(frame) {
+  if (!Number.isInteger(frame) || frame < 0 || frame > 11) {
+    throw new RangeError("Expected a Companion frame from 0 to 11");
+  }
+  if (frame >= 10) {
+    const second = frame === 11;
+    return {
+      base: second ? "sit1" : "sit0",
+      head: second ? [3, 5] : [2, 4],
+      torso: second ? [21, 35, 48, 20] : [24, 33, 43, 22],
+    };
+  }
+  return {
+    base: `walk${frame}`,
+    head: [0, WALK_BOB[frame]],
+    torso: [14, 25 + WALK_BOB[frame], 56, 30],
+  };
+}
+
+export function renderPrototypeSprite({ costume, frame, definitions, id }) {
+  const pose = getPrototypePose(frame);
+  if (!["hero", "santa", "witch"].includes(costume)) {
+    throw new RangeError("This review prototype supports hero, santa, and witch only");
+  }
+  if (!/^[a-z][a-z0-9-]*$/i.test(id)) throw new TypeError("Expected a safe SVG identifier");
+  const [hx, hy] = pose.head;
+  const [x, y, width, height] = pose.torso;
+  const seated = frame >= 10;
+  const torsoPath = seated
+    ? `${x},${y + 5} ${x + 5 + (frame - 10)},${y + 5} ${x + 5 + (frame - 10)},${y} ${50 + (frame - 10)},${y} ${50 + (frame - 10)},54 ${x + width - 3},54 ${x + width - 3},55 ${x},55`
+    : `14,${31 + hy} 19,${31 + hy} 19,${27 + hy} 24,${27 + hy} 24,${25 + hy} 48,${25 + hy} 48,${50 + hy} 66,${50 + hy} 66,${55 + hy} 14,${55 + hy}`;
+  const colors = {
+    hero: ["#425ac5", "#7895e8", "#293c8a", "#f2d85f"],
+    santa: ["#c83f46", "#e36561", "#91343d", "#f2e9df"],
+    witch: ["#53317a", "#8960ad", "#392251", "#df9b43"],
+  }[costume];
+  const [main, light, dark, accent] = colors;
+  const headwear = {
+    hero: `<path d="M60 26H71V28H68V33H63V35H60Z" fill="${accent}"/><rect x="68" y="28" width="4" height="6" fill="${accent}"/>`,
+    santa: `<path d="M49 17V12H54V8H59V4H67V7H70V17Z" fill="${main}"/><rect x="53" y="12" width="4" height="5" fill="${light}"/><rect x="49" y="17" width="25" height="4" fill="${accent}"/><rect x="65" y="3" width="6" height="5" fill="${accent}"/>`,
+    witch: `<path d="M50 19V15H55V10H60V5H64V2H68V11H71V19Z" fill="${main}"/><rect x="55" y="15" width="16" height="4" fill="${accent}"/><rect x="63" y="15" width="4" height="3" fill="#f6d680"/><rect x="46" y="19" width="31" height="4" fill="${dark}"/>`,
+  }[costume];
+  // The untouched original frame paints over the rear cape. Clothing is clipped
+  // to the stepped torso, never the muzzle or legs. Ear/eye pixels win last.
+  const cape = costume === "hero"
+    ? `<path d="M${x + 16} ${y + 2}H${x + 5}V${y + 7}H${x - 2}V${y + 16}H${x - 6}V${y + height + 6}H${x + 1}V${y + height + 3}H${x + 8}V${y + height + 5}H${x + 14}Z" fill="#b73549"/><rect x="${x - 2}" y="${y + 17}" width="3" height="${height - 12}" fill="#e16566"/>`
+    : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72" shape-rendering="crispEdges">
+    <defs>${definitions}
+      <clipPath id="${id}-torso"><polygon points="${torsoPath}"/></clipPath>
+      <clipPath id="${id}-ear"><rect x="${57 + hx}" y="${12 + hy}" width="9" height="10"/></clipPath>
+      <clipPath id="${id}-eye"><rect x="${63 + hx}" y="${27 + hy}" width="5" height="6"/></clipPath>
+    </defs>
+    <g data-layer="rear">${cape}</g>
+    <use href="#${pose.base}" data-layer="base"/>
+    <g data-layer="clothing" clip-path="url(#${id}-torso)">
+      <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${main}"/>
+      <rect x="${x + 5}" y="${y + 3}" width="${seated ? 16 : 24}" height="3" fill="${light}"/>
+      <rect x="${x}" y="${y + height - 6}" width="${width}" height="6" fill="${dark}"/>
+      <rect x="${x + width - 22}" y="${y}" width="4" height="${height}" fill="${accent}"/>
+      ${costume === "hero" ? `<path d="M${x + 16} ${y + 10}H${x + 22}V${y + 14}H${x + 20}V${y + 18}H${x + 18}V${y + 14}H${x + 16}Z" fill="${accent}"/>` : ""}
+      ${costume === "santa" ? `<rect x="${x}" y="${y + height - 7}" width="${width}" height="3" fill="#372c30"/><rect x="${x + width - 23}" y="${y + height - 8}" width="6" height="5" fill="#e8bf61"/>` : ""}
+    </g>
+    <g data-layer="headwear" transform="translate(${pose.head.join(" ")})">${headwear}</g>
+    <use data-layer="ear" href="#${pose.base}" clip-path="url(#${id}-ear)"/>
+    <use data-layer="eye" href="#${pose.base}" clip-path="url(#${id}-eye)"/>
+  </svg>`;
+}
+
+const sheet = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1152\" height=\"360\" viewBox=\"0 0 1152 360\" shape-rendering=\"crispEdges\">\n  <defs>\n    <!-- 96x72 frame. Low body, long muzzle, tiny ear, four readable legs. -->\n    <g id=\"base\">\n      <rect x=\"10\" y=\"68\" width=\"78\" height=\"2\" fill=\"#34241b\" opacity=\".24\"/>\n      <rect x=\"18\" y=\"50\" width=\"8\" height=\"17\" fill=\"#7b4a30\"/>\n      <rect x=\"37\" y=\"50\" width=\"8\" height=\"17\" fill=\"#7b4a30\"/>\n      <rect x=\"55\" y=\"50\" width=\"8\" height=\"17\" fill=\"#7b4a30\"/>\n      <rect x=\"72\" y=\"49\" width=\"8\" height=\"18\" fill=\"#7b4a30\"/>\n      <rect x=\"16\" y=\"66\" width=\"12\" height=\"4\" fill=\"#52301f\"/>\n      <rect x=\"35\" y=\"66\" width=\"12\" height=\"4\" fill=\"#52301f\"/>\n      <rect x=\"53\" y=\"66\" width=\"12\" height=\"4\" fill=\"#52301f\"/>\n      <rect x=\"70\" y=\"66\" width=\"12\" height=\"4\" fill=\"#52301f\"/>\n      <rect x=\"14\" y=\"31\" width=\"56\" height=\"25\" fill=\"#8e5738\"/>\n      <rect x=\"19\" y=\"27\" width=\"48\" height=\"29\" fill=\"#9f6743\"/>\n      <rect x=\"24\" y=\"25\" width=\"39\" height=\"31\" fill=\"#a86f49\"/>\n      <rect x=\"18\" y=\"48\" width=\"48\" height=\"8\" fill=\"#7a482f\"/>\n      <rect x=\"22\" y=\"29\" width=\"34\" height=\"4\" fill=\"#c18a5d\" opacity=\".7\"/>\n      <rect x=\"48\" y=\"22\" width=\"22\" height=\"28\" fill=\"#a86f49\"/>\n      <rect x=\"54\" y=\"19\" width=\"16\" height=\"28\" fill=\"#a86f49\"/>\n      <rect x=\"57\" y=\"14\" width=\"9\" height=\"8\" fill=\"#75462f\"/>\n      <rect x=\"59\" y=\"12\" width=\"5\" height=\"4\" fill=\"#a86f49\"/>\n      <rect x=\"65\" y=\"29\" width=\"18\" height=\"16\" fill=\"#b97a4f\"/>\n      <rect x=\"75\" y=\"32\" width=\"12\" height=\"11\" fill=\"#bd7f54\"/>\n      <rect x=\"84\" y=\"35\" width=\"6\" height=\"6\" fill=\"#221710\"/>\n      <rect x=\"79\" y=\"43\" width=\"7\" height=\"3\" fill=\"#6a3d29\"/>\n      <rect x=\"63\" y=\"28\" width=\"5\" height=\"5\" fill=\"#20160f\"/>\n      <rect x=\"64\" y=\"27\" width=\"2\" height=\"2\" fill=\"#f4e9dc\"/>\n      <rect x=\"10\" y=\"36\" width=\"5\" height=\"7\" fill=\"#70432c\"/>\n      <rect x=\"7\" y=\"38\" width=\"4\" height=\"4\" fill=\"#8e5738\"/>\n    </g>\n\n    <g id=\"walk0\"><use href=\"#base\"/><rect x=\"17\" y=\"51\" width=\"8\" height=\"18\" fill=\"#68402a\"/><rect x=\"52\" y=\"51\" width=\"8\" height=\"18\" fill=\"#68402a\"/></g>\n    <g id=\"walk1\"><use href=\"#base\" transform=\"translate(0,-1)\"/><rect x=\"14\" y=\"53\" width=\"8\" height=\"16\" fill=\"#68402a\"/><rect x=\"58\" y=\"48\" width=\"8\" height=\"21\" fill=\"#68402a\"/></g>\n    <g id=\"walk2\"><use href=\"#base\"/><rect x=\"19\" y=\"55\" width=\"8\" height=\"14\" fill=\"#68402a\"/><rect x=\"47\" y=\"54\" width=\"8\" height=\"15\" fill=\"#68402a\"/></g>\n    <g id=\"walk3\"><use href=\"#base\" transform=\"translate(0,1)\"/><rect x=\"25\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/><rect x=\"56\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/></g>\n    <g id=\"walk4\"><use href=\"#base\"/><rect x=\"28\" y=\"49\" width=\"8\" height=\"20\" fill=\"#68402a\"/><rect x=\"65\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/></g>\n    <g id=\"walk5\"><use href=\"#base\" transform=\"translate(0,-1)\"/><rect x=\"25\" y=\"51\" width=\"8\" height=\"18\" fill=\"#68402a\"/><rect x=\"68\" y=\"49\" width=\"8\" height=\"20\" fill=\"#68402a\"/></g>\n    <g id=\"walk6\"><use href=\"#base\"/><rect x=\"21\" y=\"54\" width=\"8\" height=\"15\" fill=\"#68402a\"/><rect x=\"60\" y=\"54\" width=\"8\" height=\"15\" fill=\"#68402a\"/></g>\n    <g id=\"walk7\"><use href=\"#base\" transform=\"translate(0,1)\"/><rect x=\"16\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/><rect x=\"50\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/></g>\n    <g id=\"walk8\"><use href=\"#base\"/><rect x=\"15\" y=\"49\" width=\"8\" height=\"20\" fill=\"#68402a\"/><rect x=\"58\" y=\"55\" width=\"8\" height=\"14\" fill=\"#68402a\"/></g>\n    <g id=\"walk9\"><use href=\"#base\" transform=\"translate(0,-1)\"/><rect x=\"21\" y=\"50\" width=\"8\" height=\"19\" fill=\"#68402a\"/><rect x=\"64\" y=\"52\" width=\"8\" height=\"17\" fill=\"#68402a\"/></g>\n\n    <!-- Seated frames are separate art so Sit is visibly different immediately. -->\n    <g id=\"sit0\">\n      <rect x=\"18\" y=\"68\" width=\"62\" height=\"2\" fill=\"#34241b\" opacity=\".24\"/>\n      <rect x=\"24\" y=\"38\" width=\"43\" height=\"26\" fill=\"#8e5738\"/>\n      <rect x=\"29\" y=\"33\" width=\"36\" height=\"29\" fill=\"#a86f49\"/>\n      <rect x=\"50\" y=\"27\" width=\"21\" height=\"27\" fill=\"#a86f49\"/>\n      <rect x=\"56\" y=\"23\" width=\"14\" height=\"27\" fill=\"#a86f49\"/>\n      <rect x=\"59\" y=\"18\" width=\"9\" height=\"8\" fill=\"#75462f\"/>\n      <rect x=\"61\" y=\"16\" width=\"5\" height=\"4\" fill=\"#a86f49\"/>\n      <rect x=\"67\" y=\"33\" width=\"18\" height=\"16\" fill=\"#b97a4f\"/>\n      <rect x=\"77\" y=\"36\" width=\"11\" height=\"10\" fill=\"#bd7f54\"/>\n      <rect x=\"84\" y=\"39\" width=\"6\" height=\"6\" fill=\"#221710\"/>\n      <rect x=\"65\" y=\"32\" width=\"5\" height=\"5\" fill=\"#20160f\"/>\n      <rect x=\"66\" y=\"31\" width=\"2\" height=\"2\" fill=\"#f4e9dc\"/>\n      <rect x=\"11\" y=\"43\" width=\"5\" height=\"7\" fill=\"#70432c\"/>\n      <rect x=\"8\" y=\"45\" width=\"4\" height=\"4\" fill=\"#8e5738\"/>\n      <rect x=\"29\" y=\"55\" width=\"14\" height=\"14\" fill=\"#68402a\"/>\n      <rect x=\"50\" y=\"55\" width=\"14\" height=\"14\" fill=\"#68402a\"/>\n      <rect x=\"27\" y=\"66\" width=\"18\" height=\"4\" fill=\"#4d2d1f\"/>\n      <rect x=\"48\" y=\"66\" width=\"18\" height=\"4\" fill=\"#4d2d1f\"/>\n      <rect x=\"35\" y=\"47\" width=\"24\" height=\"5\" fill=\"#c18a5d\" opacity=\".55\"/>\n    </g>\n    <g id=\"sit1\">\n      <rect x=\"16\" y=\"68\" width=\"66\" height=\"2\" fill=\"#34241b\" opacity=\".24\"/>\n      <rect x=\"21\" y=\"40\" width=\"48\" height=\"25\" fill=\"#8e5738\"/>\n      <rect x=\"27\" y=\"35\" width=\"39\" height=\"29\" fill=\"#a86f49\"/>\n      <rect x=\"51\" y=\"28\" width=\"21\" height=\"28\" fill=\"#a86f49\"/>\n      <rect x=\"57\" y=\"24\" width=\"14\" height=\"28\" fill=\"#a86f49\"/>\n      <rect x=\"60\" y=\"19\" width=\"9\" height=\"8\" fill=\"#75462f\"/>\n      <rect x=\"62\" y=\"17\" width=\"5\" height=\"4\" fill=\"#a86f49\"/>\n      <rect x=\"68\" y=\"34\" width=\"18\" height=\"16\" fill=\"#b97a4f\"/>\n      <rect x=\"78\" y=\"37\" width=\"10\" height=\"10\" fill=\"#bd7f54\"/>\n      <rect x=\"84\" y=\"40\" width=\"6\" height=\"6\" fill=\"#221710\"/>\n      <rect x=\"66\" y=\"33\" width=\"5\" height=\"5\" fill=\"#20160f\"/>\n      <rect x=\"67\" y=\"32\" width=\"2\" height=\"2\" fill=\"#f4e9dc\"/>\n      <rect x=\"9\" y=\"44\" width=\"5\" height=\"7\" fill=\"#70432c\"/>\n      <rect x=\"6\" y=\"46\" width=\"4\" height=\"4\" fill=\"#8e5738\"/>\n      <rect x=\"27\" y=\"55\" width=\"17\" height=\"14\" fill=\"#68402a\"/>\n      <rect x=\"49\" y=\"55\" width=\"15\" height=\"14\" fill=\"#68402a\"/>\n      <rect x=\"24\" y=\"66\" width=\"21\" height=\"4\" fill=\"#4d2d1f\"/>\n      <rect x=\"47\" y=\"66\" width=\"19\" height=\"4\" fill=\"#4d2d1f\"/>\n      <rect x=\"34\" y=\"49\" width=\"25\" height=\"5\" fill=\"#c18a5d\" opacity=\".55\"/>\n    </g>\n\n    <g id=\"frame-row\">\n      <use href=\"#walk0\" x=\"0\"/><use href=\"#walk1\" x=\"96\"/><use href=\"#walk2\" x=\"192\"/><use href=\"#walk3\" x=\"288\"/>\n      <use href=\"#walk4\" x=\"384\"/><use href=\"#walk5\" x=\"480\"/><use href=\"#walk6\" x=\"576\"/><use href=\"#walk7\" x=\"672\"/>\n      <use href=\"#walk8\" x=\"768\"/><use href=\"#walk9\" x=\"864\"/><use href=\"#sit0\" x=\"960\"/><use href=\"#sit1\" x=\"1056\"/>\n    </g>\n\n    <g id=\"santa\">\n      <rect x=\"50\" y=\"9\" width=\"19\" height=\"5\" fill=\"#c83f46\"/><rect x=\"56\" y=\"5\" width=\"12\" height=\"6\" fill=\"#c83f46\"/><rect x=\"62\" y=\"2\" width=\"7\" height=\"5\" fill=\"#c83f46\"/>\n      <rect x=\"51\" y=\"14\" width=\"21\" height=\"4\" fill=\"#f2e9df\"/><rect x=\"65\" y=\"2\" width=\"5\" height=\"5\" fill=\"#f2e9df\"/><rect x=\"30\" y=\"46\" width=\"31\" height=\"8\" fill=\"#c83f46\"/><rect x=\"50\" y=\"46\" width=\"4\" height=\"8\" fill=\"#f2e9df\"/>\n    </g>\n    <g id=\"ghost\">\n      <rect x=\"9\" y=\"24\" width=\"74\" height=\"35\" fill=\"#e8edf7\"/><rect x=\"16\" y=\"19\" width=\"61\" height=\"39\" fill=\"#eef1f8\"/><rect x=\"62\" y=\"29\" width=\"7\" height=\"7\" fill=\"#303541\"/>\n      <rect x=\"16\" y=\"56\" width=\"13\" height=\"5\" fill=\"#eef1f8\"/><rect x=\"35\" y=\"54\" width=\"13\" height=\"7\" fill=\"#eef1f8\"/><rect x=\"53\" y=\"55\" width=\"13\" height=\"6\" fill=\"#eef1f8\"/><rect x=\"70\" y=\"54\" width=\"11\" height=\"7\" fill=\"#eef1f8\"/><rect x=\"11\" y=\"58\" width=\"72\" height=\"3\" fill=\"#8a93a5\"/>\n    </g>\n    <g id=\"witch\">\n      <rect x=\"50\" y=\"14\" width=\"25\" height=\"5\" fill=\"#53317a\"/><rect x=\"56\" y=\"8\" width=\"18\" height=\"8\" fill=\"#53317a\"/><rect x=\"62\" y=\"2\" width=\"9\" height=\"8\" fill=\"#53317a\"/><rect x=\"49\" y=\"19\" width=\"28\" height=\"4\" fill=\"#df9b43\"/>\n      <rect x=\"28\" y=\"47\" width=\"36\" height=\"11\" fill=\"#53317a\"/><rect x=\"34\" y=\"53\" width=\"23\" height=\"7\" fill=\"#6b4192\"/><rect x=\"51\" y=\"48\" width=\"4\" height=\"11\" fill=\"#df9b43\"/>\n    </g>\n    <g id=\"valentine\">\n      <rect x=\"54\" y=\"45\" width=\"7\" height=\"5\" fill=\"#e45c88\"/><rect x=\"61\" y=\"45\" width=\"7\" height=\"5\" fill=\"#e45c88\"/><rect x=\"57\" y=\"50\" width=\"9\" height=\"7\" fill=\"#e45c88\"/><rect x=\"60\" y=\"57\" width=\"4\" height=\"3\" fill=\"#b63862\"/>\n      <rect x=\"56\" y=\"20\" width=\"5\" height=\"5\" fill=\"#e45c88\"/><rect x=\"50\" y=\"21\" width=\"7\" height=\"4\" fill=\"#e45c88\"/><rect x=\"61\" y=\"21\" width=\"7\" height=\"4\" fill=\"#e45c88\"/>\n    </g>\n  </defs>\n\n  <g transform=\"translate(0,0)\"><use href=\"#frame-row\"/></g>\n  <g transform=\"translate(0,72)\"><use href=\"#frame-row\"/><use href=\"#santa\" x=\"0\"/><use href=\"#santa\" x=\"96\"/><use href=\"#santa\" x=\"192\"/><use href=\"#santa\" x=\"288\"/><use href=\"#santa\" x=\"384\"/><use href=\"#santa\" x=\"480\"/><use href=\"#santa\" x=\"576\"/><use href=\"#santa\" x=\"672\"/><use href=\"#santa\" x=\"768\"/><use href=\"#santa\" x=\"864\"/><use href=\"#santa\" x=\"960\"/><use href=\"#santa\" x=\"1056\"/></g>\n  <g transform=\"translate(0,144)\"><use href=\"#frame-row\"/><use href=\"#ghost\" x=\"0\"/><use href=\"#ghost\" x=\"96\"/><use href=\"#ghost\" x=\"192\"/><use href=\"#ghost\" x=\"288\"/><use href=\"#ghost\" x=\"384\"/><use href=\"#ghost\" x=\"480\"/><use href=\"#ghost\" x=\"576\"/><use href=\"#ghost\" x=\"672\"/><use href=\"#ghost\" x=\"768\"/><use href=\"#ghost\" x=\"864\"/><use href=\"#ghost\" x=\"960\"/><use href=\"#ghost\" x=\"1056\"/></g>\n  <g transform=\"translate(0,216)\"><use href=\"#frame-row\"/><use href=\"#witch\" x=\"0\"/><use href=\"#witch\" x=\"96\"/><use href=\"#witch\" x=\"192\"/><use href=\"#witch\" x=\"288\"/><use href=\"#witch\" x=\"384\"/><use href=\"#witch\" x=\"480\"/><use href=\"#witch\" x=\"576\"/><use href=\"#witch\" x=\"672\"/><use href=\"#witch\" x=\"768\"/><use href=\"#witch\" x=\"864\"/><use href=\"#witch\" x=\"960\"/><use href=\"#witch\" x=\"1056\"/></g>\n  <g transform=\"translate(0,288)\"><use href=\"#frame-row\"/><use href=\"#valentine\" x=\"0\"/><use href=\"#valentine\" x=\"96\"/><use href=\"#valentine\" x=\"192\"/><use href=\"#valentine\" x=\"288\"/><use href=\"#valentine\" x=\"384\"/><use href=\"#valentine\" x=\"480\"/><use href=\"#valentine\" x=\"576\"/><use href=\"#valentine\" x=\"672\"/><use href=\"#valentine\" x=\"768\"/><use href=\"#valentine\" x=\"864\"/><use href=\"#valentine\" x=\"960\"/><use href=\"#valentine\" x=\"1056\"/></g>\n</svg>\n";
+const definitions = sheet.match(/<defs>([\s\S]*?)<\/defs>/)[1];
+const costumes = [["hero", "Superhero", 0], ["santa", "Santa", 1], ["witch", "Witch", 3]];
+const states = [["Idle", 0], ["Walk · raised", 1], ["Walk · lowered", 3], ["Sit · A", 10], ["Sit · B", 11]];
+const comparisons = document.querySelector("#comparisons");
+const motion = matchMedia("(prefers-reduced-motion: reduce)");
+let timer;
+let walkFrame = 1;
+let sequence = 0;
+
+function fitted(costume, frame) {
+  return renderPrototypeSprite({ costume, frame, definitions, id: `review-${sequence++}` });
+}
+
+function spriteImage(source) {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(source)}`;
+}
+
+function render() {
+  comparisons.innerHTML = costumes.map(([costume, label, row]) => `<section aria-label="${label} comparison">
+    <h2>${label}</h2>
+    <div class="frames">${states.map(([name, fixedFrame], index) => {
+      const frame = index === 1 && timer ? walkFrame : fixedFrame;
+      return `<article class="frame"><h3>${name} · frame ${frame}</h3>
+        <div class="label">Current</div><div class="stage"><span aria-hidden="true" class="capybara-pixel-sprite companion-costume-${costume}" style="--sprite-row:${row};background-position-x:${frame * -96}px"></span></div>
+        <div class="label after">Fitted prototype</div><div class="stage"><img class="fitted" alt="" width="96" height="72" src="${spriteImage(fitted(costume, frame))}"></div>
+      </article>`;
+    }).join("")}</div>
+    <div class="preview-row"><div><div class="label">Current Settings preview</div><span aria-hidden="true" class="companion-preview-sprite companion-costume-${costume}" style="--sprite-row:${row}"></span></div>
+      <div><div class="label after">Proposed shared preview · idle</div><img class="fitted" alt="" width="96" height="72" src="${spriteImage(fitted(costume, 0))}"></div>
+      <div><div class="label after">Proposed shared preview · sit</div><img class="fitted" alt="" width="96" height="72" src="${spriteImage(fitted(costume, 10))}"></div></div>
+    </section>`).join("");
+}
+
+function stop() {
+  clearInterval(timer);
+  timer = undefined;
+  const play = document.querySelector("#play");
+  play.textContent = "Play walk frames";
+  play.setAttribute("aria-pressed", "false");
+  play.disabled = motion.matches;
+  document.querySelector("#motion-note").textContent = motion.matches ? "Reduced motion: static frames only." : "Static comparisons by default.";
+  render();
+}
+
+document.querySelector("#play").addEventListener("click", () => {
+  if (timer || motion.matches) return stop();
+  timer = setInterval(() => { walkFrame = (walkFrame + 1) % 10; render(); }, 140);
+  document.querySelector("#play").textContent = "Pause walk frames";
+  document.querySelector("#play").setAttribute("aria-pressed", "true");
+  render();
+});
+document.querySelector("#facing").addEventListener("change", (event) => {
+  document.documentElement.style.setProperty("--facing", event.target.value);
+});
+motion.addEventListener("change", stop);
+window.addEventListener("pagehide", stop, { once: true });
+stop();
+
+async function pixels(source) {
+  const image = new Image();
+  image.src = spriteImage(source);
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 72;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  context.drawImage(image, 0, 0);
+  return context.getImageData(0, 0, 96, 72).data;
+}
+
+// Real browser raster checks complement Vitest's geometry/occlusion guards.
+// These are invariants, not approved screenshot goldens or a claim of app integration.
+window.prototypeChecks = (async () => {
+  const results = [];
+  for (const [costume] of costumes) {
+    for (let frame = 0; frame < 12; frame += 1) {
+      const pose = getPrototypePose(frame);
+      const original = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72"><defs>${definitions}</defs><use href="#${pose.base}"/></svg>`;
+      const source = fitted(costume, frame);
+      const doc = new DOMParser().parseFromString(source, "image/svg+xml");
+      for (const layer of doc.querySelectorAll("[data-layer]:not([data-layer=clothing])")) layer.remove();
+      const [base, after, clothing] = await Promise.all([pixels(original), pixels(source), pixels(new XMLSerializer().serializeToString(doc))]);
+      const failures = new Set();
+      const [hx, hy] = pose.head;
+      const regions = [[57 + hx, 12 + hy, 9, 10], [63 + hx, 27 + hy, 5, 6], [75, 32 + hy, 16, 15], [0, 62, 96, 9]];
+      for (const [x, y, width, height] of regions) {
+        for (let py = y; py < y + height; py += 1) {
+          for (let px = x; px < x + width; px += 1) {
+            const offset = (py * 96 + px) * 4;
+            if (!base[offset + 3]) continue;
+            if (base.slice(offset, offset + 4).some((channel, i) => channel !== after[offset + i])) failures.add("Protected ear/eye/muzzle/foot pixels changed");
+          }
+        }
+      }
+      let changed = 0;
+      for (let i = 0; i < clothing.length; i += 4) {
+        if (clothing[i + 3] && base[i + 3] !== 255) failures.add("Clothing floats outside opaque body");
+        if (![0, 255].includes(clothing[i + 3])) failures.add("Clothing has blurred edges");
+        if (after[i] !== base[i] || after[i + 1] !== base[i + 1] || after[i + 2] !== base[i + 2]) changed += 1;
+      }
+      if (!changed) failures.add("Costume did not render");
+      results.push({ costume, frame, passed: !failures.size, failures: [...failures] });
+    }
+  }
+  const failed = results.filter((result) => !result.passed);
+  document.querySelector("#checks").textContent = failed.length
+    ? `FAIL: ${failed.length}/${results.length} raster cases. ${JSON.stringify(failed)}`
+    : `PASS: ${results.length}/${results.length} raster cases — three outfits × twelve frames. Clothing stays on opaque body pixels; eyes, ears, muzzle, and feet are unchanged; costume edges have no partial alpha.`;
+  document.querySelector("#checks").dataset.result = failed.length ? "fail" : "pass";
+  return results;
+})();
+</script>
+</body>
+</html>

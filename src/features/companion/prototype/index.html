@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Companion costume fit — review prototype</title>
+  <link rel="stylesheet" href="./legacy/CompanionCostume.css">
+  <link rel="stylesheet" href="./legacy/Companion.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #11151d; color: #edf0f6; font: 15px/1.5 system-ui, sans-serif; }
+    main { max-width: 1320px; margin: auto; padding: 28px; }
+    h1 { margin: 0; font-size: clamp(24px, 4vw, 34px); }
+    h2 { margin: 22px 0 10px; font-size: 19px; }
+    p { color: #b6bece; margin: 6px 0 16px; max-width: 90ch; }
+    .badge { color: #8ce4c3; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin: 18px 0; }
+    button, select { font: inherit; background: #252f41; color: inherit; border: 1px solid #64748b; border-radius: 6px; padding: 6px 12px; }
+    :focus-visible { outline: 3px solid #8ce4c3; outline-offset: 3px; }
+    .frames { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+    .frame { background: #1b2230; border: 1px solid #344056; border-radius: 10px; padding: 10px; min-width: 0; }
+    .frame h3 { margin: 0 0 5px; font-size: 13px; color: #c3ccda; }
+    .stage { display: grid; place-items: center; height: 148px; overflow: hidden; background: #151b26; }
+    .stage > .capybara-pixel-sprite, .stage > .fitted { transform: scaleX(var(--facing, 1)) scale(2); transform-origin: center; flex: none; }
+    .fitted { display: block; width: 96px; height: 72px; image-rendering: pixelated; }
+    .fitted svg { display: block; width: 96px; height: 72px; }
+    .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #9aa8bf; margin: 6px 0 2px; }
+    .label.after { color: #8ce4c3; }
+    .preview-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: end; margin-top: 12px; }
+    .preview-row > div { padding: 10px; background: #1b2230; border-radius: 8px; }
+    .preview-row .fitted { transform: scaleX(var(--facing, 1)); }
+    #checks { padding: 12px; border: 1px solid #64748b; border-radius: 8px; margin: 20px 0 0; }
+    @media (max-width: 760px) {
+      main { padding: 16px; }
+      .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stage { height: 112px; }
+      .stage > .capybara-pixel-sprite, .stage > .fitted { transform: scaleX(var(--facing, 1)); }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="badge">Review prototype · not wired into the app</div>
+  <h1>Same capybara. Costumes that fit.</h1>
+  <p>Current shipped art above; frame-fitted pixel art below. Original body, face, and feet are reused unchanged. Desktop comparisons are exactly 2×; narrow-screen comparisons and proposed Settings samples are native 1×.</p>
+  <div class="controls">
+    <button id="play" type="button" aria-pressed="false">Play walk frames</button>
+    <label>Facing <select id="facing"><option value="1">Right</option><option value="-1">Left</option></select></label>
+    <span id="motion-note"></span>
+  </div>
+  <div id="comparisons"></div>
+  <div id="checks" role="status" aria-live="polite">Running real-browser pixel checks…</div>
+  <p>Prototype scope: Superhero, Santa, Witch in a neutral seasonal context. All other presets, seasonal variations, app Settings, reactions, and patrol behavior remain untouched pending review.</p>
+</main>
+<script type="module" src="./prototypePage.js"></script>
+</body>
+</html>

@@ -2,18 +2,11 @@ import React from "react";
 
 import "./Companion.css";
 
-import { getActiveSeasonalEvent } from "../seasonal/seasonalEvents.js";
 import { loadCompanionSettings } from "./companionStorage.js";
-import { COMPANION_COSTUMES } from "./companionSettingsConfig.js";
+import { COMPANION_COSTUMES, normalizeCompanionSettings } from "./companionSettingsConfig.js";
 import { getCompanionReactions } from "./companionCostumes.js";
-
-const SPRITE_ROWS = {
-  none: 0,
-  santa: 1,
-  ghost: 2,
-  witch: 3,
-  valentine: 4,
-};
+import CompanionSprite from "./CompanionSprite.jsx";
+import { useCompanionSeason } from "./useCompanionSeason.js";
 
 const PATROL_MIN_POSITION = 10;
 const PATROL_MAX_POSITION = 73;
@@ -75,28 +68,13 @@ function getCurrentPatrolPosition(walkerElement, zoneElement) {
   return Math.round(clampedPosition * 10) / 10;
 }
 
-function PixelCapybara({ costume, seasonalEventId }) {
-  const spriteRow = SPRITE_ROWS[costume] ?? SPRITE_ROWS.none;
-
-  return (
-    <span
-      className={`capybara-pixel-sprite companion-costume-${costume}`}
-      data-testid="capybara-pixel-sprite"
-      data-sprite-style="retro-16bit"
-      data-leg-detail="visible"
-      data-walk-frames="10"
-      data-sprite-sheet="1152x360"
-      data-costume={costume}
-      data-seasonal-event={seasonalEventId || "none"}
-      style={{ "--sprite-row": spriteRow }}
-      aria-hidden="true"
-    />
-  );
-}
-
 export default function Companion({ userId, seasonalEvent = null }) {
-  const [settings, setSettings] = React.useState(() =>
+  const [storedSettings, setSettings] = React.useState(() =>
     loadCompanionSettings(userId),
+  );
+  const settings = normalizeCompanionSettings(storedSettings);
+  const [reducedMotion, setReducedMotion] = React.useState(() =>
+    typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
   );
   const [reaction, setReaction] = React.useState("");
   const [patrol, setPatrol] = React.useState({
@@ -110,13 +88,16 @@ export default function Companion({ userId, seasonalEvent = null }) {
   const patrolPositionRef = React.useRef(INITIAL_POSITION);
   const zoneRef = React.useRef(null);
   const walkerRef = React.useRef(null);
-  const activeSeasonalEvent = seasonalEvent || getActiveSeasonalEvent();
+  const activeSeasonalEvent = useCompanionSeason(seasonalEvent);
   const seasonalEventId = activeSeasonalEvent?.id || null;
   const isWalking = settings.animation === "walk";
   const isSitting = settings.animation === "sit";
 
   React.useEffect(() => {
     setSettings(loadCompanionSettings(userId));
+  }, [userId, seasonalEventId]);
+
+  React.useEffect(() => {
     patrolPositionRef.current = INITIAL_POSITION;
     setPatrol({
       position: INITIAL_POSITION,
@@ -126,6 +107,24 @@ export default function Companion({ userId, seasonalEvent = null }) {
       frozen: false,
     });
   }, [userId]);
+
+  React.useEffect(() => {
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    if (!media) return undefined;
+    const updateMotion = ({ matches }) => {
+      if (matches) {
+        const position = getCurrentPatrolPosition(walkerRef.current, zoneRef.current) ?? patrolPositionRef.current;
+        patrolPositionRef.current = position;
+        if (walkerRef.current) walkerRef.current.style.transition = "none";
+        setPatrol((current) => ({ ...current, position, motion: "idle", travelDuration: 0 }));
+      } else {
+        walkerRef.current?.style.removeProperty("transition");
+      }
+      setReducedMotion(matches);
+    };
+    media.addEventListener("change", updateMotion);
+    return () => media.removeEventListener("change", updateMotion);
+  }, []);
 
   React.useEffect(() => {
     const handleSettingsChange = (event) => {
@@ -177,7 +176,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
   }, [userId]);
 
   React.useEffect(() => {
-    if (!settings.enabled || !isWalking) {
+    if (!settings.enabled || !isWalking || reducedMotion) {
       setPatrol((current) => ({
         ...current,
         motion: "idle",
@@ -235,7 +234,7 @@ export default function Companion({ userId, seasonalEvent = null }) {
       cancelled = true;
       clearTimers();
     };
-  }, [isWalking, settings.enabled]);
+  }, [isWalking, settings.enabled, reducedMotion]);
 
   React.useEffect(() => {
     if (!reaction) return undefined;
@@ -291,9 +290,10 @@ export default function Companion({ userId, seasonalEvent = null }) {
           aria-label={`${settings.name || "Unnamed"} the capybara companion`}
           onClick={triggerReaction}
         >
-          <PixelCapybara
+          <CompanionSprite
             costume={settings.costume}
             seasonalEventId={seasonalEventId}
+            pose={isSitting ? "sit" : !reducedMotion && patrol.motion === "walking" ? "walk" : "idle"}
           />
         </button>
       </div>

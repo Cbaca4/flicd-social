@@ -1,6 +1,6 @@
 import React from "react";
 import { Check, Heart, Smile, Sparkles } from "lucide-react";
-import { getActiveSeasonalEvent } from "../seasonal/seasonalEvents.js";
+import { useCompanionSeason } from "./useCompanionSeason.js";
 import {
   COMPANION_ANIMATIONS,
   normalizeCompanionSettings,
@@ -9,29 +9,11 @@ import {
   COMPANION_PRESET_COSTUMES,
   getSeasonalCompanionCostumes,
 } from "./companionCostumes.js";
-
-const SPRITE_ROWS = {
-  none: 0,
-  santa: 1,
-  ghost: 2,
-  witch: 3,
-  valentine: 4,
-};
-
-function CostumePreview({ costume }) {
-  return (
-    <span
-      className={`companion-preview-sprite companion-costume-${costume}`}
-      data-testid="companion-preview-sprite"
-      style={{ "--sprite-row": SPRITE_ROWS[costume] ?? 0 }}
-      aria-hidden="true"
-    />
-  );
-}
+import CompanionSprite from "./CompanionSprite.jsx";
 
 export default function CompanionSettings({ value, onChange }) {
   const settings = normalizeCompanionSettings(value);
-  const activeSeason = getActiveSeasonalEvent();
+  const activeSeason = useCompanionSeason();
   const seasonalCostumes = getSeasonalCompanionCostumes(activeSeason?.id);
 
   const update = (patch) => {
@@ -182,7 +164,12 @@ export default function CompanionSettings({ value, onChange }) {
         </div>
 
         <div className="companion-preview" aria-label="Companion preview">
-          <CostumePreview costume={settings.costume} />
+          <CompanionSprite
+            costume={settings.costume}
+            seasonalEventId={activeSeason?.id}
+            pose={settings.animation === "sit" ? "sit" : "walk"}
+            preview
+          />
           <div>
             <strong>{settings.name || "Unnamed"}</strong>
             <p className="subtitle" style={{ marginTop: 2 }}>

@@ -1,0 +1,10 @@
+{
+  "src/features/companion/prototype/evidence/browser-results.json": "c0275cf3c9a06db1f947840ca05c968528dddccbdff7f64068de624ab67572ee",
+  "src/features/companion/prototype/evidence/desktop-left.png": "2a3ef3442ff691804f36719c7c9a206bde3bc71559b132f50249317beaa3f520",
+  "src/features/companion/prototype/evidence/desktop-right.png": "046e1ed5b5f67061c9229572ec882d742323a7ef251dba1de82c8b870b76fc13",
+  "src/features/companion/prototype/evidence/mobile-left-reduced-motion.png": "7cb92bd2ffa5f11458393fad1f104ea54d2b6d519695d9348bfce3f9f1c11cc0",
+  "src/features/companion/prototype/evidence/review.html": "4f7981c4042daa02c7f64a1c795a1e1ce39e1ec89442139595ef8b6a31f364e8",
+  "src/features/companion/prototype/costumePrototype.js": "8cbd4507729b3eeffd7bdea8a1f86adac860e2ffb2614cadadebed768fda4989",
+  "src/features/companion/prototype/prototypePage.js": "e9dae24927d8023704f0157dda03526e331b7d3b1fbbd6cbb5229aa9b5dd9339",
+  "public/companion/companion-sprite.svg": "9d3679d10ade99df260ece6f7cb78dd399ee345c98f469671785f78dbff9c3b5"
+}

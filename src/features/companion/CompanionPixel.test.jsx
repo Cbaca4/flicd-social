@@ -22,7 +22,7 @@ describe("Retro 16-bit companion redesign", () => {
     expect(sprite).toHaveAttribute("data-sprite-style", "retro-16bit");
     expect(sprite).toHaveAttribute("data-leg-detail", "visible");
     expect(sprite).toHaveAttribute("data-walk-frames", "10");
-    expect(sprite).toHaveAttribute("data-sprite-sheet", "1152x360");
+    expect(sprite).toHaveAttribute("data-sprite-sheet", "1152x1584");
   });
 
   it("renders an actual costume from the sprite sheet", () => {
@@ -71,7 +71,7 @@ describe("Retro 16-bit companion redesign", () => {
     }
   });
 
-  it("supports superhero preset costumes without changing the base sprite frame", () => {
+  it("uses fitted superhero art without falling back to the Everyday row", () => {
     localStorage.setItem(
       "flicd:companion:pixel-test:settings",
       JSON.stringify({
@@ -88,7 +88,7 @@ describe("Retro 16-bit companion redesign", () => {
     const sprite = screen.getByTestId("capybara-pixel-sprite");
 
     expect(sprite).toHaveClass("companion-costume-hero");
-    expect(sprite).toHaveStyle({ "--sprite-row": "0" });
+    expect(sprite).toHaveStyle({ "--sprite-row": "5" });
   });
 
   it("starts in an idle pause before autonomous walking begins", async () => {
