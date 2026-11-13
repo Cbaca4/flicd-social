@@ -2,7 +2,7 @@
 import React from 'react';
 import '@testing-library/jest-dom/vitest';
 import { it,vi,expect,afterEach } from 'vitest';
-import { screen,fireEvent,act,cleanup } from '@testing-library/react';
+import { screen,fireEvent,act,cleanup,waitFor } from '@testing-library/react';
 import { renderAccount } from '../../../tests/security/renderAccount.jsx';
 import { testAuthScope } from '../../../tests/security/testAuthScope.js';
 const render = (ui, options) => renderAccount(ui, 'A', options);
@@ -28,4 +28,29 @@ it('a pending identity lookup cannot write the old profile draft into the replac
  let active=true;const saved=vi.fn();const {container,unmount}=render(<EditProfile profile={{id:'A',handle:'A-private',bio:'private draft'}} authScope={testAuthScope('A',()=>active)} onSaved={saved}/>);
  fireEvent.submit(container.querySelector('form'));active=false;unmount();await act(async()=>finish({data:{user:{id:'B'}}}));
  expect(m.update).not.toHaveBeenCalled();expect(saved).not.toHaveBeenCalled();
+});
+
+it('saves profile links when the optional display name is blank instead of sending database-invalid null',async()=>{
+  m.getUser.mockResolvedValue({data:{user:{id:'A'}}});
+  const saved=vi.fn();
+  const update=vi.fn(payload=>({
+    eq:()=>({
+      select:()=>({
+        single:async()=>({
+          data:{id:'A',display_name:payload.display_name,profile_theme:payload.profile_theme},
+          error:null,
+        }),
+      }),
+    }),
+  }));
+  m.update.mockImplementation(update);
+  render(<EditProfile profile={{id:'A',handle:'username',displayName:''}} onSaved={saved}/>);
+  fireEvent.click(screen.getByRole('button',{name:'+ Add link'}));
+  fireEvent.change(screen.getByRole('textbox',{name:'Link 1 label'}),{target:{value:'Portfolio'}});
+  fireEvent.change(screen.getByRole('textbox',{name:'Link 1 URL'}),{target:{value:'example.com'}});
+  fireEvent.click(screen.getByRole('button',{name:'Save Changes'}));
+  await waitFor(()=>expect(saved).toHaveBeenCalledOnce());
+  const payload=update.mock.calls[0][0];
+  expect(payload.display_name).toBe('');
+  expect(payload.profile_theme.profileLinks).toEqual([{label:'Portfolio',url:'https://example.com'}]);
 });

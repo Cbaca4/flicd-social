@@ -84,3 +84,7 @@ jobs:
         run: node scripts/verify-local-media-upgrade.mjs
       - name: Verify actual loopback HTTP delivery and cleanup worker
         run: node scripts/verify-local-media-http.mjs
+      - name: Apply owner-scoped public profile media policy to synthetic database
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261113211500_authorize_public_profile_media.sql
+      - name: Verify owner-only avatar and background uploads
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/security/profile-media.assertions.sql

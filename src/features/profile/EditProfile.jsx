@@ -7,7 +7,7 @@ import { sanitizeProfileLinks, sanitizeProfileTheme } from "./profileTheme.js";
 
 const CROP_SIZE = 720;
 
-function ProfilePhotoCropper({ file, onCancel, onConfirm, saving }) {
+function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage = "" }) {
   const [url] = React.useState(() => URL.createObjectURL(file));
   const [zoom, setZoom] = React.useState(1);
   const [offset, setOffset] = React.useState({ x: 0, y: 0 });
@@ -48,10 +48,10 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving }) {
   const confirm = async () => {
     try {
       const image = new Image();
-      image.src = url;
       await new Promise((resolve, reject) => {
         image.onload = resolve;
-        image.onerror = reject;
+        image.onerror = () => reject(new Error("Could not read the selected profile photo."));
+        image.src = url;
       });
 
       const canvas = document.createElement("canvas");
@@ -148,6 +148,7 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving }) {
           />
         </label>
 
+        {errorMessage && <p role="alert" className="subtitle" style={{ marginTop: 12, color: "var(--danger, #ff6b6b)" }}>{errorMessage}</p>}
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}>
           <button type="button" className="btn" onClick={() => onCancel()} disabled={saving}>
             Cancel
@@ -278,7 +279,9 @@ export default function EditProfile({
         .from("profiles")
         .update({
           username: cleanUsername,
-          display_name: cleanDisplayName || null,
+          // Staging profiles.display_name is NOT NULL; blank is allowed.
+          // Sending null used to reject the entire edit, including profile links.
+          display_name: cleanDisplayName,
           bio: cleanBio || null,
           avatar_url: avatarUrl || null,
           profile_theme: nextTheme,
@@ -550,6 +553,7 @@ export default function EditProfile({
           }}
           onConfirm={handleCropConfirm}
           saving={photoSaving}
+          errorMessage={photoError}
         />
       )}
     </div>
