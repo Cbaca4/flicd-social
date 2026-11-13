@@ -228,7 +228,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
 
         <div className="profile-lower-grid profile-space-grid">
           <section className="card profile-section-card profile-pinned-card profile-space-panel profile-space-boards" style={sectionStyle("boards")}>
-            <div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><h2 style={{ marginTop: 0 }}>Boards</h2><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div></div>
+            <div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}><h2 style={{ marginTop: 0 }}>Boards</h2><div className="row" style={{ gap: 8 }}><button type="button" className="btn" onClick={onOpenBoards} aria-label="View all Boards">View all Boards <ChevronRight size={15} /></button><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div></div></div>
             {pinnedBoards.length > 0 ? <div className="profile-pinned-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="profile-empty-board" onClick={onCustomizeBoards || onOpenBoards}><Plus size={18} /><span>Pin a Board</span></button>}
           </section>
 
