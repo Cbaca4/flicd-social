@@ -4,7 +4,7 @@ import {Heart,MessageCircle,Eye,Bookmark,Bell,Mic,Video,Music2,MapPin,Volume2,Vo
 import {EmptyState} from '../../components/shared/States.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
 import { getDumpItemMediaUrl, resolveDumpItemMediaUrl, PRIVATE_DUMP_MEDIA_BUCKET } from './mediaUrl.js';
-import { createOnceMediaSession } from './mediaSessionApi.js';
+import { createOnceMediaSession, createOwnerMediaSession } from './mediaSessionApi.js';
 import { createVoiceCommentRecorder } from '../social/voiceCommentRecorder.js';
 import { getCommentMediaUrl } from '../social/commentMediaUrl.js';
 import { getCurrentUserId } from '../social/socialApi.js';
@@ -297,6 +297,7 @@ export function DumpCard({
   onLike,
   onCommentOpen,
   onKeep,
+  currentUserId = null,
   likePending = false,
 }) {
   const [musicMuted, setMusicMuted] = React.useState(false);
@@ -354,7 +355,8 @@ export function DumpCard({
 
   const expired = timeLeft(post) === "expired";
   const viewOnceLocked = post.mode === "once";
-  const alreadyViewed = viewOnceLocked && Boolean(post.viewed);
+  const ownOnce = viewOnceLocked && Boolean(currentUserId && post.authorId === currentUserId);
+  const alreadyViewed = viewOnceLocked && !ownOnce && Boolean(post.viewed);
   const firstItem = (post.items || []).find((item) => item?.imageUrl || item?.imagePath);
   // A view-once feed card has no raw media source. Render its private placeholder.
   const firstImage = useDumpMediaUrl(firstItem, !viewOnceLocked);
@@ -375,7 +377,7 @@ export function DumpCard({
             className="post-media-open-hitarea"
             onClick={() => onOpen?.(post)}
             disabled={expired}
-            aria-label={alreadyViewed ? "Open already viewed once post" : "Open post"}
+            aria-label={ownOnce ? "Open your view-once post" : alreadyViewed ? "Open already viewed once post" : "Open post"}
           />
           {firstImage && (
             <img
@@ -393,17 +395,17 @@ export function DumpCard({
           )}
           <PostMetadataOverlay post={post} onToggleMusic={toggleFeedMusic} musicMuted={musicMuted} musicPlaying={musicPlaying} />
           {viewOnceLocked && (
-            <div className="view-once-feed-overlay" aria-label={alreadyViewed ? "Already viewed once" : "View once"}>
+            <div className="view-once-feed-overlay" aria-label={ownOnce ? "Your view-once post" : alreadyViewed ? "Already viewed once" : "View once"}>
               <Eye size={20} />
-              <strong>{alreadyViewed ? "Already viewed once" : "View once"}</strong>
-              <span>{alreadyViewed ? "This image stays blurred." : "Tap to open once"}</span>
+              <strong>{ownOnce ? "Your view-once post" : alreadyViewed ? "Already viewed once" : "View once"}</strong>
+              <span>{ownOnce ? "You can reopen this post while it exists." : alreadyViewed ? "This image stays blurred." : "Tap to open once"}</span>
             </div>
           )}
           <div className="post-feed-status" style={{ position: "absolute", top: 12, left: 12, right: 12, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "auto" }}>
             <span className="tag">{post.mood}</span>
             <span className="tag flicd-mono" style={{ color: post.mode === "once" ? "var(--danger)" : "var(--amber)" }}>
               {post.mode === "once" && <Eye size={11} style={{ marginRight: 4 }} />}
-              {alreadyViewed ? "already viewed" : timeLeft(post)}
+              {ownOnce ? "your post" : alreadyViewed ? "already viewed" : timeLeft(post)}
             </span>
           </div>
         </div>
@@ -450,7 +452,7 @@ export function DumpCard({
     </article>
   );
 }
-export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKeep,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
+export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKeep,currentUserId=null,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
   const visible=dumps.filter(d=>d.channel===activeSpace.id);
 
   if(loading){
@@ -470,7 +472,7 @@ export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKe
         {notificationsUnread>0&&<span className="nav-unread-badge">{notificationsUnread>9?"9+":notificationsUnread}</span>}
       </button>
     </div>
-    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} onKeep={onKeep} likePending={pendingLikeIds.has(p.id)}/>)}</div>
+    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} onKeep={onKeep} currentUserId={currentUserId} likePending={pendingLikeIds.has(p.id)}/>)}</div>
   </div>;
 }
 
@@ -525,11 +527,14 @@ export function Viewer(props){
 
 function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
   const account=useAccountScope();
+  // An exact owner identity only selects the UI path. The gateway verifies
+  // the signed-in owner's identity against the persisted Dump for every frame.
+  const isOwnOnce = post.mode === "once" && Boolean(currentUserId && post.authorId === currentUserId);
   const [text,setText]=React.useState('');
   const [index,setIndex]=React.useState(0);
   const [commentsOpen,setCommentsOpen]=React.useState(Boolean(initialCommentsOpen));
   // Parent view acknowledgements must not relock a reveal in this session.
-  const [onceViewedAtOpen]=React.useState(()=>Boolean(post.mode === "once" && post.viewed));
+  const [onceViewedAtOpen]=React.useState(()=>Boolean(post.mode === "once" && post.viewed && !isOwnOnce));
   const [recording,setRecording]=React.useState(false);
   const [voiceReviewBlob,setVoiceReviewBlob]=React.useState(null);
   const [voiceReviewUrl,setVoiceReviewUrl]=React.useState('');
@@ -545,7 +550,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [musicMuted,setMusicMuted]=React.useState(false);
   const [musicPlaying,setMusicPlaying]=React.useState(false);
   const [viewerLocation,setViewerLocation]=React.useState(null);
-  const [revealedOnce,setRevealedOnce]=React.useState(post.mode !== "once" || Boolean(post.viewed));
+  const [revealedOnce,setRevealedOnce]=React.useState(post.mode !== "once" || isOwnOnce);
   const [unlockedMediaUrls,setUnlockedMediaUrls]=React.useState(null);
   const [sessionItems,setSessionItems]=React.useState(null);
   const [sessionEnded,setSessionEnded]=React.useState(false);
@@ -562,7 +567,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
   const mountedRef=React.useRef(true);
   const revealPendingRef=React.useRef(false);
-  const onceLocked=onceViewedAtOpen || sessionEnded || Boolean(post.mode === "once" && post.viewed && !revealedOnce && !claimedHere);
+  const onceLocked=!isOwnOnce && (onceViewedAtOpen || sessionEnded || Boolean(post.mode === "once" && post.viewed && !revealedOnce && !claimedHere));
   const viewerPost = post.mode === "once"
     ? { ...post, items: (sessionItems || (post.items?.length ? post.items : [{}])).map((item, itemIndex) => ({
         ...item,
@@ -576,6 +581,28 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     mountedRef.current=true;
     return () => { mountedRef.current=false; void mediaSessionRef.current?.close(); };
   }, []);
+
+  React.useEffect(() => {
+    if (!isOwnOnce) return undefined;
+    let active = true;
+    let page;
+    try {
+      page = createOwnerMediaSession(post.items || [], { authScope: account.capture() });
+      mediaSessionRef.current = page;
+      void page.loadFrames().then((urls) => {
+        if (active && account.isCurrent()) setUnlockedMediaUrls(urls);
+      }).catch(() => {
+        if (active && account.isCurrent()) setUnlockError("Your original photos could not be loaded.");
+      });
+    } catch {
+      if (account.isCurrent()) setUnlockError("Your original photos could not be loaded.");
+    }
+    return () => {
+      active = false;
+      void page?.close();
+      if (mediaSessionRef.current === page) mediaSessionRef.current = null;
+    };
+  }, [isOwnOnce, post.id, post.items, account]);
   const closeViewer=React.useCallback(() => {
     void mediaSessionRef.current?.close();
     onClose?.();
@@ -906,7 +933,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             revealedOnce={revealedOnce}
             onceViewedAtOpen={onceLocked}
             onReveal={async () => {
-              if (post.mode !== "once" || onceLocked || revealedOnce || revealPendingRef.current) return;
+              if (post.mode !== "once" || isOwnOnce || onceLocked || revealedOnce || revealPendingRef.current) return;
               revealPendingRef.current=true;
               setUnlockingOnce(true);
               setUnlockError('');
