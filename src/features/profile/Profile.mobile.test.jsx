@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
@@ -27,6 +27,26 @@ vi.mock("../social/socialApi.js", () => ({
 }));
 
 describe("handheld profile layout", () => {
+  it("opens the complete Boards library directly from the profile even when no Boards are pinned", () => {
+    const onOpenBoards = vi.fn();
+    const onCustomizeBoards = vi.fn();
+    render(
+      <Profile
+        profile={{ handle: "baco", followers: 0, following: 0 }}
+        activeSpace={{ handle: "baco" }}
+        theme={DEFAULT_THEME}
+        boards={[{ id: "saved", name: "Saved", pinned: false }, { id: "trips", name: "Trips", pinned: false }]}
+        onOpenBoards={onOpenBoards}
+        onCustomizeBoards={onCustomizeBoards}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "View all Boards" }));
+    expect(onOpenBoards).toHaveBeenCalledTimes(1);
+    expect(onCustomizeBoards).not.toHaveBeenCalled();
+  });
+
+
   it("keeps profile actions in a dedicated responsive action group and renders the bio", () => {
     render(
       <Profile
