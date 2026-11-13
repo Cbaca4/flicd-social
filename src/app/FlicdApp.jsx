@@ -758,6 +758,7 @@ function AccountApp({ session, authScope }) {
     content = <Home
       dumps={dumps}
       activeSpace={activeSpace}
+      currentUserId={session.user.id}
       loading={feedState.status === "loading"}
       error={feedState.status === "error" ? feedState.error : ""}
       onRetry={loadDumps}
