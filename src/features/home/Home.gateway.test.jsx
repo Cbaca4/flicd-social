@@ -5,15 +5,15 @@ import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
 import {act,cleanup,fireEvent,screen,waitFor} from '@testing-library/react';
 import { renderAccount } from '../../../tests/security/renderAccount.jsx';
 const render = (ui, options) => renderAccount(ui, 'viewer', options);
-const {factory,sign,claim,frames,close}=vi.hoisted(()=>({factory:vi.fn(),sign:vi.fn(async()=> 'https://old-signer.invalid/image'),claim:vi.fn(),frames:vi.fn(),close:vi.fn()}));
-vi.mock('./mediaSessionApi.js',()=>({createOnceMediaSession:factory}));
+const {factory,ownerFactory,ownerFrames,sign,claim,frames,close}=vi.hoisted(()=>({factory:vi.fn(),ownerFactory:vi.fn(),ownerFrames:vi.fn(),sign:vi.fn(async()=> 'https://old-signer.invalid/image'),claim:vi.fn(),frames:vi.fn(),close:vi.fn()}));
+vi.mock('./mediaSessionApi.js',()=>({createOnceMediaSession:factory,createOwnerMediaSession:ownerFactory}));
 vi.mock('./mediaUrl.js',()=>({PRIVATE_DUMP_MEDIA_BUCKET:'flicd-dump-private',getDumpItemMediaUrl:()=>null,resolveDumpItemMediaUrl:sign}));
 vi.mock('../social/socialApi.js',()=>({getCurrentUserId:async()=> 'viewer'}));
 vi.mock('../seasonal/SeasonalOverlay.jsx',()=>({default:()=>null}));
 import Home,{Viewer} from './Home.jsx';
 const post={id:'once',channel:'main',author:'owner',mode:'once',viewed:false,postedMinutesAgo:0,likes:0,comments:[],items:[{id:'frame',note:'Private frame',imagePath:'owner/private.png',mediaBucket:'flicd-dump-private'}]};
 const receipt={status:'claimed',claim_id:'10000000-0000-4000-8000-000000000001',items:[{id:'frame',note:'Private frame',position:0}]};
-beforeEach(()=>{vi.clearAllMocks();claim.mockResolvedValue(receipt);frames.mockResolvedValue(['blob:private-frame']);close.mockResolvedValue();factory.mockReturnValue({claim,loadFrames:frames,close});});
+beforeEach(()=>{vi.clearAllMocks();claim.mockResolvedValue(receipt);frames.mockResolvedValue(['blob:private-frame']);ownerFrames.mockResolvedValue(['blob:owner-frame']);close.mockResolvedValue();factory.mockReturnValue({claim,loadFrames:frames,close});ownerFactory.mockReturnValue({loadFrames:ownerFrames,close});});
 afterEach(cleanup);
 describe('View Once trusted React boundary',()=>{
  it('allows own 24-hour photos with Keep off but never allows a View Once owner shortcut',()=>{
@@ -21,6 +21,37 @@ describe('View Once trusted React boundary',()=>{
   expect(screen.getByRole('button',{name:'Keep'})).toBeEnabled();
   rerender(<Viewer post={{...post,authorId:'owner',allowOthersToKeep:true}} currentUserId='owner'/>);
   expect(screen.getByRole('button',{name:'Keep unavailable'})).toBeDisabled();
+ });
+ it('lets the owner reopen their own view-once photo even after a viewed flag without consuming a one-time claim',async()=>{
+  const ownPost={...post,authorId:'owner'};
+  const onMarkViewed=vi.fn();
+  const first=renderAccount(<Viewer post={ownPost} currentUserId='owner' onMarkViewed={onMarkViewed}/>, 'owner');
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
+  expect(ownerFactory).toHaveBeenCalledWith(ownPost.items,expect.objectContaining({authScope:expect.any(Object)}));
+  expect(factory).not.toHaveBeenCalled();
+  expect(onMarkViewed).not.toHaveBeenCalled();
+  first.unmount();
+  ownerFrames.mockClear();
+  renderAccount(<Viewer post={{...ownPost,viewed:true}} currentUserId='owner' onMarkViewed={onMarkViewed}/>, 'owner');
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
+  expect(ownerFrames).toHaveBeenCalledOnce();
+  expect(factory).not.toHaveBeenCalled();
+  expect(onMarkViewed).not.toHaveBeenCalled();
+ });
+ it('still locks an already-consumed non-owner view-once post without loading frames',()=>{
+  render(<Viewer post={{...post,viewed:true,authorId:'owner'}} currentUserId='viewer' onMarkViewed={vi.fn()}/>);
+  expect(screen.getByText('Already viewed once')).toBeInTheDocument();
+  expect(screen.queryByRole('button',{name:'Tap to view once'})).not.toBeInTheDocument();
+  expect(ownerFactory).not.toHaveBeenCalled();
+  expect(factory).not.toHaveBeenCalled();
+ });
+ it('labels the creator feed entry as re-openable without revealing media bytes in the feed',()=>{
+  const open=vi.fn();
+  render(<Home dumps={[{...post,authorId:'owner',viewed:true}]} activeSpace={{id:'main'}} currentUserId='owner' onOpen={open}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Open your view-once post'}));
+  expect(open).toHaveBeenCalledWith(expect.objectContaining({id:'once'}));
+  expect(ownerFactory).not.toHaveBeenCalled();
+  expect(screen.queryAllByRole('img')).toHaveLength(0);
  });
  it('does not treat a missing other-user Keep opt-in as permission',()=>{
   render(<Viewer post={{...post,mode:'24h',allowOthersToKeep:undefined}} currentUserId='viewer'/>);
