@@ -16,7 +16,7 @@ it.each(['likeDump','unlikeDump','addComment','setPrivateAccount','uploadComment
 });
 it('does not insert photos or tags, or run cleanup with replacement credentials after a deferred post insert',async()=>{
  m.getUser.mockResolvedValue({data:{user:{id:'A'}},error:null});let finish;
- m.from.mockReturnValueOnce({insert:()=>({select:()=>({single:()=>new Promise(resolve=>{finish=resolve;})})})});
+ m.from.mockReturnValueOnce({insert:()=>new Promise(resolve=>{finish=resolve;})});
  const {createDump}=await import('../capture/dumpApi.js');let active=true;
  const pending=createDump({items:[{imagePath:'A/private.jpg'}],taggedUserIds:['friend']},testAuthScope('A',()=>active)).catch(e=>e);
  await vi.waitFor(()=>expect(finish).toBeTypeOf('function'));active=false;finish({data:{id:'A-post'},error:null});
@@ -24,7 +24,7 @@ it('does not insert photos or tags, or run cleanup with replacement credentials 
 });
 it.each(['dump_items','dump_tags'])('does not continue or clean up after a stale rejected %s stage',async stage=>{
  m.getUser.mockResolvedValue({data:{user:{id:'A'}},error:null});let finish;
- m.from.mockImplementation(table=>table==='dumps'?{insert:()=>({select:()=>({single:async()=>({data:{id:'A-post'},error:null})})})}:{insert:()=>table===stage?new Promise(resolve=>{finish=resolve;}):Promise.resolve({error:null})});
+ m.from.mockImplementation(table=>table==='dumps'?{insert:async()=>({error:null}),select:()=>({eq:()=>({single:async()=>({data:{id:'A-post'},error:null})})})}:{insert:()=>table===stage?new Promise(resolve=>{finish=resolve;}):Promise.resolve({error:null})});
  const {createDump}=await import('../capture/dumpApi.js');let active=true;
  const pending=createDump({items:[{imagePath:'A/private.jpg'}],taggedUserIds:['friend']},testAuthScope('A',()=>active)).catch(e=>e);
  await vi.waitFor(()=>expect(finish).toBeTypeOf('function'));active=false;finish({error:new Error('old stage failure')});
@@ -34,7 +34,7 @@ it.each(['createDump','createBoard','getOrCreateDefaultBoard'])('%s preserves a 
  m.getUser.mockResolvedValue({data:{user:{id:'A'}},error:null});const context=testAuthScope('A');
  const api=name==='createDump'?await import('../capture/dumpApi.js'):await import('../profile/boardApi.js');
  await expect(api[name](...(name==='getOrCreateDefaultBoard'?[context]:[{name:'A Board',context:'A draft'},context]))).resolves.not.toBeInstanceOf(Error);
- expect(m.from).toHaveBeenCalledTimes(1);
+ expect(m.from).toHaveBeenCalledTimes(name==='createDump'?2:1);
 });
 it.each(['likeDump','unlikeDump','addComment','setPrivateAccount','uploadCommentMedia'])('%s preserves legitimate same-generation operations',async name=>{
  m.getUser.mockResolvedValue({data:{user:{id:'A'}},error:null});const context=testAuthScope('A');
