@@ -43,9 +43,14 @@ export async function createDump({
   const userId = await getCurrentUserId();
   scope.assertUser(userId);
 
-  const { data: dump, error: dumpError } = await client
+  // The restrictive SELECT policy resolves visibility through the persisted
+  // dump id. INSERT ... RETURNING cannot see that row through the lookup yet,
+  // so create it without a representation and read it in a separate request.
+  const dumpId = crypto.randomUUID();
+  const { error: dumpError } = await client
     .from("dumps")
     .insert({
+      id: dumpId,
       user_id: userId,
       space_id: spaceId,
       type,
@@ -71,7 +76,7 @@ export async function createDump({
 
   const dumpItems = items.map((item, index) => ({
       id: crypto.randomUUID(),
-      dump_id: dump.id,
+      dump_id: dumpId,
       position: index,
       note: item.note || "",
       image_path: item.imagePath || null,
@@ -84,7 +89,7 @@ export async function createDump({
 
     assertCurrent();
     if (itemsError) {
-      await client.from("dumps").delete().eq("id", dump.id);
+      await client.from("dumps").delete().eq("id", dumpId);
       throw itemsError;
     }
   }
@@ -99,17 +104,29 @@ export async function createDump({
     const { error: tagsError } = await client
       .from("dump_tags")
       .insert(cleanTagIds.map((taggedUserId) => ({
-        dump_id: dump.id,
+        dump_id: dumpId,
         tagged_user_id: taggedUserId,
         tagged_by_user_id: userId,
       })));
 
     assertCurrent();
     if (tagsError) {
-      await client.from("dumps").delete().eq("id", dump.id);
+      await client.from("dumps").delete().eq("id", dumpId);
       throw tagsError;
     }
   }
+
+  // A second request gets a fresh snapshot, preserving the existing SELECT
+  // policy and the exact persisted row expected by the rest of the app.
+  const { data: dump, error: readError } = await client
+    .from("dumps")
+    .select("*")
+    .eq("id", dumpId)
+    .single();
+
+  assertCurrent();
+  if (readError) throw readError;
+  if (!dump) throw new Error("The published Dump could not be verified.");
 
   return { ...dump, dump_items: dumpItems };
 }
