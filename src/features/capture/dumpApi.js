@@ -65,9 +65,7 @@ export async function createDump({
       location_lat: Number.isFinite(Number(location?.latitude)) ? Number(location.latitude) : null,
       location_lng: Number.isFinite(Number(location?.longitude)) ? Number(location.longitude) : null,
       location_place_id: location?.placeId || null,
-    })
-    .select()
-    .single();
+    });
 
   assertCurrent();
   if (dumpError) {
