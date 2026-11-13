@@ -16,6 +16,39 @@ function fixture() {
 }
 afterEach(()=>{vi.useRealTimers();vi.restoreAllMocks();});
 describe('browser media protocol',()=>{
+ it('serves reusable owner views without any claim, revokes bytes when closing, and permits another owner session',async()=>{
+  const f=fixture(),scope=testAuthScope('viewer'),items=[{id:dumpId}];
+  const first=f.api.createOwnerSession(items,{authScope:scope});
+  expect(f.fetchImpl).not.toHaveBeenCalled();
+  expect(await first.loadFrames()).toEqual(['blob:local-frame']);
+  expect(f.fetchImpl.mock.calls[0][0]).toBe('http://127.0.0.1:9339/media/owner/frame');
+  expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body)).toEqual({itemId:dumpId});
+  expect(f.fetchImpl.mock.calls.some(([url])=>url.includes('/once/'))).toBe(false);
+  await first.close();
+  expect(f.objectUrls.revokeObjectURL).toHaveBeenCalledWith('blob:local-frame');
+  const second=f.api.createOwnerSession(items,{authScope:scope});
+  expect(await second.loadFrames()).toEqual(['blob:local-frame']);
+  expect(f.fetchImpl.mock.calls.filter(([url])=>url.endsWith('/owner/frame'))).toHaveLength(2);
+  await second.close();
+ });
+ it('rejects owner frame reads after a page closes before the response without creating an object URL',async()=>{
+  const f=fixture(),scope=testAuthScope('viewer');
+  let resolve;
+  f.fetchImpl.mockImplementationOnce(()=>new Promise(done=>{resolve=done;}));
+  const page=f.api.createOwnerSession([{id:dumpId}],{authScope:scope});
+  const pending=page.loadFrames();
+  await vi.waitFor(()=>expect(resolve).toBeTypeOf('function'));
+  await page.close();
+  resolve(new Response(new Uint8Array([137,80,78,71]),{headers:{'Content-Type':'image/png'}}));
+  await expect(pending).rejects.toThrow('ended');
+  expect(f.objectUrls.createObjectURL).not.toHaveBeenCalled();
+ });
+ it('does not create an owner capability for missing or invalid frame identities',()=>{
+  const f=fixture(),scope=testAuthScope('viewer');
+  expect(()=>f.api.createOwnerSession([{id:'not-a-uuid'}],{authScope:scope})).toThrow('identities');
+  expect(()=>f.api.createOwnerSession([], {authScope:scope})).toThrow('identities');
+  expect(f.fetchImpl).not.toHaveBeenCalled();
+ });
  it('rejects an acknowledgement for another post without requesting its media',async()=>{
   const f=fixture();f.fetchImpl.mockResolvedValueOnce(json({...receipt,dump_id:claimId}));
   const page=f.api.createOnceSession(dumpId);await expect(page.claim()).rejects.toThrow('acknowledgement');expect(f.objectUrls.createObjectURL).not.toHaveBeenCalled();await page.close();
