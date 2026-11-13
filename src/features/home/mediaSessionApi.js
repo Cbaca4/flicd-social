@@ -40,6 +40,55 @@ export function createMediaApi({ origin, getSession, fetchImpl = fetch, objectUr
   return {
     json,
     blob: async (route, body, options) => (await request(route, body, { ...options, binary: true })).data,
+    // Owners use a separate server-authorized route, not a View Once claim.
+    // Every page owns short-lived blob URLs; none survive navigation or sign-out.
+    createOwnerSession(items, { authScope } = {}) {
+      const scope = captureAuthScope(authScope);
+      const ids = Array.isArray(items) ? items.map(item => item?.id) : [];
+      if (!ids.length || ids.some(id => !UUID.test(id)) || new Set(ids).size !== ids.length) {
+        throw new Error("Valid original photo identities are required.");
+      }
+      let closed = false, frameUrls = null, pending = null;
+      const urls = new Set();
+      const revoke = () => { for (const url of urls) objectUrls.revokeObjectURL(url); urls.clear(); frameUrls = null; };
+      const pagehide = () => { void page.close(); };
+      const page = {
+        get closed() { return closed; },
+        async loadFrames() {
+          if (closed || !scope.isCurrent()) throw new Error("This viewing session has ended.");
+          if (frameUrls) return frameUrls;
+          if (pending) return pending;
+          pending = (async () => {
+            const created = [];
+            const results = await Promise.allSettled(ids.map(async (itemId) => {
+              const result = await request("owner/frame", { itemId }, { binary: true, authScope: scope, isCurrent: () => !closed });
+              if (closed || !scope.isCurrent()) throw new Error("This viewing session has ended.");
+              const url = objectUrls.createObjectURL(result.data);
+              urls.add(url); created.push(url);
+              return url;
+            }));
+            const failure = results.find(result => result.status === "rejected");
+            if (failure || closed || !scope.isCurrent()) {
+              for (const url of created) { objectUrls.revokeObjectURL(url); urls.delete(url); }
+              throw failure?.reason || new Error("This viewing session has ended.");
+            }
+            frameUrls = results.map(result => result.value);
+            return frameUrls;
+          })().finally(() => { pending = null; });
+          return pending;
+        },
+        async close() {
+          if (closed) return;
+          closed = true;
+          revoke();
+          activePages.delete(page);
+          if (typeof window !== "undefined") window.removeEventListener("pagehide", pagehide);
+        },
+      };
+      activePages.add(page);
+      if (typeof window !== "undefined") window.addEventListener("pagehide", pagehide);
+      return page;
+    },
     createOnceSession(dumpId, { onEnded = () => {}, authScope } = {}) {
       const scope = captureAuthScope(authScope);
       const pageSecret = freshSecret(), attemptId = crypto.randomUUID();
@@ -135,5 +184,6 @@ export const mediaApi = createMediaApi({
     return data?.session || null;
   },
 });
+export const createOwnerMediaSession = (items, options) => mediaApi.createOwnerSession(items, options);
 export const createOnceMediaSession = (dumpId, options) => mediaApi.createOnceSession(dumpId, options);
 export const closeAllMediaSessions = () => Promise.allSettled(Array.from(activePages, (page) => page.close()));
