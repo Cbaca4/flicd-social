@@ -10,6 +10,7 @@ export const DEFAULT_THEME = {
   background: "#17191e",
   backgroundStyle: "solid",
   backgroundMedia: null,
+  adaptiveTheme: true,
   accent: "#ffb52e",
   cardOpacity: 0.94,
   radius: 22,
@@ -151,6 +152,7 @@ export function sanitizeProfileTheme(input = {}) {
   t.showBoards = Boolean(t.showBoards);
   t.showInterests = Boolean(t.showInterests);
   t.showMusic = Boolean(t.showMusic);
+  t.adaptiveTheme = t.adaptiveTheme !== false;
   t.profileLinks = sanitizeProfileLinks(t.profileLinks);
 
   t.backgroundMedia = normalizeBackgroundMedia(t.backgroundMedia);
