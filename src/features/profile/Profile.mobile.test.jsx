@@ -217,7 +217,7 @@ describe("handheld profile layout", () => {
       theme={{ ...DEFAULT_THEME, backgroundMedia }} boards={[]} />);
     const hero = document.querySelector(".profile-space-hero");
     expect(hero.style.background).toContain("linear-gradient");
-    expect(screen.getByRole("img", { hidden: true, name: "" })).toHaveAttribute("src", backgroundMedia.url);
+    expect(document.querySelector(".profile-background-media img")).toHaveAttribute("src", backgroundMedia.url);
 
     rerender(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
       theme={{
