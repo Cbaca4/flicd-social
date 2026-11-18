@@ -211,6 +211,26 @@ describe("handheld profile layout", () => {
     );
   });
 
+  it("uses the saved background photo behind the immersive hero without overriding custom section media", () => {
+    const backgroundMedia = { url: "https://cdn.example/sunset.jpg", type: "image", positionX: 30, positionY: 60, scale: 1.2 };
+    const { rerender } = render(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
+      theme={{ ...DEFAULT_THEME, backgroundMedia }} boards={[]} />);
+    const hero = document.querySelector(".profile-space-hero");
+    expect(hero.style.background).toContain("linear-gradient");
+    expect(screen.getByRole("img", { hidden: true, name: "" })).toHaveAttribute("src", backgroundMedia.url);
+
+    rerender(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
+      theme={{
+        ...DEFAULT_THEME,
+        backgroundMedia,
+        sectionStyles: {
+          ...DEFAULT_THEME.sectionStyles,
+          hero: { ...DEFAULT_THEME.sectionStyles.hero, backgroundMedia: { url: "https://cdn.example/custom-header.jpg" } },
+        },
+      }} boards={[]} />);
+    expect(hero.style.background).toContain("custom-header.jpg");
+  });
+
   it("renders background framing controls without the removed identity controls", () => {
     render(
       <ProfileStudio
