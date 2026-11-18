@@ -87,10 +87,22 @@ describe("getFeedDumps", () => {
     ]);
   });
 
-  it("does not globally retire once metadata or apply the ordinary 24-hour cutoff to it", async () => {
-    const query = createQuery({ data: [{ id: "old-once", expiry: "once", once_viewed_at: "2020-01-01", created_at: "2020-01-01" }, { id: "expired", expiry: "24h", created_at: "2020-01-01" }], error: null });
-    from.mockImplementationOnce(() => query).mockImplementationOnce(() => createQuery({ data: [], error: null }));
-    await expect(getFeedDumps()).resolves.toEqual([{ id: "old-once", expiry: "once", once_viewed_at: "2020-01-01", created_at: "2020-01-01", viewed: false }]);
+  it("removes expired 24h and once cards from the active feed but retains fresh consumed metadata", async () => {
+    const old = "2020-01-01T00:00:00Z";
+    const fresh = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const query = createQuery({data:[
+      {id:"old-once",expiry:"once",created_at:old},
+      {id:"old-ordinary",expiry:"24h",created_at:old},
+      {id:"fresh-once",expiry:"once",created_at:fresh},
+      {id:"fresh-ordinary",expiry:"24h",created_at:fresh},
+    ],error:null});
+    from.mockImplementationOnce(() => query).mockImplementationOnce(
+      () => createQuery({data:[{dump_id:"fresh-once"}],error:null}),
+    );
+    await expect(getFeedDumps()).resolves.toEqual([
+      {id:"fresh-once",expiry:"once",created_at:fresh,viewed:true},
+      {id:"fresh-ordinary",expiry:"24h",created_at:fresh},
+    ]);
   });
 
   it("returns a useful error when the feed query fails", async () => {

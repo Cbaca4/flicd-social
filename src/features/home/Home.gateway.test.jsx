@@ -105,6 +105,16 @@ describe('View Once trusted React boundary',()=>{
   expect(claim).toHaveBeenCalledOnce();expect(acknowledged).toHaveBeenCalledWith('once',receipt);expect(sign).not.toHaveBeenCalled();
   expect(claim.mock.invocationCallOrder[0]).toBeLessThan(frames.mock.invocationCallOrder[0]);
  });
+ it('recovers when an earlier local image blob fails but the next authorized blob changes',async()=>{
+  const oldPost={...post,mode:'24h',items:[{id:'frame',note:'Private frame',imagePath:null,imageUrl:'blob:old-invalid'}]};
+  const {rerender}=render(<Viewer post={oldPost} currentUserId='viewer'/>);
+  const previous=screen.getByRole('img',{name:'Private frame'});
+  fireEvent.error(previous);
+  expect(screen.queryByRole('img',{name:'Private frame'})).not.toBeInTheDocument();
+  rerender(<Viewer post={{...oldPost,items:[{...oldPost.items[0],imageUrl:'blob:new-valid'}]}} currentUserId='viewer'/>);
+  expect(screen.getByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:new-valid');
+ });
+
  it('keeps every byte request behind the confirmed acknowledgement and retains its visible pending overlay',async()=>{
   let confirm;const acknowledge=vi.fn(()=>new Promise(resolve=>{confirm=resolve;}));
   render(<Viewer post={post} currentUserId='viewer' onMarkViewed={acknowledge}/>);fireEvent.click(screen.getByRole('button',{name:'Tap to view once'}));
