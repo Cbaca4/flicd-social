@@ -715,11 +715,13 @@ export default function Boards({
       setActiveItems(items);
     } catch (error) {
       if (!account.isCurrent() || generation !== requestVersion.current) return;
-      console.error(error);
-      onToast?.(
-        error.message ||
-          "Could not open Board."
-      );
+      // Never pretend a Board is empty if its secure media list failed.
+      activeBoardIdRef.current = null;
+      setActiveBoard(null);
+      setActiveItems([]);
+      setLibraryError(`Saved photos could not load (${error.message || "media unavailable"}). Your Boards are still available; check the media connection and retry.`);
+      console.error("Failed to open saved photos:", error);
+      onToast?.(error.message || "Could not open Board.");
     }
   }
 
