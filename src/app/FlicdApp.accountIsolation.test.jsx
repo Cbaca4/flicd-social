@@ -76,6 +76,13 @@ describe('account-generation async isolation',()=>{
  it('saves Profile Studio backgrounds with a PostgREST thenable that has no .catch method',async()=>{
   m.updateProfile.mockImplementationOnce((id,values)=>({
     then(resolve,reject){
+      // Mimic PostgREST rejecting fields absent from the real staging schema.
+      if (Object.prototype.hasOwnProperty.call(values, 'updated_at')) {
+        return Promise.resolve({
+          data:null,
+          error:{code:'PGRST204',message:"Could not find the 'updated_at' column of 'profiles' in the schema cache"},
+        }).then(resolve,reject);
+      }
       return Promise.resolve({
         data:{id,username:id,profile_theme:values.profile_theme},
         error:null,
@@ -95,7 +102,10 @@ describe('account-generation async isolation',()=>{
   expect(m.updateProfile).toHaveBeenCalledOnce();
   const [id,payload]=m.updateProfile.mock.calls[0];
   expect(id).toBe('A');
-  expect(payload.profile_theme.backgroundMedia.url).toBe('https://cdn.example.com/profile/background.png');
+  expect(payload).toEqual({profile_theme:expect.objectContaining({
+    backgroundMedia:expect.objectContaining({url:'https://cdn.example.com/profile/background.png'}),
+  })});
+  expect(payload).not.toHaveProperty('updated_at');
   expect(screen.getByTestId('shell')).toHaveAttribute('data-screen','profile');
   expect(m.ui.profile.theme.backgroundMedia.url).toBe('https://cdn.example.com/profile/background.png');
  });
