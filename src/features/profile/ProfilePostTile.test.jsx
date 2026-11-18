@@ -35,7 +35,7 @@ describe("ProfilePostTile media privacy", () => {
     render(<ProfilePostTile
       post={{ id: "regular-1", type: "roll", mode: "24h", items: [{ imagePath: "member/photo.jpg", mediaBucket: "flicd-dump-private" }] }}
     />);
-    await waitFor(() => expect(screen.getByRole("img", { hidden: true })).toHaveAttribute("src", "https://cdn.example/signed.jpg?token=temporary"));
+    await waitFor(() => expect(document.querySelector(".profile-gallery-thumbnail")).toHaveAttribute("src", "https://cdn.example/signed.jpg?token=temporary"));
     expect(resolveDumpItemMediaUrl).toHaveBeenCalledWith({
       imagePath: "member/photo.jpg",
       mediaBucket: "flicd-dump-private",
