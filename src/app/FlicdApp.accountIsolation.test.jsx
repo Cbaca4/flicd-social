@@ -73,6 +73,49 @@ describe('account-generation async isolation',()=>{
  it('late comment and acknowledgement results cannot affect a replacement account Viewer/feed',async()=>{
   const comment=deferred(),ack=deferred();m.comment.mockReturnValueOnce(comment.promise);m.ack.mockReturnValueOnce(ack.promise);await start();act(()=>m.ui.home.onOpen(m.ui.home.dumps[0]));let c,a;act(()=>{c=m.ui.viewer.onComment('feed-A','private comment');a=m.ui.viewer.onMarkViewed('feed-A',{}).catch(e=>e);});await switched(true);await act(async()=>{comment.resolve({id:'old-comment',text:'private comment'});ack.resolve(true);await c;await a;});expect(screen.queryByTestId('viewer')).not.toBeInTheDocument();await nav('home');expect(m.ui.home.dumps[0].comments).toEqual([]);expect(m.ui.home.dumps[0].viewed).toBe(false);
  });
+ it('saves Profile Studio backgrounds with a PostgREST thenable that has no .catch method',async()=>{
+  m.updateProfile.mockImplementationOnce((id,values)=>({
+    then(resolve,reject){
+      return Promise.resolve({
+        data:{id,username:id,profile_theme:values.profile_theme},
+        error:null,
+      }).then(resolve,reject);
+    },
+  }));
+  await start();
+  await nav('profile-settings');
+  await act(async()=>m.ui.studio.onSaved({
+    accent:'#123456',
+    backgroundMedia:{
+      url:'https://cdn.example.com/profile/background.png',
+      type:'image',
+      mimeType:'image/png',
+    },
+  }));
+  expect(m.updateProfile).toHaveBeenCalledOnce();
+  const [id,payload]=m.updateProfile.mock.calls[0];
+  expect(id).toBe('A');
+  expect(payload.profile_theme.backgroundMedia.url).toBe('https://cdn.example.com/profile/background.png');
+  expect(screen.getByTestId('shell')).toHaveAttribute('data-screen','profile');
+  expect(m.ui.profile.theme.backgroundMedia.url).toBe('https://cdn.example.com/profile/background.png');
+ });
+
+ it('surfaces an active Profile Studio database rejection from a thenable without .catch',async()=>{
+  m.updateProfile.mockImplementationOnce(()=>({
+    then(_resolve,reject){return Promise.reject(new Error('Database write failed')).then(_resolve,reject);},
+  }));
+  await start();
+  await nav('profile-settings');
+  let failure;
+  await act(async()=>{
+    try { await m.ui.studio.onSaved({accent:'#123456'}); }
+    catch(error) { failure=error; }
+  });
+  expect(failure?.message).toBe('Database write failed');
+  expect(screen.getByTestId('shell')).toHaveAttribute('data-screen','profile');
+  expect(screen.getByText('Profile Studio')).toBeInTheDocument();
+ });
+
  it('suppresses rejected stale profile persistence rather than returning a private failure to callbacks',async()=>{
   const d=deferred();m.updateProfile.mockReturnValueOnce(d.promise);await start();await nav('profile-settings');let p;act(()=>{p=m.ui.studio.onSaved({}).catch(e=>e);});await waitFor(()=>expect(m.updateProfile).toHaveBeenCalled());await switched();await act(async()=>d.reject(new Error('old-private')));expect(await p).toBeUndefined();expect(screen.getByTestId('profile')).toHaveAttribute('data-account','B');
  });
