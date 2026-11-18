@@ -1,7 +1,8 @@
 import React from "react";
 import "./ImmersiveHybrid.css";
 import useProfileAccent from "./useProfileAccent.js";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Images, Eye, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
+import ProfilePostTile from "./ProfilePostTile.jsx";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -264,17 +265,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             ) : displayedPosts.length ? (
               <div className="profile-gallery-grid">
                 {displayedPosts.map((post) => (
-                  <button type="button" className="profile-gallery-tile" key={post.id}
-                    onClick={() => onOpenPost?.(post)}
-                    aria-label={`Open ${post.type === "roll" ? "roll" : "dump"} post`}>
-                    <div className="profile-gallery-tile-art" aria-hidden="true">
-                      {post.mode === "once" ? <Eye size={26} /> : <Images size={27} />}
-                    </div>
-                    <span className="profile-gallery-tile-meta">
-                      <strong>{post.mode === "once" ? "View once" : post.type === "roll" ? "Roll" : "Dump"}</strong>
-                      <small>{post.frameCount || post.items?.length || 1} {post.frameCount === 1 ? "frame" : "frames"}</small>
-                    </span>
-                  </button>
+                  <ProfilePostTile key={post.id} post={post} onOpen={onOpenPost} />
                 ))}
               </div>
             ) : (
