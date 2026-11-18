@@ -235,7 +235,6 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           <div className="profile-right-stack profile-space-side">
             <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="profile-space-panel-heading"><h2>Switch spaces</h2></div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong className="profile-panel-primary">@{activeSpace.handle}</strong></div><ChevronRight size={17} className="muted" /></div></button>
             {theme.showMusic && <div className="profile-space-repeat-wrap"><OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} /></div>}
-            <div className="card profile-section-card profile-compact-section profile-space-panel profile-space-customize" style={sectionStyle("customize")}><div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8 }}><h2>Profile Studio</h2><Palette size={17} /></div></div><button type="button" className="btn btn-primary profile-studio-button" style={{ marginTop: 8, width: "100%" }} onClick={onCustomize}>Open Studio</button></div>
           </div>
         </div>
       </div>
