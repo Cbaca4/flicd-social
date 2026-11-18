@@ -4,6 +4,8 @@ import '@testing-library/jest-dom/vitest';
 import {afterEach,beforeEach,describe,it,expect,vi} from 'vitest';
 import {act,cleanup,fireEvent,screen,waitFor} from '@testing-library/react';
 import { renderAccount } from '../../../tests/security/renderAccount.jsx';
+import { testAuthScope } from '../../../tests/security/testAuthScope.js';
+import { captureAuthScope, createAuthBoundary } from '../../app/authScope.js';
 const render = (ui, options) => renderAccount(ui, 'viewer', options);
 const {factory,ownerFactory,ownerFrames,sign,claim,frames,close}=vi.hoisted(()=>({factory:vi.fn(),ownerFactory:vi.fn(),ownerFrames:vi.fn(),sign:vi.fn(async()=> 'https://old-signer.invalid/image'),claim:vi.fn(),frames:vi.fn(),close:vi.fn()}));
 vi.mock('./mediaSessionApi.js',()=>({createOnceMediaSession:factory,createOwnerMediaSession:ownerFactory}));
@@ -70,6 +72,37 @@ describe('View Once trusted React boundary',()=>{
   expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
   expect(factory).not.toHaveBeenCalled();
   expect(claim).not.toHaveBeenCalled();
+ });
+
+ it('uses the authoritative signed-in app generation for owner frames in Strict Mode',async()=>{
+  const appScope = testAuthScope('owner');
+  ownerFactory.mockImplementation((_items,options)=>{
+    const scope = captureAuthScope(options.authScope);
+    expect(scope.user).toBe('owner');
+    expect(scope.isCurrent()).toBe(true);
+    return {loadFrames:ownerFrames,close};
+  });
+  const ownPost={...post,authorId:'owner'};
+  renderAccount(
+    <React.StrictMode><Viewer post={ownPost} currentUserId='owner' authScope={appScope}/></React.StrictMode>,
+    'owner',
+  );
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
+  expect(ownerFactory).toHaveBeenCalled();
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
+ it('never falls back to a new account when the creator app-generation scope was invalidated',async()=>{
+  const boundary=createAuthBoundary();
+  const oldScope=boundary.accept({user:{id:'owner'},session_id:'owner-session'},'SIGNED_IN');
+  boundary.accept({user:{id:'replacement'},session_id:'replacement-session'},'SIGNED_IN');
+  renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner' authScope={oldScope}/>, 'owner');
+  expect(await screen.findByRole('alert')).toHaveTextContent('signed-in account changed');
+  expect(ownerFactory).not.toHaveBeenCalled();
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+  expect(screen.queryByRole('img',{name:'Private frame'})).not.toBeInTheDocument();
  });
 
  it('still locks an already-consumed non-owner view-once post without loading frames',()=>{
