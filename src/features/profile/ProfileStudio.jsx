@@ -667,6 +667,24 @@ export default function ProfileStudio({
               </button>
             </div>
 
+            <div className="row" style={{ marginTop: 12, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <strong>Adaptive Theme</strong>
+                <p className="subtitle" style={{ marginTop: 4 }}>
+                  Subtle profile accents can match your background photo. Flic'd branding and readable controls stay consistent.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="pill"
+                aria-label="Adaptive Theme"
+                aria-pressed={draft.adaptiveTheme}
+                onClick={() => update("adaptiveTheme", !draft.adaptiveTheme)}
+              >
+                {draft.adaptiveTheme ? "On" : "Off"}
+              </button>
+            </div>
+
             <div
               className="row"
               style={{
