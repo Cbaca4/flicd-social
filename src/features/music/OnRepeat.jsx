@@ -1,8 +1,23 @@
 import React from "react";
 import { useAccountScope } from "../../app/AuthScopeContext.js";
-import { ExternalLink, Pause, Play, Search, X } from "lucide-react";
+import { AudioLines, ExternalLink, Music2, Pause, Play, Search, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
 import { getActiveAudio, pauseAudio, playAudioUrl, resumeAudio, stopAudio } from "./audioController.js";
+
+function formatMusicTime(seconds) {
+  const safe = Number.isFinite(Number(seconds)) ? Math.max(0, Math.floor(Number(seconds))) : 0;
+  return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, "0")}`;
+}
+
+function readTrackDuration(track) {
+  if (typeof track?.duration === "number") return Math.max(0, track.duration);
+  const raw = String(track?.duration || "");
+  if (/^\d+:\d{1,2}$/.test(raw)) {
+    const [minutes, seconds] = raw.split(":").map(Number);
+    return minutes * 60 + seconds;
+  }
+  return Math.max(0, Number(raw) || 0);
+}
 
 export default function OnRepeat({
   track: initialTrack = null,
@@ -12,6 +27,7 @@ export default function OnRepeat({
   onTogglePlay,
   className = "card",
   style,
+  cinematic = false,
   authScope,
 }) {
   const account = useAccountScope(authScope);
@@ -19,6 +35,7 @@ export default function OnRepeat({
   const [tracks, setTracks] = React.useState([]);
   const [query, setQuery] = React.useState("");
   const [localPlaying, setLocalPlaying] = React.useState(false);
+  const [playback, setPlayback] = React.useState({ current: 0, duration: 0 });
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
   const [saveError, setSaveError] = React.useState("");
@@ -53,6 +70,27 @@ export default function OnRepeat({
       audio?.removeEventListener?.("pause", sync);
     };
   }, [controlled, track?.audio_url]);
+
+  React.useEffect(() => {
+    if (!cinematic || !track) return undefined;
+    const audio = getActiveAudio();
+    const sync = () => {
+      const duration = Number.isFinite(audio?.duration) ? audio.duration : readTrackDuration(track);
+      const current = Number.isFinite(audio?.currentTime) ? audio.currentTime : 0;
+      setPlayback({ current, duration });
+    };
+    sync();
+    audio?.addEventListener?.("timeupdate", sync);
+    audio?.addEventListener?.("loadedmetadata", sync);
+    audio?.addEventListener?.("durationchange", sync);
+    audio?.addEventListener?.("seeked", sync);
+    return () => {
+      audio?.removeEventListener?.("timeupdate", sync);
+      audio?.removeEventListener?.("loadedmetadata", sync);
+      audio?.removeEventListener?.("durationchange", sync);
+      audio?.removeEventListener?.("seeked", sync);
+    };
+  }, [cinematic, track, playing]);
 
   const persistTrack = async (nextTrack) => {
     let scope;
@@ -130,13 +168,13 @@ export default function OnRepeat({
   }, [editable, track, query]);
 
   return (
-    <div className={className} style={style}>
-      <h2 className="profile-space-panel-title">On Repeat</h2>
+    <div className={`${className}${cinematic ? " cinematic-on-repeat" : ""}`} style={style}>
+      <h2 className="profile-space-panel-title">{cinematic && <AudioLines size={17} aria-hidden="true" />} On Repeat</h2>
       {saveError && <p role="alert">{saveError}</p>}
 
       {track ? (
         <div className="row" style={{ marginTop: 10, alignItems: "center" }}>
-          <div className="avatar lg" aria-hidden="true">{track.artist?.[0]?.toUpperCase() || "♪"}</div>
+          <div className="avatar lg cinematic-track-art" aria-hidden="true">{cinematic && track.cover_url ? <img src={track.cover_url} alt="" /> : cinematic ? <Music2 size={24} /> : track.artist?.[0]?.toUpperCase() || "♪"}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <strong>{track.title}</strong>
             <p className="subtitle">{track.artist}</p>
@@ -157,6 +195,16 @@ export default function OnRepeat({
         </div>
       ) : (
         <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
+      )}
+
+      {cinematic && track && (
+        <div className="cinematic-music-progress">
+          <span>{formatMusicTime(playback.current)}</span>
+          <input type="range" min="0" max={Math.max(1, playback.duration)} step="1" value={Math.min(playback.current, Math.max(1, playback.duration))}
+            aria-label="Music position" style={{ "--music-progress": `${Math.min(100, 100 * playback.current / Math.max(1, playback.duration))}%` }}
+            onChange={(event) => { const audio = getActiveAudio(); if (audio && Number.isFinite(audio.duration)) { audio.currentTime = Number(event.target.value); setPlayback({ current: audio.currentTime, duration: audio.duration }); } }} />
+          <span>{formatMusicTime(playback.duration)}</span>
+        </div>
       )}
 
       {editable && !track && (
