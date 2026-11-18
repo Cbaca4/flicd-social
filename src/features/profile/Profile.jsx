@@ -284,11 +284,6 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
         </section>
 
         <div className="profile-lower-grid profile-space-grid">
-          <section className="card profile-section-card profile-pinned-card profile-space-panel profile-space-boards" style={sectionStyle("boards")}>
-            <div className="profile-space-panel-heading"><div className="row" style={{ justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}><h2 style={{ marginTop: 0 }}>Boards</h2><div className="row" style={{ gap: 8 }}><button type="button" className="btn" onClick={onOpenBoards} aria-label="View all Boards">View all Boards <ChevronRight size={15} /></button><button type="button" className="btn icon-btn" onClick={onCustomizeBoards} aria-label="Manage pinned boards"><LayoutGrid size={16} /></button></div></div></div>
-            {pinnedBoards.length > 0 ? <div className="profile-pinned-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <button type="button" className="profile-empty-board" onClick={onCustomizeBoards || onOpenBoards}><Plus size={18} /><span>Pin a Board</span></button>}
-          </section>
-
           <div className="profile-right-stack profile-space-side">
             <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="profile-space-panel-heading"><h2>Switch spaces</h2></div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong className="profile-panel-primary">@{activeSpace.handle}</strong></div><ChevronRight size={17} className="muted" /></div></button>
           </div>
