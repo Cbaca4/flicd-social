@@ -823,10 +823,9 @@ function AccountApp({ session, authScope }) {
         try {
           result = await createAccountClient(captureAuthScope(authScope, current))
             .from("profiles")
-            .update({
-              profile_theme: normalized,
-              updated_at: new Date().toISOString(),
-            })
+            // The staging profiles table has no updated_at column.
+            // Only persist fields supported by the actual profile schema.
+            .update({ profile_theme: normalized })
             .eq("id", supabaseProfile.id)
             .select()
             .single();
