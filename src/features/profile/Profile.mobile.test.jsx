@@ -143,6 +143,19 @@ describe("handheld profile layout", () => {
     }
   });
 
+  it("shows pinned Boards above the photo grid while keeping the Boards tab usable", () => {
+    const onOpenBoard = vi.fn();
+    const board = { id: "trip", name: "Travel memories", pinned: true, cover_url: "" };
+    render(<Profile profile={{ id: "owner", handle: "baco" }} activeSpace={{ handle: "baco" }}
+      theme={DEFAULT_THEME} boards={[board]} onOpenBoard={onOpenBoard} posts={[]} />);
+    expect(screen.getByText("Pinned Boards")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open Board Travel memories" }));
+    expect(onOpenBoard).toHaveBeenCalledWith(board);
+    fireEvent.click(screen.getByRole("tab", { name: "Boards" }));
+    expect(screen.queryByText("Pinned Boards")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Board Travel memories" })).toBeInTheDocument();
+  });
+
   it("keeps Profile Studio accessible through Settings without showing a profile card", () => {
     const onCustomize = vi.fn();
     render(
