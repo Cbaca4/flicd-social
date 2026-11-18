@@ -262,6 +262,16 @@ body { overflow-x: hidden; }
   pointer-events: none;
 }
 
+.profile-photo-crop-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  text-align: center;
+  pointer-events: none;
+}
+
 @media (max-width: 620px) {
   .profile-avatar {
     width: 72px !important;
