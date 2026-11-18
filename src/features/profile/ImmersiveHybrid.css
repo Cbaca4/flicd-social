@@ -460,3 +460,127 @@
   width: 100%;
   min-height: 72px;
 }
+
+/* Final cinematic hierarchy: identity, five stats, music, then edit actions. */
+.profile-space-layout .profile-main-identity .profile-username-heading {
+  text-align: left !important;
+  padding: 0 !important;
+  margin-top: 6px !important;
+  font-size: clamp(12px, 1.5vw, 16px) !important;
+  font-weight: 500;
+  color: #e5d4e5;
+}
+.profile-space-layout .profile-mini-stats {
+  width: 100%;
+  max-width: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  margin-top: 18px;
+  gap: 5px !important;
+}
+.profile-space-layout .profile-mini-stats .profile-stat--inline {
+  min-width: 0;
+  padding: 6px 2px !important;
+}
+.profile-space-layout .profile-mini-stats .profile-stat--inline .subtitle {
+  font-size: clamp(8px, 1.15vw, 11px) !important;
+  line-height: 1.2;
+}
+.profile-space-layout .profile-hero-actions {
+  margin-top: 16px;
+}
+.profile-space-layout .profile-featured-boards {
+  min-width: 0;
+  margin-bottom: 16px;
+}
+.profile-space-layout .profile-featured-boards-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.profile-space-layout .profile-featured-boards-heading strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #eee0ef;
+}
+.profile-space-layout .profile-featured-boards-heading button {
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 12px;
+  color: #c8b7d1;
+  padding: 5px;
+}
+.profile-space-layout .profile-featured-board-list {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+.profile-space-layout .profile-featured-board-chip {
+  flex: 0 0 min(33%, 200px);
+  min-width: 135px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px 6px 6px;
+  color: #f0e8f1;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 17px;
+  scroll-snap-align: start;
+  text-align: left;
+}
+.profile-space-layout .profile-featured-board-chip > img,
+.profile-space-layout .profile-featured-board-fallback {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.profile-space-layout .profile-featured-board-fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #694061, #322441);
+  color: #f4cce9;
+}
+.profile-space-layout .profile-featured-board-chip > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 620px) {
+  .profile-space-layout .profile-main-identity .profile-username-heading {
+    font-size: 12px !important;
+    margin-top: 4px !important;
+  }
+  .profile-space-layout .profile-mini-stats {
+    gap: 0 !important;
+    margin-top: 13px;
+  }
+  .profile-space-layout .profile-mini-stats .profile-stat--inline {
+    padding: 5px 0 !important;
+  }
+  .profile-space-layout .profile-mini-stats .profile-stat--inline strong {
+    font-size: 13px !important;
+  }
+  .profile-space-layout .profile-mini-stats .profile-stat--inline .subtitle {
+    font-size: clamp(7px, 2vw, 9px) !important;
+  }
+  .profile-space-layout .profile-featured-board-chip {
+    flex-basis: min(58%, 190px);
+  }
+}
