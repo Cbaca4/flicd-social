@@ -99,7 +99,7 @@
   box-shadow: none !important;
   border-radius: 0 !important;
   padding: clamp(38px, 6vw, 70px) 10px 24px !important;
-  background: transparent !important;
+  background: transparent;
   backdrop-filter: none;
   overflow: visible !important;
 }
