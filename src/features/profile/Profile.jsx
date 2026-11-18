@@ -145,12 +145,16 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [contentTab, setContentTab] = React.useState("dumps");
   const [relationshipList, setRelationshipList] = React.useState(null);
+  const [now, setNow] = React.useState(() => Date.now());
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
-  const now = Date.now();
   const ownPosts = posts.filter((post) => post?.authorId && post.authorId === profile?.id && (!post.expiresAt || post.expiresAt > now));
   const displayedPosts = ownPosts.filter((post) => (post.type === "roll" ? "rolls" : "dumps") === contentTab);
   const adaptiveAccent = useProfileAccent(theme?.backgroundMedia, theme?.adaptiveTheme !== false);
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
     if (!profile?.id) return undefined;
