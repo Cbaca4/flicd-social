@@ -27,6 +27,34 @@ vi.mock("../social/socialApi.js", () => ({
 }));
 
 describe("handheld profile layout", () => {
+  it("renders the cinematic reference hierarchy with functional navigation", () => {
+    const onBack = vi.fn();
+    const onEditProfile = vi.fn();
+    const onNotifications = vi.fn();
+    render(<Profile
+      profile={{ id: "owner", handle: "cristian", displayName: "Cristian", bio: "little moments, big memories", followers: 4800, following: 682 }}
+      activeSpace={{ handle: "cristian" }}
+      theme={DEFAULT_THEME}
+      boards={[]}
+      onBack={onBack}
+      onEditProfile={onEditProfile}
+      onNotifications={onNotifications}
+    />);
+    expect(screen.getByLabelText("flic’d")).toBeInTheDocument();
+    expect(document.querySelector(".profile-cinematic-topbar")).toBeInTheDocument();
+    expect(document.querySelector(".profile-avatar-wrap")).toBeInTheDocument();
+    expect(screen.getByText("little moments, big memories")).toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Profile content" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share profile" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    fireEvent.click(screen.getByRole("button", { name: "Edit Profile" }));
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onEditProfile).toHaveBeenCalledTimes(1);
+    expect(onNotifications).toHaveBeenCalledTimes(1);
+  });
+
+
   it("opens the complete Boards library directly from the profile even when no Boards are pinned", () => {
     const onOpenBoards = vi.fn();
     const onCustomizeBoards = vi.fn();
