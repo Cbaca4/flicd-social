@@ -3,7 +3,7 @@
 import React from "react";
 import "@testing-library/jest-dom/vitest";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import Profile from "./Profile.jsx";
 import ProfileStudio from "./ProfileStudio.jsx";
 import { DEFAULT_THEME } from "./profileTheme.js";
@@ -112,6 +112,35 @@ describe("handheld profile layout", () => {
     expect(screen.getAllByRole("button", { name: "Open roll post" })).toHaveLength(1);
     fireEvent.click(screen.getByRole("tab", { name: "Boards" }));
     expect(screen.getByRole("button", { name: /View all Boards/ })).toBeInTheDocument();
+  });
+
+  it("removes an active post when its 24-hour deadline passes without leaving the profile", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2030-01-01T00:00:00.000Z"));
+      const expiringPost = {
+        id: "deadline",
+        authorId: "owner",
+        type: "dump",
+        mode: "24h",
+        expiresAt: Date.now() + 1500,
+        items: [],
+      };
+      render(<Profile
+        profile={{ id: "owner", handle: "baco" }}
+        activeSpace={{ handle: "baco" }}
+        theme={DEFAULT_THEME}
+        boards={[]}
+        posts={[expiringPost]}
+      />);
+      expect(screen.getByRole("button", { name: "Open dump post" })).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(2000));
+      expect(screen.queryByRole("button", { name: "Open dump post" })).not.toBeInTheDocument();
+      expect(screen.getByText("No dumps yet")).toBeInTheDocument();
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
   });
 
   it("keeps Profile Studio accessible through Settings without showing a profile card", () => {
