@@ -441,3 +441,15 @@
   .profile-space-layout .profile-gallery-tile-meta { flex-direction: column; align-items: flex-start; gap: 3px; padding: 7px; font-size: 10px; }
   .profile-space-layout .profile-gallery-tile-meta small { font-size: 9px; }
 }
+
+/* The unified Boards tab replaces the old duplicate pinned Boards card. */
+.profile-space-layout .profile-lower-grid.profile-space-grid {
+  display: block !important;
+}
+.profile-space-layout .profile-space-side {
+  display: block;
+}
+.profile-space-layout .profile-space-active {
+  width: 100%;
+  min-height: 72px;
+}
