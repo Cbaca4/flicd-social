@@ -42,7 +42,7 @@ function useDumpMediaUrl(item, enabled = true) {
 }
 
 function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal }) {
-  const [failed, setFailed] = React.useState(false);
+  const [failedUrl, setFailedUrl] = React.useState(null);
   // Never fetch view-once image bytes while the reveal overlay is showing.
   const imageUrl = useDumpMediaUrl(item, !blurred);
   const openAuthor = () => onUserSelect?.({ id: post.authorId || post.author, username: post.authorName || post.author });
@@ -64,13 +64,14 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
     </button>
   ) : null;
 
-  if (imageUrl && !failed) {
+  // A failed old blob must not suppress a newly authorized owner retry URL.
+  if (imageUrl && imageUrl !== failedUrl) {
     return (
       <div className="post-media" style={{ background: gradients[((Number(post.id) || 0) + index) % gradients.length] }}>
         <img
           src={imageUrl}
           alt={item?.note || `Moment ${index + 1}`}
-          onError={() => setFailed(true)}
+          onError={() => setFailedUrl(imageUrl)}
           style={{
             width: "100%",
             height: "auto",
