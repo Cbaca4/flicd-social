@@ -1,5 +1,6 @@
 import React from "react";
 import "./ImmersiveHybrid.css";
+import useProfileAccent from "./useProfileAccent.js";
 import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
@@ -145,6 +146,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
+  const adaptiveAccent = useProfileAccent(theme?.backgroundMedia, theme?.adaptiveTheme !== false);
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
     if (!profile?.id) return undefined;
@@ -192,7 +194,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const buttonStyle = theme?.buttonStyle || {};
 
   return (
-    <div className="screen profile-screen profile-space-layout">
+    <div className="screen profile-screen profile-space-layout" style={{ "--flicd-signature": adaptiveAccent }}>
       {theme.backgroundMedia?.url && (
         <div className="profile-background-media" aria-hidden="true">
           {theme.backgroundMedia.type === "video" ? (
