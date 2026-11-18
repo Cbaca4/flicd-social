@@ -62,3 +62,25 @@ it("shows failure and retry instead of a misleading empty library", async () => 
   expect(await screen.findByRole("alert")).toHaveTextContent("offline"); fireEvent.click(screen.getByRole("button", { name: "Refresh Saves" }));
   await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
 });
+
+
+it("keeps actual Board cards visible when the local saved-photo gateway is unreachable, then recovers on retry", async () => {
+  api.getBoardItems.mockRejectedValue(new TypeError("Failed to fetch"));
+  render(<Boards />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("Failed to fetch");
+  expect(screen.getByText("Trips")).toBeInTheDocument();
+  expect(screen.getByText("Ideas")).toBeInTheDocument();
+  expect(screen.getAllByText("Items unavailable")).toHaveLength(2);
+  expect(screen.queryByText("Your Boards are empty.")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: /Trips.*Your saved moments/ }));
+  await waitFor(() => expect(api.getBoardItems).toHaveBeenCalledWith("board-a", expect.objectContaining({ user: "me" })));
+  expect(screen.queryByRole("button", { name: "Back to Boards" })).not.toBeInTheDocument();
+  expect(screen.getByText("Trips")).toBeInTheDocument();
+
+  api.getBoardItems.mockImplementation(async id =>
+    id ? rows.current.filter(row => row.board_ids.includes(id)) : rows.current
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Refresh Saves" }));
+  await waitFor(() => expect(screen.queryByRole("alert")).not.toBeInTheDocument());
+  expect(screen.getAllByText("3 items")).toHaveLength(2);
+});

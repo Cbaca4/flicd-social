@@ -129,7 +129,7 @@ function BoardCard({
                 bottom: 9,
               }}
             >
-              {itemCount} {itemCount === 1 ? "item" : "items"}
+              {itemCount == null ? "Items unavailable" : `${itemCount} ${itemCount === 1 ? "item" : "items"}`}
             </span>
           )}
         </div>
@@ -596,6 +596,7 @@ export default function Boards({
   const [library, setLibrary] = React.useState([]);
   const [libraryMode, setLibraryMode] = React.useState("Custom Boards");
   const [loadError, setLoadError] = React.useState("");
+  const [libraryError, setLibraryError] = React.useState("");
   const [libraryVersion, setLibraryVersion] = React.useState(0);
   const requestVersion = React.useRef(0);
   const activeBoardIdRef = React.useRef(null);
@@ -626,14 +627,31 @@ export default function Boards({
       let scope;
       try {
         scope = account.capture();
-        const [boardRows, itemRows] =
-          await Promise.all([
-            getBoards(),
-            getBoardItems(null, scope),
-          ]);
-
+        // Board metadata is stored in Supabase; individual saved-photo
+        // entitlements require the separate media gateway. A local gateway
+        // outage must never make existing Board metadata disappear.
+        const [boardResult, libraryResult] = await Promise.allSettled([
+          getBoards(),
+          getBoardItems(null, scope),
+        ]);
         if (!scope.isCurrent() || generation !== requestVersion.current) return;
-        setBoards(boardRows); setLibrary(itemRows); setLoadError("");
+        if (boardResult.status === "rejected") throw boardResult.reason;
+        setBoards(boardResult.value);
+        setLoadError("");
+
+        if (libraryResult.status === "rejected") {
+          const message = libraryResult.reason?.message || "Could not reach saved photos.";
+          setLibrary([]);
+          setActiveItems([]);
+          setCounts({});
+          setLibraryError(`Saved photos could not load (${message}). Your Boards are still available; check the media connection and retry.`);
+          console.error("Failed to load saved photos:", libraryResult.reason);
+          return;
+        }
+
+        const itemRows = libraryResult.value;
+        setLibrary(itemRows);
+        setLibraryError("");
         setLibraryVersion(value => value + 1);
         if (activeBoardIdRef.current) setActiveItems(itemRows.filter(item => item.board_ids.includes(activeBoardIdRef.current)));
 
@@ -648,7 +666,7 @@ export default function Boards({
         setCounts(nextCounts);
       } catch (error) {
         if (!scope?.isCurrent() || generation !== requestVersion.current) return;
-        setLibrary([]); setActiveItems([]); setLoadError(error.message || "Could not load Saves.");
+        setLoadError(error.message || "Could not load Boards.");
         console.error(
           "Failed to load Boards:",
           error
@@ -697,11 +715,13 @@ export default function Boards({
       setActiveItems(items);
     } catch (error) {
       if (!account.isCurrent() || generation !== requestVersion.current) return;
-      console.error(error);
-      onToast?.(
-        error.message ||
-          "Could not open Board."
-      );
+      // Never pretend a Board is empty if its secure media list failed.
+      activeBoardIdRef.current = null;
+      setActiveBoard(null);
+      setActiveItems([]);
+      setLibraryError(`Saved photos could not load (${error.message || "media unavailable"}). Your Boards are still available; check the media connection and retry.`);
+      console.error("Failed to open saved photos:", error);
+      onToast?.(error.message || "Could not open Board.");
     }
   }
 
@@ -1070,7 +1090,8 @@ export default function Boards({
           <button className="btn" type="button" onClick={refresh} disabled={loading}>Refresh Saves</button>
         </nav>
         {loadError && <p role="alert">{loadError}</p>}
-        {!loading && !loadError && libraryMode !== "Custom Boards" && <KeepLibrary items={library} mode={libraryMode} boards={boards} onRefresh={refresh} version={libraryVersion} />}
+        {libraryError && !loadError && <p role="alert">{libraryError}</p>}
+        {!loading && !loadError && !libraryError && libraryMode !== "Custom Boards" && <KeepLibrary items={library} mode={libraryMode} boards={boards} onRefresh={refresh} version={libraryVersion} />}
 
         {showCreate && (
           <form
@@ -1169,7 +1190,7 @@ export default function Boards({
                 key={board.id}
                 board={board}
                 itemCount={
-                  counts[board.id] || 0
+                  libraryError ? null : counts[board.id] || 0
                 }
                 onOpen={openBoard}
                 onTogglePin={togglePin}
