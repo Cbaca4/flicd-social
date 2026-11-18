@@ -88,11 +88,31 @@ describe("handheld profile layout", () => {
     expect(document.querySelector(".profile-space-side")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Boards", exact: true })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "On Repeat", exact: true })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Profile Studio", exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Profile Studio", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Boards", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
+  });
+
+  it("keeps Profile Studio accessible through Settings without showing a profile card", () => {
+    const onCustomize = vi.fn();
+    render(
+      <Profile
+        profile={{ handle: "baco", followers: 0, following: 0 }}
+        activeSpace={{ handle: "baco" }}
+        theme={DEFAULT_THEME}
+        boards={[]}
+        onCustomize={onCustomize}
+      />,
+    );
+
+    expect(screen.queryByRole("heading", { name: "Profile Studio" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Studio" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: /Profile Studio/ }));
+    expect(onCustomize).toHaveBeenCalledTimes(1);
   });
 
   it("keeps compact mobile labels available without changing accessible button names", () => {
