@@ -337,3 +337,17 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Adaptive image colors affect decoration only, never critical text contrast. */
+.profile-space-layout .profile-space-hero {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .32),
+    0 0 46px color-mix(in srgb, var(--flicd-signature) 12%, transparent);
+}
+.profile-space-layout .profile-hero-music .profile-space-repeat {
+  border-color: color-mix(in srgb, var(--flicd-signature) 28%, transparent) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .20),
+    0 0 28px color-mix(in srgb, var(--flicd-signature) 12%, transparent);
+}
+.profile-space-layout .profile-hero-music .profile-space-repeat::before {
+  background: linear-gradient(90deg, var(--flicd-signature), transparent);
+}
