@@ -1,5 +1,6 @@
 import React from "react";
 import "./ImmersiveHybrid.css";
+import "./CinematicReference.css";
 import useProfileAccent from "./useProfileAccent.js";
 import ProfilePostTile from "./ProfilePostTile.jsx";
 import { Settings, Plus, ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal, Share2, Crown, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
