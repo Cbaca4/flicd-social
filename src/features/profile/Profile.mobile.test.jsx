@@ -90,9 +90,27 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("heading", { name: "On Repeat", exact: true })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Profile Studio", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
-    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(screen.getByRole("tablist", { name: "Profile content" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Boards", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
+  });
+
+  it("shows only the signed-in owner's active posts and never embeds view-once media URLs", () => {
+    const onOpenPost = vi.fn();
+    const ownDump = { id: "mine", authorId: "owner", type: "dump", mode: "once", items: [{ imagePath: "private/photo.jpg" }] };
+    const otherDump = { id: "other", authorId: "stranger", type: "dump", mode: "24h", items: [] };
+    const expired = { id: "old", authorId: "owner", type: "roll", expiresAt: Date.now() - 1000, items: [] };
+    const ownRoll = { id: "roll", authorId: "owner", type: "roll", mode: "24h", expiresAt: Date.now() + 60000, items: [] };
+    render(<Profile profile={{ id: "owner", handle: "baco" }} activeSpace={{ handle: "baco" }}
+      theme={DEFAULT_THEME} boards={[]} posts={[ownDump, otherDump, expired, ownRoll]} onOpenPost={onOpenPost} />);
+    expect(screen.getAllByRole("button", { name: "Open dump post" })).toHaveLength(1);
+    expect(document.querySelector(".profile-gallery img")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open dump post" }));
+    expect(onOpenPost).toHaveBeenCalledWith(ownDump);
+    fireEvent.click(screen.getByRole("tab", { name: "Rolls" }));
+    expect(screen.getAllByRole("button", { name: "Open roll post" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("tab", { name: "Boards" }));
+    expect(screen.getByRole("button", { name: /View all Boards/ })).toBeInTheDocument();
   });
 
   it("keeps Profile Studio accessible through Settings without showing a profile card", () => {
