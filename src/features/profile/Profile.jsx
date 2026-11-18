@@ -234,7 +234,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           // Let the selected global photo/video shine through the hero while
           // preserving an explicit per-section background from Profile Studio.
           ...(theme?.backgroundMedia?.url && !theme?.sectionStyles?.hero?.backgroundMedia?.url
-            ? { background: "linear-gradient(180deg, rgba(22, 15, 30, .24), rgba(13, 10, 20, .72))" }
+            ? { background: "rgba(22, 15, 30, .28)" }
             : {}),
         }}>
           <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
