@@ -41,7 +41,8 @@ describe("handheld profile layout", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "View all Boards" }));
+    fireEvent.click(screen.getByRole("tab", { name: "Boards" }));
+    fireEvent.click(screen.getByRole("button", { name: /View all Boards/ }));
     expect(onOpenBoards).toHaveBeenCalledTimes(1);
     expect(onCustomizeBoards).not.toHaveBeenCalled();
   });
@@ -84,9 +85,9 @@ describe("handheld profile layout", () => {
     expect(document.querySelector(".profile-username-heading")).toHaveTextContent("@baco");
     expect(document.querySelector(".profile-space-layout")).toBeTruthy();
     expect(document.querySelector(".profile-space-grid")).toBeTruthy();
-    expect(document.querySelector(".profile-space-boards")).toBeTruthy();
+    expect(document.querySelector(".profile-gallery")).toBeTruthy();
     expect(document.querySelector(".profile-space-side")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Boards", exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Boards" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "On Repeat", exact: true })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Profile Studio", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
