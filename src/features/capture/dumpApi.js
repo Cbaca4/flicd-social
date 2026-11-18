@@ -307,7 +307,7 @@ export async function getDumpById(dumpId) {
   if (viewError) throw viewError;
 
   if (
-    data.expiry === "24h" &&
+    ["24h", "once"].includes(data.expiry) &&
     new Date(data.created_at || 0).getTime() <= Date.now() - 24 * 60 * 60 * 1000
   ) {
     return null;
