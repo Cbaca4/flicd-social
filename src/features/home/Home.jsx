@@ -525,6 +525,19 @@ export function Viewer(props){
   return <ViewerSession key={JSON.stringify([props.post.id, props.post.mode, props.currentUserId])} {...props} />;
 }
 
+// Keep detailed gateway errors in developer tools; the UI displays only a safe
+// status and recovery guidance, never an auth token, media path or SQL detail.
+function describeOwnerPhotoFailure(error) {
+  if (error?.status === 401) return "Your media session needs a new sign-in (401). Sign in again, then retry.";
+  if (error?.status === 403) return "Your original photo request was denied (403). Check that you're signed into the creator account.";
+  if (error?.status === 415) return "The original photo format could not be delivered (415).";
+  if (error?.status === 503) return "The original photo service is temporarily unavailable (503). Check the local media gateway and retry.";
+  if (error?.message?.includes("identities")) return "The post is missing original photo identifiers. Refresh your feed and reopen it.";
+  if (error?.message?.includes("not configured")) return "The local media gateway isn't configured. Restart Vite with the staging gateway setting.";
+  if (error instanceof TypeError && /fetch/i.test(error.message)) return "Could not reach the local media gateway. Check port 8787, then retry.";
+  return "Your original photos could not be loaded. Retry or check the local media gateway.";
+}
+
 function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
   const account=useAccountScope();
   // An exact owner identity only selects the UI path. The gateway verifies
@@ -557,6 +570,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [claimedHere,setClaimedHere]=React.useState(false);
   const [unlockingOnce,setUnlockingOnce]=React.useState(false);
   const [unlockError,setUnlockError]=React.useState('');
+  const [ownerLoadAttempt,setOwnerLoadAttempt]=React.useState(0);
   const [reportError,setReportError]=React.useState('');
   const [reportMessage,setReportMessage]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
@@ -586,23 +600,34 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     if (!isOwnOnce) return undefined;
     let active = true;
     let page;
+    setUnlockError("");
+    setUnlockedMediaUrls(null);
     try {
       page = createOwnerMediaSession(post.items || [], { authScope: account.capture() });
       mediaSessionRef.current = page;
       void page.loadFrames().then((urls) => {
-        if (active && account.isCurrent()) setUnlockedMediaUrls(urls);
-      }).catch(() => {
-        if (active && account.isCurrent()) setUnlockError("Your original photos could not be loaded.");
+        if (active && account.isCurrent()) {
+          setUnlockedMediaUrls(urls);
+          setUnlockError("");
+        }
+      }).catch((error) => {
+        if (active && account.isCurrent()) {
+          console.error("Unable to load owner's original photo:", error?.status ?? error?.name ?? "media_unavailable");
+          setUnlockError(describeOwnerPhotoFailure(error));
+        }
       });
-    } catch {
-      if (account.isCurrent()) setUnlockError("Your original photos could not be loaded.");
+    } catch (error) {
+      if (account.isCurrent()) {
+        console.error("Unable to start owner photo session:", error?.name ?? "invalid_session");
+        setUnlockError(describeOwnerPhotoFailure(error));
+      }
     }
     return () => {
       active = false;
       void page?.close();
       if (mediaSessionRef.current === page) mediaSessionRef.current = null;
     };
-  }, [isOwnOnce, post.id, post.items, account]);
+  }, [isOwnOnce, post.id, post.items, account, ownerLoadAttempt]);
   const closeViewer=React.useCallback(() => {
     void mediaSessionRef.current?.close();
     onClose?.();
@@ -973,9 +998,19 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         <div className="viewer-scrim-layer" aria-hidden="true" />
 
         {(unlockingOnce || unlockError) && (
-          <span role={unlockError ? "alert" : "status"} className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)", pointerEvents: "none" }}>
+          <div role={unlockError ? "alert" : "status"} className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)" }}>
             {unlockError || "Confirming view…"}
-          </span>
+            {isOwnOnce && unlockError && (
+              <button
+                type="button"
+                className="btn"
+                style={{ marginLeft: 12 }}
+                onClick={() => setOwnerLoadAttempt((value) => value + 1)}
+              >
+                Retry photo
+              </button>
+            )}
+          </div>
         )}
 
         <div className="viewer-top-layer">
