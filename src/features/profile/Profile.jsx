@@ -2,7 +2,7 @@ import React from "react";
 import "./ImmersiveHybrid.css";
 import useProfileAccent from "./useProfileAccent.js";
 import ProfilePostTile from "./ProfilePostTile.jsx";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
+import { Settings, Plus, ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal, Share2, Crown, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -142,9 +142,10 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive, posts = [], onOpenPost }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive, posts = [], onOpenPost , onBack }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [contentTab, setContentTab] = React.useState("dumps");
+  const [shareStatus, setShareStatus] = React.useState("");
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [now, setNow] = React.useState(() => Date.now());
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
@@ -215,7 +216,17 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
       minWidth: 0,
     };
   };
-  const buttonStyle = theme?.buttonStyle || {};
+  const formatCount = (value) => new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 }).format(Number(value) || 0);
+  const shareProfile = async () => {
+    const message = "Find me on flic’d: @" + profile.handle;
+    try {
+      if (navigator.share) await navigator.share({ title: "@" + profile.handle + " on flic’d", text: message });
+      else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText("@" + profile.handle);
+        setShareStatus("Username copied");
+      } else setShareStatus(message);
+    } catch { /* user cancelled share */ }
+  };
 
   return (
     <div className="screen profile-screen profile-space-layout" style={{ "--flicd-signature": adaptiveAccent }}>
