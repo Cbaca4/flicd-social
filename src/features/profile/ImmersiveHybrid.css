@@ -410,6 +410,13 @@
   color: #f4c9eb;
   background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--flicd-signature) 28%, transparent), transparent 58%), linear-gradient(135deg,#30253e,#15121d);
 }
+.profile-space-layout .profile-gallery-thumbnail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
 .profile-space-layout .profile-gallery-tile-meta {
   display: flex;
   justify-content: space-between;
