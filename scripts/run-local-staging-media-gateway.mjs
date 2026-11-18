@@ -105,6 +105,11 @@ const server = http.createServer(async (req, res) => {
       ...(req.method === 'POST' ? { body: Buffer.concat(chunks) } : {}),
     });
     const result = await gateway(wrapped);
+    // Diagnostics for the local-only preview: route and HTTP status only.
+    // Never print bearer credentials, request bodies, image locations or IDs.
+    if (req.url === '/media/owner/frame') {
+      console.log("[staging media] owner/frame HTTP " + result.status);
+    }
     if (res.destroyed || res.writableEnded) return;
     res.writeHead(result.status, Object.fromEntries(result.headers.entries()));
     res.end(Buffer.from(await result.arrayBuffer()));
