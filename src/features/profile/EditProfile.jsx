@@ -8,16 +8,49 @@ import { sanitizeProfileLinks, sanitizeProfileTheme } from "./profileTheme.js";
 const CROP_SIZE = 720;
 
 function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage = "" }) {
-  const [url] = React.useState(() => URL.createObjectURL(file));
+  const [url, setUrl] = React.useState("");
+  const [cropError, setCropError] = React.useState("");
   const [zoom, setZoom] = React.useState(1);
   const [offset, setOffset] = React.useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = React.useState({ width: 0, height: 0 });
+  const [circleDiameter, setCircleDiameter] = React.useState(340);
+  const circleRef = React.useRef(null);
+  const imageRef = React.useRef(null);
   const dragRef = React.useRef(null);
 
-  React.useEffect(() => () => URL.revokeObjectURL(url), [url]);
+  // A URL created in the state initializer is revoked by React Strict Mode's
+  // first effect cleanup, but that state persists into the second setup.
+  // Create a fresh URL for each effect lifetime so the live preview stays valid.
+  React.useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    setImageSize({ width: 0, height: 0 });
+    setCropError("");
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
 
-  const scale = imageSize.width && imageSize.height
-    ? Math.max(CROP_SIZE / imageSize.width, CROP_SIZE / imageSize.height) * zoom
+  // The cropping math must match the actual circle size, not the 720px
+  // export canvas. This also handles narrow phone screens.
+  React.useEffect(() => {
+    const circle = circleRef.current;
+    if (!circle) return undefined;
+    const measure = () => {
+      const width = circle.getBoundingClientRect().width;
+      if (width > 0) setCircleDiameter(width);
+    };
+    measure();
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(measure);
+      observer.observe(circle);
+      return () => observer.disconnect();
+    }
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  const imageReady = Boolean(url && imageSize.width > 0 && imageSize.height > 0);
+  const scale = imageReady
+    ? Math.max(circleDiameter / imageSize.width, circleDiameter / imageSize.height) * zoom
     : 1;
   const displayWidth = imageSize.width * scale;
   const displayHeight = imageSize.height * scale;
@@ -46,21 +79,22 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage =
   };
 
   const confirm = async () => {
+    if (!imageReady || !imageRef.current?.complete || !imageRef.current.naturalWidth) {
+      setCropError("The selected photo has not finished loading. Choose another photo if this continues.");
+      return;
+    }
+    setCropError("");
     try {
-      const image = new Image();
-      await new Promise((resolve, reject) => {
-        image.onload = resolve;
-        image.onerror = () => reject(new Error("Could not read the selected profile photo."));
-        image.src = url;
-      });
-
+      // Reuse the decoded preview. Do not load a second Image from a revoked
+      // blob URL or risk different image dimensions between preview and crop.
+      const image = imageRef.current;
       const canvas = document.createElement("canvas");
       canvas.width = CROP_SIZE;
       canvas.height = CROP_SIZE;
       const context = canvas.getContext("2d");
       if (!context) throw new Error("Your browser could not prepare the crop.");
 
-      const sourceSize = CROP_SIZE / scale;
+      const sourceSize = circleDiameter / scale;
       const maxX = Math.max(0, image.naturalWidth - sourceSize);
       const maxY = Math.max(0, image.naturalHeight - sourceSize);
       const sx = Math.min(
@@ -88,7 +122,7 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage =
         }),
       );
     } catch (error) {
-      onCancel(error?.message || "Could not prepare that profile photo.");
+      setCropError(error?.message || "Could not prepare that profile photo.");
     }
   };
 
@@ -115,23 +149,35 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage =
           onPointerUp={onPointerUp}
           onPointerCancel={() => { dragRef.current = null; }}
         >
-          <div className="profile-photo-crop-circle">
-            <img
-              src={url}
-              alt="Profile photo crop preview"
-              onLoad={(event) =>
-                setImageSize({
-                  width: event.currentTarget.naturalWidth,
-                  height: event.currentTarget.naturalHeight,
-                })
-              }
-              style={{
-                width: displayWidth,
-                height: displayHeight,
-                left: "calc(50% + " + offset.x + "px)",
-                top: "calc(50% + " + offset.y + "px)",
-              }}
-            />
+          <div className="profile-photo-crop-circle" ref={circleRef}>
+            {url && (
+              <img
+                ref={imageRef}
+                src={url}
+                alt="Profile photo crop preview"
+                onLoad={(event) => {
+                  const { naturalWidth: width, naturalHeight: height } = event.currentTarget;
+                  if (width > 0 && height > 0) {
+                    setImageSize({ width, height });
+                    setCropError("");
+                  } else {
+                    setCropError("Could not read the selected profile photo.");
+                  }
+                }}
+                onError={() => {
+                  setImageSize({ width: 0, height: 0 });
+                  setCropError("Could not display that profile photo. Try a JPEG or PNG image.");
+                }}
+                style={{
+                  width: imageReady ? displayWidth : undefined,
+                  height: imageReady ? displayHeight : undefined,
+                  opacity: imageReady ? 1 : 0,
+                  left: "calc(50% + " + offset.x + "px)",
+                  top: "calc(50% + " + offset.y + "px)",
+                }}
+              />
+            )}
+            {!imageReady && <span className="subtitle profile-photo-crop-loading" role="status">Preparing photo preview…</span>}
           </div>
         </div>
 
@@ -148,12 +194,12 @@ function ProfilePhotoCropper({ file, onCancel, onConfirm, saving, errorMessage =
           />
         </label>
 
-        {errorMessage && <p role="alert" className="subtitle" style={{ marginTop: 12, color: "var(--danger, #ff6b6b)" }}>{errorMessage}</p>}
+        {(errorMessage || cropError) && <p role="alert" className="subtitle" style={{ marginTop: 12, color: "var(--danger, #ff6b6b)" }}>{errorMessage || cropError}</p>}
         <div className="row" style={{ justifyContent: "flex-end", marginTop: 14 }}>
           <button type="button" className="btn" onClick={() => onCancel()} disabled={saving}>
             Cancel
           </button>
-          <button type="button" className="btn btn-primary" onClick={confirm} disabled={saving}>
+          <button type="button" className="btn btn-primary" onClick={confirm} disabled={saving || !imageReady || Boolean(cropError)}>
             {saving ? "Saving…" : "Use this crop"}
           </button>
         </div>
