@@ -38,6 +38,40 @@ describe('View Once trusted React boundary',()=>{
   expect(factory).not.toHaveBeenCalled();
   expect(onMarkViewed).not.toHaveBeenCalled();
  });
+ it('lets the creator retry a transient owner-frame failure without ever consuming a one-time claim',async()=>{
+  ownerFrames.mockRejectedValueOnce(Object.assign(new Error('gateway offline'),{status:503}))
+    .mockResolvedValueOnce(['blob:owner-frame']);
+  const ownPost={...post,authorId:'owner'};
+  renderAccount(<Viewer post={ownPost} currentUserId='owner'/>,'owner');
+  expect(await screen.findByRole('alert')).toHaveTextContent('temporarily unavailable (503)');
+  expect(screen.queryByRole('img',{name:'Private frame'})).not.toBeInTheDocument();
+  expect(factory).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole('button',{name:'Retry photo'}));
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
+  expect(ownerFrames).toHaveBeenCalledTimes(2);
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
+ it('explains missing source IDs instead of claiming that a user consumed a view',async()=>{
+  ownerFactory.mockImplementationOnce(()=>{throw new Error('Valid original photo identities are required.');});
+  renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
+  expect(await screen.findByRole('alert')).toHaveTextContent('missing original photo identifiers');
+  expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
+  expect(factory).not.toHaveBeenCalled();
+ });
+
+ it('replays the creator load safely in root Strict Mode without a one-view claim',async()=>{
+  const ownPost={...post,authorId:'owner'};
+  renderAccount(
+    <React.StrictMode><Viewer post={ownPost} currentUserId='owner'/></React.StrictMode>,
+    'owner',
+  );
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:owner-frame');
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
  it('still locks an already-consumed non-owner view-once post without loading frames',()=>{
   render(<Viewer post={{...post,viewed:true,authorId:'owner'}} currentUserId='viewer' onMarkViewed={vi.fn()}/>);
   expect(screen.getByText('Already viewed once')).toBeInTheDocument();
