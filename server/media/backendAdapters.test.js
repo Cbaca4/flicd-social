@@ -22,6 +22,27 @@ describe('trusted backend adapters',()=>{
   expect(client.rpc).toHaveBeenCalledWith('media_post_metadata',{p:{viewer_id:uid}});
   client.rpc.mockResolvedValue({data:null,error:new Error('denied')});await expect(repository.rpc('media_post_metadata',{})).rejects.toThrow();
  });
+ it.each([
+  ['jpeg',new Uint8Array([0xff,0xd8,0xff,0xe0,1]),'image/jpeg'],
+  ['png',new Uint8Array([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]),'image/png'],
+  ['webp',new TextEncoder().encode('RIFF'+'0000'+'WEBP'+'VP8 '),'image/webp'],
+ ])('identifies %s from private Storage bytes despite generic download MIME',async(_format,bytes,expected)=>{
+  const blob = new Blob([bytes],{type:'application/octet-stream'});
+  const download=vi.fn().mockResolvedValue({data:blob,error:null});
+  const client={storage:{from:vi.fn(()=>({download}))}};
+  const file=await createSupabaseMediaAdapters({client}).storage.read('flicd-dump-private','author/photo');
+  expect(file.bytes).toEqual(bytes);
+  expect(file.type).toBe(expected);
+  expect(download).toHaveBeenCalledWith('author/photo');
+ });
+
+ it('never guesses image MIME for unrecognized or empty private Storage bytes',async()=>{
+  const blob=new Blob([new TextEncoder().encode('not an image')],{type:'application/octet-stream'});
+  const client={storage:{from:()=>({download:async()=>({data:blob,error:null})})}};
+  const file=await createSupabaseMediaAdapters({client}).storage.read('flicd-dump-private','author/invalid');
+  expect(file.type).toBe('application/octet-stream');
+ });
+
  it('cleanup failures reschedule jobs; stale leases are not reported as complete',async()=>{
   const jobs=[{id:'one',lease_token:'lease-1',bucket_id:'flicd-dump-private',name:uid+'/one.png'},{id:'two',lease_token:'lease-2',bucket_id:'flicd-dump-private',name:uid+'/two.png'}];
   const repository={rpc:vi.fn(async(name)=>name==='media_lease_cleanup'?jobs:name==='media_cleanup_authorized'?{authorized:true}:name==='media_finish_cleanup'?{completed:false}:{})};
