@@ -240,32 +240,38 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
         </div>
       )}
       <div className="profile-content-layer">
-        <section className="profile-hero profile-section-card profile-space-hero" style={{
-          ...sectionStyle("hero"),
-          // Let the selected global photo/video shine through the hero while
-          // preserving an explicit per-section background from Profile Studio.
-          ...(theme?.backgroundMedia?.url && !theme?.sectionStyles?.hero?.backgroundMedia?.url
-            ? { background: "rgba(22, 15, 30, .28)" }
-            : {}),
-        }}>
-          <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
+        <header className="profile-cinematic-topbar">
+          <button type="button" className="profile-top-action profile-top-back" onClick={onBack} aria-label="Back"><ChevronLeft size={24}/></button>
+          <span className="profile-wordmark" aria-label="flic’d">flic<span>’</span>d</span>
+          <div className="profile-top-actions">
+            {onNotifications && <button type="button" className="profile-top-action" onClick={onNotifications} aria-label="Notifications">
+              <Bell size={23}/>{notificationsUnread > 0 && <span className="profile-unread-dot" />}
+            </button>}
+            <button type="button" className="profile-top-action" onClick={openSettings} aria-label="Settings"><MoreHorizontal size={24}/></button>
+          </div>
+        </header>
+        <section className={"profile-hero profile-section-card profile-space-hero" + (theme?.sectionStyles?.hero?.backgroundMedia?.url ? " custom-hero-media" : "")}
+          style={theme?.sectionStyles?.hero?.backgroundMedia?.url ? sectionStyle("hero") : undefined}>
           <div className="profile-main-row">
-            <div className="avatar lg profile-avatar">
-              {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} className="profile-avatar-image" /> : profile.handle[0].toUpperCase()}
+            <div className="profile-avatar-wrap">
+              <Crown className="profile-avatar-crown" size={25} strokeWidth={1.5} aria-hidden="true" />
+              <div className="avatar lg profile-avatar">
+                {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} className="profile-avatar-image" /> : profile.handle?.[0]?.toUpperCase() || "?"}
+              </div>
             </div>
             <div className="profile-main-identity">
-              {profile.displayName ? <div className="profile-display-name">{profile.displayName}</div> : null}
+              <div className="profile-display-name">{profile.displayName || profile.handle}</div>
               <div className="profile-username-heading">@{profile.handle}</div>
+              {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
             </div>
           </div>
-          {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
           {profile.links?.length > 0 && <div className="profile-links" aria-label="Profile links">{profile.links.map((link, index) => <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">{link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</a>)}</div>}
           <div className="profile-mini-stats" aria-label="Profile statistics">
-            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("dumps")}><strong>{ownPosts.filter((post) => post.type !== "roll").length}</strong><span className="subtitle">dumps</span></button>
-            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("rolls")}><strong>{ownPosts.filter((post) => post.type === "roll").length}</strong><span className="subtitle">rolls</span></button>
-            <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
-            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span></button>
-            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{relationshipCounts.following}</strong><span className="subtitle">following</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("dumps")}><strong>{formatCount(ownPosts.filter((post) => post.type !== "roll").length)}</strong><span>Dumps</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("rolls")}><strong>{formatCount(ownPosts.filter((post) => post.type === "roll").length)}</strong><span>Rolls</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("boards")}><strong>{formatCount(boards.length)}</strong><span>Boards</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{formatCount(relationshipCounts.followers)}</strong><span>Followers</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{formatCount(relationshipCounts.following)}</strong><span>Following</span></button>
           </div>
           {theme.showMusic && (
             <div className="profile-hero-music profile-space-repeat-wrap">
