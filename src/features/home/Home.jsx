@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAccountScope } from '../../app/AuthScopeContext.js';
+import { captureAuthScope } from '../../app/authScope.js';
 import {Heart,MessageCircle,Eye,Bookmark,Bell,Mic,Video,Music2,MapPin,Volume2,VolumeX} from 'lucide-react';
 import {EmptyState} from '../../components/shared/States.jsx';
 import SeasonalOverlay from '../seasonal/SeasonalOverlay.jsx';
@@ -534,12 +535,14 @@ function describeOwnerPhotoFailure(error) {
   if (error?.status === 415) return "The original photo format could not be delivered (415).";
   if (error?.status === 503) return "The original photo service is temporarily unavailable (503). Check the local media gateway and retry.";
   if (error?.message?.includes("identities")) return "The post is missing original photo identifiers. Refresh your feed and reopen it.";
+  if (error?.message?.includes("Authenticated context changed")) return "Your signed-in account changed while opening the photo. Refresh the page and retry.";
+  if (error?.message?.includes("Authenticated session changed")) return "Your sign-in session changed while opening the photo. Sign in again and retry.";
   if (error?.message?.includes("not configured")) return "The local media gateway isn't configured. Restart Vite with the staging gateway setting.";
   if (error instanceof TypeError && /fetch/i.test(error.message)) return "Could not reach the local media gateway. Check port 8787, then retry.";
   return "Your original photos could not be loaded. Retry or check the local media gateway.";
 }
 
-function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
+function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePending=false,currentUserId=null,authScope=null,onDeleteComment,onReportComment,onUserSelect,initialCommentsOpen=false}){
   const account=useAccountScope();
   // An exact owner identity only selects the UI path. The gateway verifies
   // the signed-in owner's identity against the persisted Dump for every frame.
@@ -604,7 +607,13 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     setUnlockError("");
     setUnlockedMediaUrls(null);
     try {
-      page = createOwnerMediaSession(post.items || [], { authScope: account.capture() });
+      // This page is explicitly owned by AccountApp's auth generation. Do not
+      // base its creator-only authorization on a transient child mount-effect
+      // lifetime, which React Strict Mode can replay while the owner opens.
+      // The page itself closes/revokes media on cleanup; the backend still
+      // verifies ownership and session for each requested frame.
+      const scope = authScope ? captureAuthScope(authScope) : account.capture();
+      page = createOwnerMediaSession(post.items || [], { authScope: scope });
       mediaSessionRef.current = page;
       void page.loadFrames().then((urls) => {
         if (active && account.isCurrent()) {
@@ -628,7 +637,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       void page?.close();
       if (mediaSessionRef.current === page) mediaSessionRef.current = null;
     };
-  }, [isOwnOnce, post.id, post.items, account, ownerLoadAttempt]);
+  }, [isOwnOnce, post.id, post.items, account, authScope, ownerLoadAttempt]);
   const closeViewer=React.useCallback(() => {
     void mediaSessionRef.current?.close();
     onClose?.();
