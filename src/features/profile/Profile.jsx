@@ -238,31 +238,33 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             : {}),
         }}>
           <button type="button" className="profile-settings-corner" onClick={openSettings} aria-label="Settings"><Settings size={18} /></button>
-          <div className="profile-username-heading">@{profile.handle}</div>
           <div className="profile-main-row">
             <div className="avatar lg profile-avatar">
               {profile.avatarUrl ? <img src={profile.avatarUrl} alt={"@" + profile.handle + " profile"} className="profile-avatar-image" /> : profile.handle[0].toUpperCase()}
             </div>
             <div className="profile-main-identity">
               {profile.displayName ? <div className="profile-display-name">{profile.displayName}</div> : null}
-              <div className="profile-mini-stats">
-                <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
-                <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span></button>
-                <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{relationshipCounts.following}</strong><span className="subtitle">following</span></button>
-              </div>
+              <div className="profile-username-heading">@{profile.handle}</div>
             </div>
           </div>
           {profile.bio ? <p className="profile-bio">{profile.bio}</p> : null}
           {profile.links?.length > 0 && <div className="profile-links" aria-label="Profile links">{profile.links.map((link, index) => <a key={link.url + "-" + index} href={link.url} target="_blank" rel="noreferrer noopener">{link.label || link.url.replace(/^https?:\/\//i, "").replace(/\/$/, "")}</a>)}</div>}
-          <div className="profile-hero-actions">
-            <button type="button" className="btn btn-primary" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} /><span className="profile-action-label profile-action-label--full">Edit Profile</span><span className="profile-action-label profile-action-label--compact">Edit</span></button>
-            {onNotifications && <button type="button" className="btn icon-btn profile-notifications-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}><Bell size={18} />{notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}</button>}
+          <div className="profile-mini-stats" aria-label="Profile statistics">
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("dumps")}><strong>{ownPosts.filter((post) => post.type !== "roll").length}</strong><span className="subtitle">dumps</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setContentTab("rolls")}><strong>{ownPosts.filter((post) => post.type === "roll").length}</strong><span className="subtitle">rolls</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={onOpenBoards}><strong>{boards.length}</strong><span className="subtitle">boards</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("followers")}><strong>{relationshipCounts.followers}</strong><span className="subtitle">followers</span></button>
+            <button type="button" className="profile-stat profile-stat--inline" onClick={() => setRelationshipList("following")}><strong>{relationshipCounts.following}</strong><span className="subtitle">following</span></button>
           </div>
           {theme.showMusic && (
             <div className="profile-hero-music profile-space-repeat-wrap">
               <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} />
             </div>
           )}
+          <div className="profile-hero-actions">
+            <button type="button" className="btn btn-primary" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} /><span className="profile-action-label profile-action-label--full">Edit Profile</span><span className="profile-action-label profile-action-label--compact">Edit</span></button>
+            {onNotifications && <button type="button" className="btn icon-btn profile-notifications-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}><Bell size={18} />{notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}</button>}
+          </div>
         </section>
 
         <section className="profile-gallery" aria-label="Your profile content">
@@ -278,6 +280,25 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
                 onClick={() => setContentTab(key)}>{label}</button>
             ))}
           </div>
+          {pinnedBoards.length > 0 && contentTab !== "boards" && (
+            <section className="profile-featured-boards" aria-label="Pinned Boards">
+              <div className="profile-featured-boards-heading">
+                <strong><Pin size={14} aria-hidden="true" /> Pinned Boards</strong>
+                <button type="button" onClick={onOpenBoards}>View all <ChevronRight size={14} /></button>
+              </div>
+              <div className="profile-featured-board-list">
+                {pinnedBoards.map((board) => (
+                  <button type="button" key={board.id} className="profile-featured-board-chip"
+                    onClick={() => onOpenBoard?.(board)} aria-label={`Open Board ${board.name}`}>
+                    {board.cover_url
+                      ? <img src={board.cover_url} alt="" loading="lazy" />
+                      : <span className="profile-featured-board-fallback"><Pin size={16} aria-hidden="true" /></span>}
+                    <span>{board.name}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           <div role="tabpanel" id="profile-content-panel" aria-labelledby={`profile-tab-${contentTab}`}>
             {contentTab === "boards" ? (
               <div className="profile-gallery-board-panel">
