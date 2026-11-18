@@ -816,19 +816,29 @@ function AccountApp({ session, authScope }) {
         if (!current()) return;
         if (!supabaseProfile?.id) throw new Error("Profile is still loading.");
         const normalized = sanitizeProfileTheme(updatedTheme);
-        const { data, error } = await createAccountClient(captureAuthScope(authScope, current))
-          .from("profiles")
-          .update({
-            profile_theme: normalized,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", supabaseProfile.id)
-          .select()
-          .single().catch((error) => { if (current()) throw error; return {}; });
+        // PostgREST builders are awaitable thenables, not native Promises.
+        // They do not implement .catch(). Await inside try/catch so failures
+        // from an obsolete account never surface in the replacement session.
+        let result;
+        try {
+          result = await createAccountClient(captureAuthScope(authScope, current))
+            .from("profiles")
+            .update({
+              profile_theme: normalized,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", supabaseProfile.id)
+            .select()
+            .single();
+        } catch (error) {
+          if (current()) throw error;
+          return;
+        }
 
         if (!current()) return;
-        if (error) throw error;
-        setSupabaseProfile(data);
+        if (result?.error) throw result.error;
+        if (!result?.data) throw new Error("Profile changes could not be verified.");
+        setSupabaseProfile(result.data);
         setTheme(normalized);
         setScreen("profile");
         onToast("Profile saved");
