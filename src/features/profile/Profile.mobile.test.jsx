@@ -216,7 +216,7 @@ describe("handheld profile layout", () => {
     const { rerender } = render(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
       theme={{ ...DEFAULT_THEME, backgroundMedia }} boards={[]} />);
     const hero = document.querySelector(".profile-space-hero");
-    expect(hero.style.background).toContain("linear-gradient");
+    expect(hero.style.backgroundColor).toBe("rgba(22, 15, 30, 0.28)");
     expect(document.querySelector(".profile-background-media img")).toHaveAttribute("src", backgroundMedia.url);
 
     rerender(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
@@ -228,7 +228,9 @@ describe("handheld profile layout", () => {
           hero: { ...DEFAULT_THEME.sectionStyles.hero, backgroundMedia: { url: "https://cdn.example/custom-header.jpg" } },
         },
       }} boards={[]} />);
-    expect(hero.style.background).toContain("custom-header.jpg");
+    expect(hero.style.backgroundSize).toBe("cover");
+    expect(hero.style.backgroundPosition).toBe("50% 50%");
+    expect(hero.style.backgroundColor).not.toBe("rgba(22, 15, 30, 0.28)");
   });
 
   it("renders background framing controls without the removed identity controls", () => {
