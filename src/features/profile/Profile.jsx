@@ -1,7 +1,7 @@
 import React from "react";
 import "./ImmersiveHybrid.css";
 import useProfileAccent from "./useProfileAccent.js";
-import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
+import { Settings, Plus, ChevronRight, Pin, LayoutGrid, Pencil, Palette, Images, Eye, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -141,11 +141,15 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive, posts = [], onOpenPost }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [contentTab, setContentTab] = React.useState("dumps");
   const [relationshipList, setRelationshipList] = React.useState(null);
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
+  const now = Date.now();
+  const ownPosts = posts.filter((post) => post?.authorId && post.authorId === profile?.id && (!post.expiresAt || post.expiresAt > now));
+  const displayedPosts = ownPosts.filter((post) => (post.type === "roll" ? "rolls" : "dumps") === contentTab);
   const adaptiveAccent = useProfileAccent(theme?.backgroundMedia, theme?.adaptiveTheme !== false);
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
@@ -232,6 +236,51 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
               <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} />
             </div>
           )}
+        </section>
+
+        <section className="profile-gallery" aria-label="Your profile content">
+          <div className="profile-gallery-tabs" role="tablist" aria-label="Profile content">
+            {[
+              ["dumps", "Dumps"],
+              ["rolls", "Rolls"],
+              ["boards", "Boards"],
+            ].map(([key, label]) => (
+              <button key={key} type="button" role="tab" id={`profile-tab-${key}`}
+                aria-selected={contentTab === key} aria-controls="profile-content-panel"
+                className={`profile-gallery-tab${contentTab === key ? " is-active" : ""}`}
+                onClick={() => setContentTab(key)}>{label}</button>
+            ))}
+          </div>
+          <div role="tabpanel" id="profile-content-panel" aria-labelledby={`profile-tab-${contentTab}`}>
+            {contentTab === "boards" ? (
+              <div className="profile-gallery-board-panel">
+                <button type="button" className="btn" onClick={onOpenBoards}>View all Boards <ChevronRight size={15} /></button>
+                {pinnedBoards.length ? <div className="profile-gallery-grid">{pinnedBoards.map((board) => <BoardPreview key={board.id} board={board} onOpenBoard={onOpenBoard} />)}</div> : <p className="subtitle">Pin a Board to feature it here.</p>}
+              </div>
+            ) : displayedPosts.length ? (
+              <div className="profile-gallery-grid">
+                {displayedPosts.map((post) => (
+                  <button type="button" className="profile-gallery-tile" key={post.id}
+                    onClick={() => onOpenPost?.(post)}
+                    aria-label={`Open ${post.type === "roll" ? "roll" : "dump"} post`}>
+                    <div className="profile-gallery-tile-art" aria-hidden="true">
+                      {post.mode === "once" ? <Eye size={26} /> : <Images size={27} />}
+                    </div>
+                    <span className="profile-gallery-tile-meta">
+                      <strong>{post.mode === "once" ? "View once" : post.type === "roll" ? "Roll" : "Dump"}</strong>
+                      <small>{post.frameCount || post.items?.length || 1} {post.frameCount === 1 ? "frame" : "frames"}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="profile-gallery-empty">
+                <Images size={24} aria-hidden="true" />
+                <strong>No {contentTab} yet</strong>
+                <span>Your active {contentTab} will appear here.</span>
+              </div>
+            )}
+          </div>
         </section>
 
         <div className="profile-lower-grid profile-space-grid">
