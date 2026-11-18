@@ -153,8 +153,23 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const displayedPosts = ownPosts.filter((post) => (post.type === "roll" ? "rolls" : "dumps") === contentTab);
   const adaptiveAccent = useProfileAccent(theme?.backgroundMedia, theme?.adaptiveTheme !== false);
   React.useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
+    // Expire the next tile at its actual deadline without a one-second
+    // re-render of the entire profile and all of its post cards.
+    const nextExpiry = posts.reduce((next, post) => {
+      if (post?.authorId !== profile?.id || !Number.isFinite(post?.expiresAt) || post.expiresAt <= now) return next;
+      return Math.min(next, post.expiresAt);
+    }, Infinity);
+    if (!Number.isFinite(nextExpiry)) return undefined;
+    const delay = Math.min(2_147_483_647, Math.max(1, nextExpiry - now + 1));
+    const timer = window.setTimeout(() => setNow(Date.now()), delay);
+    return () => window.clearTimeout(timer);
+  }, [posts, profile?.id, now]);
+  React.useEffect(() => {
+    const refreshVisibleProfile = () => {
+      if (document.visibilityState === "visible") setNow(Date.now());
+    };
+    document.addEventListener("visibilitychange", refreshVisibleProfile);
+    return () => document.removeEventListener("visibilitychange", refreshVisibleProfile);
   }, []);
   React.useEffect(() => {
     setRelationshipCounts({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
