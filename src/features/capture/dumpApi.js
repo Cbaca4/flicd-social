@@ -184,8 +184,11 @@ export async function getFeedDumps({ limit = 50, spaceId = null } = {}) {
   }
 
   const expiryCutoff = Date.now() - 24 * 60 * 60 * 1000;
+  // The 24-hour feed lifetime applies to both modes. "once" additionally
+  // limits each non-owner account to one reveal during that lifetime.
+  // This is a *feed* filter, not a Storage deletion or a server entitlement.
   const liveDumps = (data || []).filter((dump) => {
-    if (dump.expiry !== "24h") return true;
+    if (dump.expiry !== "24h" && dump.expiry !== "once") return true;
     if (!dump.created_at) return true;
     const createdAt = new Date(dump.created_at).getTime();
     return Number.isNaN(createdAt) || createdAt > expiryCutoff;
