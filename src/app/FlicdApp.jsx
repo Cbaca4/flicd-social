@@ -868,7 +868,7 @@ function AccountApp({ session, authScope }) {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} currentUserId={session.user.id} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={async (dumpId, receipt) => {
+    content = activePost ? <Viewer post={activePost} currentUserId={session.user.id} authScope={authScope} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={async (dumpId, receipt) => {
           if (!authScope.isCurrent()) throw new Error("Authenticated context changed.");
           const confirmed = await markDumpViewed(dumpId, receipt);
           if (confirmed !== true) throw new Error("View acknowledgement was not confirmed.");
