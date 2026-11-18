@@ -275,13 +275,15 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
           {theme.showMusic && (
             <div className="profile-hero-music profile-space-repeat-wrap">
-              <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} className="profile-section-card profile-space-panel profile-space-repeat" style={sectionStyle("onRepeat")} />
+              <OnRepeat track={musicTrack} onTrackChange={onMusicTrackChange} playing={musicPlaying} onTogglePlay={onToggleMusic} cinematic className="profile-section-card profile-space-panel profile-space-repeat" />
             </div>
           )}
           <div className="profile-hero-actions">
-            <button type="button" className="btn btn-primary" onClick={onEditProfile} aria-label="Edit Profile"><Pencil size={15} /><span className="profile-action-label profile-action-label--full">Edit Profile</span><span className="profile-action-label profile-action-label--compact">Edit</span></button>
-            {onNotifications && <button type="button" className="btn icon-btn profile-notifications-btn" onClick={onNotifications} aria-label="Notifications" style={{ position: "relative" }}><Bell size={18} />{notificationsUnread > 0 && <span className="nav-unread-badge">{notificationsUnread > 9 ? "9+" : notificationsUnread}</span>}</button>}
+            <button type="button" className="profile-following-action" onClick={() => setRelationshipList("following")} aria-label="Following list">Following <ChevronDown size={17}/></button>
+            <button type="button" className="profile-edit-action" onClick={onEditProfile} aria-label="Edit Profile">Edit Profile</button>
+            <button type="button" className="profile-share-action" onClick={shareProfile} aria-label="Share profile"><Share2 size={21}/></button>
           </div>
+          {shareStatus && <p className="profile-share-feedback" role="status">{shareStatus}</p>}
         </section>
 
         <section className="profile-gallery" aria-label="Your profile content">
@@ -338,11 +340,6 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
           </div>
         </section>
 
-        <div className="profile-lower-grid profile-space-grid">
-          <div className="profile-right-stack profile-space-side">
-            <button type="button" className="card profile-section-card profile-compact-section profile-space-panel profile-space-active" style={{ ...sectionStyle("activeSpace"), textAlign: "left" }} onClick={onSwitchSpaces}><div className="profile-space-panel-heading"><h2>Switch spaces</h2></div><div className="row profile-compact-row"><div style={{ minWidth: 0 }}><strong className="profile-panel-primary">@{activeSpace.handle}</strong></div><ChevronRight size={17} className="muted" /></div></button>
-          </div>
-        </div>
       </div>
       {relationshipList && <RelationshipList profileId={profile.id} type={relationshipList} onClose={() => setRelationshipList(null)} onUserSelect={onUserSelect} />}
     </div>
