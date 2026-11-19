@@ -326,21 +326,16 @@ function AccountApp({ session, authScope }) {
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
-      try {
-        await syncExpiredArchive(captureAuthScope(authScope, current));
-      } catch (archiveError) {
-        if (!current()) return;
-        console.error("Failed to sync archive:", archiveError);
-      }
-
-      if (!current()) return;
-      const savedDumps = await getFeedDumps();
+      // The live feed must not wait for a potentially slow archive synchronization.\n      // getFeedDumps independently filters expired posts before rendering.\n      const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
       if (!current()) return;
       const hydrated = await hydrateDumpInteractions(formattedDumps);
       if (!current()) return;
       setDumps(hydrated);
       setFeedState({ status: "ready", error: "" });
+      void syncExpiredArchive(captureAuthScope(authScope, current)).catch((archiveError) => {
+        if (current()) console.error("Failed to sync archive:", archiveError);
+      });
     } catch (error) {
       if (!current()) return;
       console.error("Failed to load social feed:", error);
