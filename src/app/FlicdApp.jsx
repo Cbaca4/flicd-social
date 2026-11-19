@@ -803,7 +803,7 @@ function AccountApp({ session, authScope }) {
   } else if (screen === "archive") {
     content = <Archive onBack={() => setScreen("profile")} onKeep={keep} />;
   } else if (screen === "profile") {
-    content = <Profile posts={dumps} onOpenPost={(post) => { if (!authScope.isCurrent()) return; authScope.cancel("viewer"); primePostAudio(post); setViewerCommentsOpen(false); setActivePostId(post.id); setScreen("viewer"); }} profile={profile} activeSpace={activeSpace} onBack={() => setScreen("home")} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
+    content = <Profile posts={dumps} onOpenPost={(post) => { if (!authScope.isCurrent()) return; authScope.cancel("viewer"); primePostAudio(post); setViewerCommentsOpen(false); setActivePostId(post.id); setScreen("viewer"); }} profile={profile} activeSpace={activeSpace} onBack={() => setScreen("home")} onSaveAppearance={saveAppColor} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio
       isCurrent={authScope.isCurrent}
@@ -879,12 +879,38 @@ function AccountApp({ session, authScope }) {
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
 
+  const saveAppColor = async (nextColor) => {
+    const current = authScope.begin("profile-save");
+    if (!current()) return;
+    if (!supabaseProfile?.id || supabaseProfile.id !== session?.user?.id) throw new Error("Profile is still loading.");
+    const normalized = sanitizeProfileTheme({ ...theme, appColor: nextColor });
+    let result;
+    try {
+      result = await createAccountClient(captureAuthScope(authScope, current))
+        .from("profiles")
+        .update({ profile_theme: normalized })
+        .eq("id", supabaseProfile.id)
+        .select()
+        .single();
+    } catch (error) {
+      if (current()) throw error;
+      return;
+    }
+    if (!current()) return;
+    if (result?.error) throw result.error;
+    if (!result?.data) throw new Error("App color changes could not be verified.");
+    setSupabaseProfile(result.data);
+    setTheme(normalized);
+    onToast("App colors saved");
+  };
+
   const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? "profile" : "home") : screen;
 
   return (
     <>
       <AppShell
         userId={session.user.id}
+        appColor={theme.appColor}
         screen={navigationScreen}
         onNavigate={(key) => {
           if (!authScope.isCurrent()) return;
