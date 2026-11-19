@@ -42,7 +42,10 @@ for(const kind of ['Boards','FollowRequests','OnRepeat'])it.each(['B','ABA','unm
  let finish;m.getUser.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
  if(kind==='Boards'){
   fireEvent.click(screen.getByRole('button',{name:'New board'}));fireEvent.change(screen.getByPlaceholderText('Board name'),{target:{value:'A private draft'}});fireEvent.click(screen.getByRole('button',{name:'Create'}));
- }else fireEvent.click(screen.getByRole('button',{name:kind==='OnRepeat'?'Remove profile music':'Accept @synthetic'}));
+ }else {
+  if(kind==='OnRepeat')fireEvent.click(screen.getByRole('button',{name:'Change Song'}));
+  fireEvent.click(screen.getByRole('button',{name:kind==='OnRepeat'?'Remove current song':'Accept @synthetic'}));
+ }
  await waitFor(()=>expect(finish).toBeTypeOf('function'));
  if(transition!=='unmount'){boundary.accept({user:{id:'B'},session_id:'session-B'},'SIGNED_IN');if(transition==='ABA')boundary.accept(sessionA,'SIGNED_IN');}
  view.unmount();await act(async()=>finish({data:{user:{id:transition==='B'?'B':'A'}},error:null}));
@@ -107,7 +110,10 @@ for(const kind of ['Boards','FollowRequests','OnRepeat'])it.each([false,true])(`
  let finish,fail;m.result=new Promise((resolve,reject)=>{finish=resolve;fail=reject;});
  if(kind==='Boards'){
   fireEvent.click(screen.getByRole('button',{name:'New board'}));fireEvent.change(screen.getByPlaceholderText('Board name'),{target:{value:'A private draft'}});fireEvent.click(screen.getByRole('button',{name:'Create'}));
- }else fireEvent.click(screen.getByRole('button',{name:kind==='OnRepeat'?'Remove profile music':'Accept @synthetic'}));
+ }else {
+  if(kind==='OnRepeat')fireEvent.click(screen.getByRole('button',{name:'Change Song'}));
+  fireEvent.click(screen.getByRole('button',{name:kind==='OnRepeat'?'Remove current song':'Accept @synthetic'}));
+ }
  await waitFor(()=>expect(m.mutations).toHaveLength(1));view.unmount();
  await act(async()=>{if(reject)fail(new Error('A private write failure'));else finish({data:{id:'A-private-result'},error:null});});
  expect(changed).not.toHaveBeenCalled();expect(toast).not.toHaveBeenCalled();expect(screen.queryByText(/A private/)).not.toBeInTheDocument();
