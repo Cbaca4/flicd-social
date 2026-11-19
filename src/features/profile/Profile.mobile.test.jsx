@@ -151,7 +151,7 @@ describe("handheld profile layout", () => {
 
   it("shows only the signed-in owner's active posts and never embeds view-once media URLs", () => {
     const onOpenPost = vi.fn();
-    const ownDump = { id: "mine", authorId: "owner", type: "dump", mode: "once", items: [{ imagePath: "private/photo.jpg" }] };
+    const ownDump = { id: "mine", authorId: "owner", type: "dump", mode: "once", expiresAt: Date.now() + 60000, items: [{ imagePath: "private/photo.jpg" }] };
     const otherDump = { id: "other", authorId: "stranger", type: "dump", mode: "24h", items: [] };
     const expired = { id: "old", authorId: "owner", type: "roll", expiresAt: Date.now() - 1000, items: [] };
     const ownRoll = { id: "roll", authorId: "owner", type: "roll", mode: "24h", expiresAt: Date.now() + 60000, items: [] };
