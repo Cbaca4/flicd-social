@@ -60,7 +60,7 @@ describe("Settings roadmap sections", () => {
     expect(screen.getByText("Privacy & Safety")).toBeTruthy();
     expect(screen.getByText("Notifications")).toBeTruthy();
     expect(screen.getByText("Content Preferences")).toBeTruthy();
-    expect(screen.getByText("Appearance")).toBeTruthy();
+    expect(screen.getByText("Color Studio")).toBeTruthy();
     expect(screen.getByText("Data & Storage")).toBeTruthy();
     expect(screen.getByText("Help & Support")).toBeTruthy();
     expect(screen.getByText("About Flic'd")).toBeTruthy();
