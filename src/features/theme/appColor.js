@@ -65,6 +65,7 @@ export function appColorCssVars(colorInput) {
   const secondary = accessibleAccent((hue + 45) % 360, Math.max(45, intensity - 10), mode).css;
   const light = mode === "light";
   return {
+    "--flicd-hue": String(hue),
     "--bg": light ? `hsl(${hue} 24% 96%)` : `hsl(${hue} 16% 7%)`,
     "--surface": light ? "#ffffff" : `hsl(${hue} 13% 11%)`,
     "--elev": light ? `hsl(${hue} 21% 91%)` : `hsl(${hue} 13% 15%)`,
