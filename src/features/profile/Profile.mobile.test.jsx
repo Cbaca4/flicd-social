@@ -250,7 +250,7 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
     expect(document.querySelector(".profile-edit-action")).toBeTruthy();
     expect(document.querySelector(".profile-share-action")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Switch spaces", exact: true })).not.toBeInTheDocument();
   });
 
   it("renders the saved profile photo instead of the fallback initial", () => {
