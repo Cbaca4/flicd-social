@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { useAccountScope } from "../../app/AuthScopeContext.js";
 import { AudioLines, ExternalLink, Music2, Pause, Play, Search, X } from "lucide-react";
 import { getMusicTracks, setProfileMusicTrack } from "./musicApi.js";
@@ -39,6 +40,9 @@ export default function OnRepeat({
   const [searchLoading, setSearchLoading] = React.useState(false);
   const [searchError, setSearchError] = React.useState("");
   const [saveError, setSaveError] = React.useState("");
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const changeButtonRef = React.useRef(null);
+  const searchInputRef = React.useRef(null);
   const searchRequestRef = React.useRef(0);
   const controlled = typeof onTogglePlay === "function";
   const playing = controlled ? Boolean(controlledPlaying) : localPlaying;
@@ -104,6 +108,7 @@ export default function OnRepeat({
       setTrack(nextTrack);
       onTrackChange?.(nextTrack);
       setQuery("");
+      setPickerOpen(false);
     } catch (error) {
       if (scope?.isCurrent()) setSaveError(error.message || "Could not update profile music.");
     }
@@ -140,7 +145,7 @@ export default function OnRepeat({
   };
 
   React.useEffect(() => {
-    if (!editable || track) {
+    if (!editable || !pickerOpen) {
       searchRequestRef.current += 1;
       setSearchLoading(false);
       return undefined;
@@ -165,7 +170,23 @@ export default function OnRepeat({
     }, 220);
 
     return () => { clearTimeout(timer); searchRequestRef.current += 1; };
-  }, [editable, track, query]);
+  }, [editable, pickerOpen, query]);
+
+  const closePicker = React.useCallback(() => {
+    setPickerOpen(false);
+    setQuery("");
+    setSearchError("");
+    setSaveError("");
+    changeButtonRef.current?.focus();
+  }, []);
+
+  React.useEffect(() => {
+    if (!pickerOpen) return undefined;
+    searchInputRef.current?.focus();
+    const onKey = (event) => { if (event.key === "Escape") closePicker(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [pickerOpen, closePicker]);
 
   return (
     <div className={`${className}${cinematic ? " cinematic-on-repeat" : ""}`} style={style}>
@@ -179,22 +200,13 @@ export default function OnRepeat({
             <strong>{track.title}</strong>
             <p className="subtitle">{track.artist}</p>
           </div>
-          <button
-            type="button"
-            className="btn icon-btn"
-            onClick={togglePlay}
-            aria-label={playing ? "Pause music" : "Play music"}
-          >
+          <button type="button" className="btn icon-btn" onClick={togglePlay}
+            aria-label={playing ? "Pause music" : "Play music"}>
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
-          {editable && (
-            <button type="button" className="btn icon-btn" onClick={removeTrack} aria-label="Remove profile music">
-              <X size={16} />
-            </button>
-          )}
         </div>
       ) : (
-        <p className="subtitle" style={{ marginTop: 5 }}>Choose one song to represent this profile.</p>
+        <p className="subtitle on-repeat-no-track">No song selected. Give your profile a soundtrack.</p>
       )}
 
       {cinematic && track && (
@@ -207,46 +219,49 @@ export default function OnRepeat({
         </div>
       )}
 
-      {editable && !track && (
-        <div className="profile-music-picker">
-          <div className="profile-music-search-shell">
-            <Search size={14} aria-hidden="true" className="muted" />
-            <input
-              className="input profile-music-search-input"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              type="search"
-              placeholder="Search artist, song, or genre…"
-              aria-label="Search profile music"
-            />
-          </div>
-
-          <div className="profile-music-dropdown" role="listbox" aria-label="Profile music tracks">
-            {searchLoading && <p className="subtitle profile-music-status">Searching music…</p>}
-            {searchError && <p role="alert" className="subtitle profile-music-status">{searchError}</p>}
-            {!searchLoading && !searchError && tracks.length === 0 && (
-              <p className="subtitle profile-music-status">No verified tracks found.</p>
-            )}
-            {!searchLoading && !searchError && tracks.map((candidate) => (
-              <button
-                key={candidate.id}
-                type="button"
-                role="option"
-                aria-selected={track?.id === candidate.id}
-                className={`profile-music-option${track?.id === candidate.id ? " is-selected" : ""}`}
-                onClick={() => selectTrack(candidate)}
-              >
-                <div className="profile-music-option-copy">
-                  <strong>{candidate.title}</strong>
-                  <span>{candidate.artist}</span>
-                </div>
-                {!candidate.audio_url && (
-                  <ExternalLink size={14} className="muted" aria-hidden="true" />
-                )}
+      {editable && (
+        <button type="button" ref={changeButtonRef} className="on-repeat-change-song"
+          aria-haspopup="dialog" aria-expanded={pickerOpen}
+          onClick={() => { setSaveError(""); setPickerOpen(true); }}>
+          <Music2 size={14} aria-hidden="true" /> {track ? "Change Song" : "Choose Song"}
+        </button>
+      )}
+      {editable && pickerOpen && createPortal(
+        <div className="on-repeat-picker-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closePicker();
+        }}>
+          <section className="on-repeat-picker-sheet" role="dialog" aria-modal="true" aria-label="Select profile music">
+            <div className="on-repeat-picker-heading">
+              <div><strong>Choose your On Repeat</strong><p>One song, your sound.</p></div>
+              <button type="button" className="on-repeat-picker-close" onClick={closePicker} aria-label="Close music picker"><X size={20} /></button>
+            </div>
+            <div className="on-repeat-picker-search">
+              <Search size={17} aria-hidden="true" />
+              <input ref={searchInputRef} type="search" value={query} onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search artist or song…" aria-label="Search profile music" />
+            </div>
+            {saveError && <p role="alert" className="on-repeat-picker-error">{saveError}</p>}
+            <div className="on-repeat-picker-results" role="listbox" aria-label="Profile music tracks">
+              {searchLoading && <p role="status" className="on-repeat-picker-status">Searching music…</p>}
+              {searchError && <p role="alert" className="on-repeat-picker-status">{searchError}</p>}
+              {!searchLoading && !searchError && tracks.length === 0 && <p className="on-repeat-picker-status">No verified tracks found.</p>}
+              {!searchLoading && !searchError && tracks.map((candidate) => (
+                <button key={candidate.id} type="button" role="option" aria-selected={track?.id === candidate.id}
+                  className="on-repeat-picker-option" onClick={() => selectTrack(candidate)}>
+                  <span className="on-repeat-picker-option-art"><Music2 size={18} /></span>
+                  <span className="on-repeat-picker-option-name"><strong>{candidate.title}</strong><small>{candidate.artist}</small></span>
+                  {!candidate.audio_url && <ExternalLink size={14} aria-hidden="true" />}
+                </button>
+              ))}
+            </div>
+            {track && (
+              <button type="button" className="on-repeat-remove-track" onClick={removeTrack}>
+                Remove current song
               </button>
-            ))}
-          </div>
-        </div>
+            )}
+          </section>
+        </div>,
+        document.querySelector(".flicd-app") || document.body,
       )}
     </div>
   );
