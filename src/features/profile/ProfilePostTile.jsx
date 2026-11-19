@@ -15,7 +15,7 @@ export function formatTimeRemaining(expiresAt, now) {
   return `${Math.ceil(minutes / 60)}h left`;
 }
 
-export default function ProfilePostTile({ post, onOpen, now = Date.now() }) {
+export default function ProfilePostTile({ post, onOpen, now }) {
   const isOnce = post.mode === "once";
   const firstItem = isOnce ? null : (post.items || []).find((item) => item?.imagePath || item?.imageUrl);
   const imagePath = firstItem?.imagePath || null;
