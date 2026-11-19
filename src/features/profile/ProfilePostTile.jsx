@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- pure formatting helper is used by profile tests */
 import React from "react";
 import { Eye, Images } from "lucide-react";
 import { resolveDumpItemMediaUrl } from "../home/mediaUrl.js";
@@ -6,7 +7,7 @@ import { resolveDumpItemMediaUrl } from "../home/mediaUrl.js";
  * Profile gallery media follows the existing authorized feed URL resolver.
  * View-once frames are never requested as a thumbnail.
  */
-export function formatTimeRemaining(expiresAt, now = Date.now()) {
+export function formatTimeRemaining(expiresAt, now) {
   const remaining = Number(expiresAt) - now;
   if (!Number.isFinite(remaining) || remaining <= 0) return "Expired";
   const minutes = Math.ceil(remaining / 60000);
