@@ -11,13 +11,15 @@ import CompanionSettings from "../companion/CompanionSettings.jsx";
 import { normalizeCompanionSettings } from "../companion/companionSettingsConfig.js";
 import { loadCompanionSettings, saveCompanionSettings } from "../companion/companionStorage.js";
 import OnRepeat from "../music/OnRepeat.jsx";
+import AppColorStudio from "../theme/AppColorStudio.jsx";
 import MusicCredits from "../music/MusicCredits.jsx";
 import RelationshipList from "../social/RelationshipList.jsx";
 
-function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, onArchive }) {
+function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, onArchive, appColor, onSaveAppearance }) {
   const [companionUserId, setCompanionUserId] = React.useState("");
   const [companionSettings, setCompanionSettings] = React.useState(() => loadCompanionSettings(""));
   const [musicCreditsOpen, setMusicCreditsOpen] = React.useState(false);
+  const [appearanceOpen, setAppearanceOpen] = React.useState(false);
 
   React.useEffect(() => {
     let active = true;
@@ -35,6 +37,8 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, 
     setCompanionSettings(normalized);
     saveCompanionSettings(companionUserId || "local", normalized);
   };
+
+  if (appearanceOpen) return <AppColorStudio initialValue={appColor} onBack={() => setAppearanceOpen(false)} onSave={onSaveAppearance} />;
 
   if (musicCreditsOpen) {
     return <MusicCredits onBack={() => setMusicCreditsOpen(false)} />;
@@ -102,7 +106,7 @@ function SettingsList({ onBack, onEditProfile, onCustomize, onBoards, onSpaces, 
         {placeholderRow(ShieldCheck, "Privacy & Safety", "Visibility, blocking, interaction controls, and safety settings.")}
         {placeholderRow(Bell, "Notifications", "Choose which likes, comments, messages, follows, and requests you receive.")}
         {placeholderRow(SlidersHorizontal, "Content Preferences", "Manage muted words, feed preferences, and content controls.")}
-        {placeholderRow(Settings, "Appearance", "App-wide theme, accessibility, and display settings.")}
+        {row(Palette, "Color Studio", "Customize the hue, intensity, and light or dark appearance of your entire app.", () => setAppearanceOpen(true))}
         {placeholderRow(Database, "Data & Storage", "Downloads, cached media, storage usage, and data controls.")}
 
         <div className="eyebrow" style={{ marginTop: 12 }}>Support & About</div>
@@ -143,7 +147,7 @@ function BoardPreview({ board, onOpenBoard }) {
   );
 }
 
-export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive, posts = [], onOpenPost , onBack }) {
+export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, onSettings, onCustomize, onEditProfile, boards = [], onOpenBoards, onCustomizeBoards, onOpenBoard, musicTrack = null, onMusicTrackChange, musicPlaying = false, onToggleMusic, onNotifications, notificationsUnread = 0, onUserSelect, onArchive, posts = [], onOpenPost , onBack, onSaveAppearance }) {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [contentTab, setContentTab] = React.useState("dumps");
   const [shareStatus, setShareStatus] = React.useState("");
@@ -196,6 +200,8 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
       onBoards={() => { setSettingsOpen(false); onOpenBoards?.(); }}
       onSpaces={() => { setSettingsOpen(false); onSwitchSpaces?.(); }}
       onArchive={() => { setSettingsOpen(false); onArchive?.(); }}
+      appColor={theme?.appColor}
+      onSaveAppearance={onSaveAppearance}
     />;
   }
 
