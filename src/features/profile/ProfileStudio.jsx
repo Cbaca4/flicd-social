@@ -1,7 +1,6 @@
 import React from "react";
 import { useAccountScope } from "../../app/AuthScopeContext.js";
 import {
-  GripVertical,
   Save,
   RotateCcw,
   Sparkles,
@@ -377,47 +376,6 @@ export default function ProfileStudio({
     );
   };
 
-  const move = (section, direction) => {
-    setDraft((current) => {
-      const order = [...current.sectionOrder];
-      const index = order.indexOf(section);
-      const nextIndex = index + direction;
-
-      if (
-        index < 0 ||
-        nextIndex < 0 ||
-        nextIndex >= order.length
-      ) {
-        return current;
-      }
-
-      [order[index], order[nextIndex]] = [
-        order[nextIndex],
-        order[index],
-      ];
-
-      return sanitizeProfileTheme({
-        ...current,
-        sectionOrder: order,
-      });
-    });
-  };
-
-  const setSectionStyle = (section, key, value) => {
-    setDraft((current) =>
-      sanitizeProfileTheme({
-        ...current,
-        sectionStyles: {
-          ...current.sectionStyles,
-          [section]: {
-            ...current.sectionStyles?.[section],
-            [key]: value,
-          },
-        },
-      }),
-    );
-  };
-
   const handleSectionBackgroundChange = async (section, eventValue) => {
     const file = eventValue.target.files?.[0];
     eventValue.target.value = "";
@@ -468,38 +426,6 @@ export default function ProfileStudio({
             ...current.sectionStyles?.[section],
             backgroundMedia: null,
           },
-        },
-      }),
-    );
-  };
-
-  const setButtonStyle = (key, value) => {
-    setDraft((current) =>
-      sanitizeProfileTheme({
-        ...current,
-        buttonStyle: {
-          ...current.buttonStyle,
-          [key]: value,
-        },
-      }),
-    );
-  };
-
-  const setGlobalRadius = (value) => {
-    const radius = Number(value);
-    setDraft((current) =>
-      sanitizeProfileTheme({
-        ...current,
-        radius,
-        sectionStyles: Object.fromEntries(
-          Object.entries(current.sectionStyles || {}).map(([key, style]) => [
-            key,
-            { ...style, radius },
-          ]),
-        ),
-        buttonStyle: {
-          ...current.buttonStyle,
-          radius,
         },
       }),
     );
@@ -607,7 +533,7 @@ export default function ProfileStudio({
           <div className="eyebrow">Profile Studio</div>
           <h1 className="title">Make it yours</h1>
           <p className="subtitle">
-            Customize presentation, layout, privacy, and profile sections.
+            Choose your profile photos, frame your header, and control privacy. Change the app colors in Settings → Color Studio.
           </p>
         </div>
 
@@ -897,65 +823,14 @@ export default function ProfileStudio({
           {isPrivate && <FollowRequests />}
 
           <section className="card" style={{ margin: 0 }}>
-            <div className="eyebrow">Sections</div>
+            <div className="eyebrow">Profile header photo</div>
             <p className="subtitle" style={{ marginTop: 4 }}>
-              Put the parts of your profile in the order that feels natural
-              on a phone.
-            </p>
-
-            <div className="stack" style={{ marginTop: 10 }}>
-              {draft.sectionOrder.map((section, index) => (
-                <div className="row" key={section}>
-                  <GripVertical size={15} className="muted" />
-                  <strong
-                    style={{
-                      flex: 1,
-                      minWidth: 0,
-                      textTransform: "capitalize",
-                      overflowWrap: "anywhere",
-                    }}
-                  >
-                    {section}
-                  </strong>
-                  <button
-                    type="button"
-                    className="btn icon-btn"
-                    disabled={index === 0}
-                    onClick={() => move(section, -1)}
-                    aria-label={"Move " + section + " up"}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="btn icon-btn"
-                    disabled={
-                      index === draft.sectionOrder.length - 1
-                    }
-                    onClick={() => move(section, 1)}
-                    aria-label={"Move " + section + " down"}
-                  >
-                    ↓
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="card" style={{ margin: 0 }}>
-            <div className="eyebrow">Components</div>
-            <p className="subtitle" style={{ marginTop: 4 }}>
-              Tune individual profile boxes without making the page feel
-              over-designed.
+              Add a separate image behind your profile header. Your main profile background stays above.
             </p>
 
             <div className="stack" style={{ marginTop: 12 }}>
               {[
                 ["hero", "Profile header"],
-                ["boards", "Boards"],
-                ["onRepeat", "On Repeat"],
-                ["activeSpace", "Active space"],
-                ["customize", "Profile Studio"],
               ].map(([key, label]) => {
                 const style = draft.sectionStyles?.[key] || {};
 
@@ -969,41 +844,6 @@ export default function ProfileStudio({
                     >
                       <strong>{label}</strong>
                       <span className="eyebrow">Box</span>
-                    </div>
-
-                    <div
-                      className="grid grid-3"
-                      style={{ marginTop: 10 }}
-                    >
-                      {[
-                        ["Fill", "background"],
-                        ["Border", "border"],
-                        ["Accent", "accent"],
-                      ].map(([labelText, styleKey]) => (
-                        <label className="subtitle" key={styleKey}>
-                          {labelText}
-                          <input
-                            type="color"
-                            value={style[styleKey]}
-                            onChange={(eventValue) =>
-                              setSectionStyle(
-                                key,
-                                styleKey,
-                                eventValue.target.value,
-                              )
-                            }
-                            style={{
-                              display: "block",
-                              marginTop: 5,
-                              width: 44,
-                              height: 34,
-                              border: 0,
-                              background: "none",
-                            }}
-                            aria-label={label + " " + labelText}
-                          />
-                        </label>
-                      ))}
                     </div>
 
                     <div className="profile-component-background-controls">
@@ -1043,89 +883,6 @@ export default function ProfileStudio({
                 );
               })}
             </div>
-          </section>
-
-          <section className="card profile-studio-global-radius" style={{ margin: 0 }}>
-            <div className="row" style={{ justifyContent: "space-between", gap: 10 }}>
-              <div>
-                <div className="eyebrow">Roundness</div>
-                <p className="subtitle" style={{ marginTop: 4 }}>One control for every profile component, text container, and button.</p>
-              </div>
-              <strong>{Number(draft.radius || 22)}px</strong>
-            </div>
-            <input
-              type="range"
-              min="12"
-              max="36"
-              step="1"
-              value={draft.radius || 22}
-              onChange={(eventValue) => setGlobalRadius(eventValue.target.value)}
-              style={{ width: "100%", marginTop: 8 }}
-              aria-label="Global roundness"
-            />
-          </section>
-
-          <section className="card" style={{ margin: 0 }}>
-            <div
-              className="row"
-              style={{
-                justifyContent: "space-between",
-              }}
-            >
-              <strong>Buttons</strong>
-              <span className="eyebrow">Every button</span>
-            </div>
-
-            <div className="grid grid-3" style={{ marginTop: 10 }}>
-              {[
-                ["Button fill", "background"],
-                ["Button border", "border"],
-                ["Button accent", "accent"],
-              ].map(([labelText, styleKey]) => (
-                <label className="subtitle" key={styleKey}>
-                  {labelText}
-                  <input
-                    type="color"
-                    value={draft.buttonStyle[styleKey]}
-                    onChange={(eventValue) =>
-                      setButtonStyle(
-                        styleKey,
-                        eventValue.target.value,
-                      )
-                    }
-                    style={{
-                      display: "block",
-                      marginTop: 5,
-                      width: 44,
-                      height: 34,
-                      border: 0,
-                      background: "none",
-                    }}
-                    aria-label={labelText}
-                  />
-                </label>
-              ))}
-            </div>
-
-            <label
-              className="row"
-              style={{
-                gap: 8,
-                marginTop: 8,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={draft.buttonStyle.filled}
-                onChange={(eventValue) =>
-                  setButtonStyle(
-                    "filled",
-                    eventValue.target.checked,
-                  )
-                }
-              />
-              Use filled buttons
-            </label>
           </section>
 
           {saveError && (
