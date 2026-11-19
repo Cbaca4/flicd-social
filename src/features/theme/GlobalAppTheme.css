@@ -1,0 +1,94 @@
+/* Global member theme. Explicit selectors override legacy fixed purple/pink skins.
+   Keep photos, videos and album art unfiltered; translucent surfaces use hue-tinted glass. */
+.flicd-app[data-app-color-mode="dark"],
+.flicd-app[data-app-color-mode="light"] {
+  --flicd-glass-tint:hsla(var(--flicd-hue),34%,var(--flicd-glass-lightness),.72);
+  --flicd-glass-border:hsla(var(--flicd-hue),55%,76%,.27);
+  background:radial-gradient(circle at 12% 0%,var(--flicd-global-soft),transparent 36%),var(--bg);
+  color:var(--text);
+}
+.flicd-app[data-app-color-mode="dark"] { --flicd-glass-lightness:16%; }
+.flicd-app[data-app-color-mode="light"] { --flicd-glass-lightness:94%; }
+.flicd-app:not([data-app-color-mode="default"]) .app-content {
+  background:var(--surface); border-color:var(--border);
+}
+.flicd-app:not([data-app-color-mode="default"]) .screen:not(.profile-space-layout) {
+  background:var(--bg); color:var(--text);
+}
+.flicd-app:not([data-app-color-mode="default"]) .card,
+.flicd-app:not([data-app-color-mode="default"]) .segmented,
+.flicd-app:not([data-app-color-mode="default"]) .preview-card {
+  background:var(--card); border-color:var(--border); color:var(--text);
+}
+.flicd-app:not([data-app-color-mode="default"]) .bottom-dock,
+.flicd-app:not([data-app-color-mode="default"]):has(.profile-space-layout) .bottom-dock {
+  background:var(--flicd-glass-tint) !important;
+  border:1px solid var(--flicd-glass-border) !important;
+  box-shadow:0 14px 40px rgba(0,0,0,.24),inset 0 1px rgba(255,255,255,.07) !important;
+  backdrop-filter:blur(24px) saturate(1.25);
+  -webkit-backdrop-filter:blur(24px) saturate(1.25);
+}
+.flicd-app:not([data-app-color-mode="default"]) .bottom-dock .nav-btn.active,
+.flicd-app:not([data-app-color-mode="default"]):has(.profile-space-layout) .bottom-dock .nav-btn.active {
+  color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .bottom-dock .capture-core,
+.flicd-app:not([data-app-color-mode="default"]):has(.profile-space-layout) .bottom-dock .capture-core {
+  background:var(--flicd-global-accent) !important;
+  color:var(--flicd-accent-ink) !important;
+  border-color:var(--flicd-global-accent) !important;
+  box-shadow:0 0 22px var(--flicd-global-soft) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout {
+  --flicd-pink:var(--flicd-global-accent);
+  --flicd-mauve:var(--flicd-global-accent);
+  --flicd-glass:var(--flicd-glass-tint);
+  --flicd-hairline:var(--flicd-glass-border);
+  background:radial-gradient(ellipse at 74% 4%,var(--flicd-global-soft),transparent 40%),var(--bg) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout::before {
+  background:linear-gradient(180deg,transparent 0%,var(--flicd-global-soft) 30%,var(--bg) 100%) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-background-media::after {
+  background:linear-gradient(180deg,rgba(0,0,0,.12),var(--flicd-global-soft) 35%,var(--bg) 100%) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-hero-music .profile-space-repeat.cinematic-on-repeat {
+  background:linear-gradient(115deg,var(--flicd-glass-tint),var(--flicd-global-soft)) !important;
+  border-color:var(--flicd-glass-border) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.09),0 15px 35px rgba(0,0,0,.2) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery {
+  background:linear-gradient(180deg,var(--flicd-glass-tint),var(--bg)) !important;
+  border-color:var(--flicd-glass-border) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-wordmark span,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery-tab.is-active,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .cinematic-on-repeat .profile-space-panel-title {
+  color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery-tab.is-active::after,
+.flicd-app:not([data-app-color-mode="default"]) .seg.active {
+  background:var(--flicd-global-accent) !important;
+  border-color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .pill.active,
+.flicd-app:not([data-app-color-mode="default"]) .btn-primary {
+  background:var(--flicd-global-accent) !important;
+  color:var(--flicd-accent-ink) !important;
+  border-color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-avatar.avatar.lg {
+  border-color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-top-action,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-edit-action {
+  border-color:var(--flicd-glass-border);
+}
+.flicd-app:not([data-app-color-mode="default"]) input[type="range"],
+.flicd-app:not([data-app-color-mode="default"]) input[type="checkbox"],
+.flicd-app:not([data-app-color-mode="default"]) input[type="radio"] {
+  accent-color:var(--flicd-global-accent);
+}
+@media (max-width:650px) {
+ .flicd-app:not([data-app-color-mode="default"]) .bottom-dock { bottom:max(8px,env(safe-area-inset-bottom)) !important; }
+}
