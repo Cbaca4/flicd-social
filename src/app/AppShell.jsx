@@ -1,5 +1,6 @@
 import React from 'react';
 import { appColorCssVars } from '../features/theme/appColor.js';
+import '../features/theme/GlobalAppTheme.css';
 import BottomNav from '../components/navigation/BottomNav.jsx';
 import OnboardingGate from '../features/onboarding/OnboardingGate.jsx';
 import Companion from '../features/companion/Companion.jsx';
