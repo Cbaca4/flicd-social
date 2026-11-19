@@ -326,21 +326,16 @@ function AccountApp({ session, authScope }) {
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
-      try {
-        await syncExpiredArchive(captureAuthScope(authScope, current));
-      } catch (archiveError) {
-        if (!current()) return;
-        console.error("Failed to sync archive:", archiveError);
-      }
-
-      if (!current()) return;
-      const savedDumps = await getFeedDumps();
+      // The live feed must not wait for a potentially slow archive synchronization.\n      // getFeedDumps independently filters expired posts before rendering.\n      const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
       if (!current()) return;
       const hydrated = await hydrateDumpInteractions(formattedDumps);
       if (!current()) return;
       setDumps(hydrated);
       setFeedState({ status: "ready", error: "" });
+      void syncExpiredArchive(captureAuthScope(authScope, current)).catch((archiveError) => {
+        if (current()) console.error("Failed to sync archive:", archiveError);
+      });
     } catch (error) {
       if (!current()) return;
       console.error("Failed to load social feed:", error);
@@ -739,6 +734,31 @@ function AccountApp({ session, authScope }) {
     links: theme.profileLinks || [],
   };
 
+  const saveAppColor = async (nextColor) => {
+    const current = authScope.begin("profile-save");
+    if (!current()) return;
+    if (!supabaseProfile?.id || supabaseProfile.id !== session?.user?.id) throw new Error("Profile is still loading.");
+    const normalized = sanitizeProfileTheme({ ...theme, appColor: nextColor });
+    let result;
+    try {
+      result = await createAccountClient(captureAuthScope(authScope, current))
+        .from("profiles")
+        .update({ profile_theme: normalized })
+        .eq("id", supabaseProfile.id)
+        .select()
+        .single();
+    } catch (error) {
+      if (current()) throw error;
+      return;
+    }
+    if (!current()) return;
+    if (result?.error) throw result.error;
+    if (!result?.data) throw new Error("App color changes could not be verified.");
+    setSupabaseProfile(result.data);
+    setTheme(normalized);
+    onToast("App colors saved");
+  };
+
   let content;
 
   if (publicProfile) {
@@ -803,7 +823,7 @@ function AccountApp({ session, authScope }) {
   } else if (screen === "archive") {
     content = <Archive onBack={() => setScreen("profile")} onKeep={keep} />;
   } else if (screen === "profile") {
-    content = <Profile profile={profile} activeSpace={activeSpace} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
+    content = <Profile posts={dumps} onOpenPost={(post) => { if (!authScope.isCurrent()) return; authScope.cancel("viewer"); primePostAudio(post); setViewerCommentsOpen(false); setActivePostId(post.id); setScreen("viewer"); }} profile={profile} activeSpace={activeSpace} onBack={() => setScreen("home")} onSaveAppearance={saveAppColor} onSwitchSpaces={() => setScreen("spaces")} onArchive={() => setScreen("archive")} theme={theme} onCustomize={() => setScreen("profile-settings")} boards={profileBoards} onOpenBoards={() => setScreen("boards")} onCustomizeBoards={() => setBoardStudioOpen(true)} onOpenBoard={(board) => { setOpenBoardId(board.id); setScreen("boards"); }} onEditProfile={() => setScreen("edit-profile")} musicTrack={profileMusicTrack} onMusicTrackChange={setProfileMusicTrack} musicPlaying={profileMusicPlaying} onToggleMusic={toggleProfileMusic} notificationsUnread={notificationsUnread} onNotifications={() => setScreen("notifications")} onUserSelect={openPublicProfile} />;
   } else if (screen === "profile-settings") {
     content = <ProfileStudio
       isCurrent={authScope.isCurrent}
@@ -885,6 +905,7 @@ function AccountApp({ session, authScope }) {
     <>
       <AppShell
         userId={session.user.id}
+        appColor={theme.appColor}
         screen={navigationScreen}
         onNavigate={(key) => {
           if (!authScope.isCurrent()) return;

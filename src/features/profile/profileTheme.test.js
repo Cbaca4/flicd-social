@@ -38,6 +38,14 @@ describe("profile theme background framing", () => {
 });
 
 
+describe("adaptive profile theme", () => {
+  it("enables matching decorative accents by default and retains an explicit opt-out", () => {
+    expect(sanitizeProfileTheme({}).adaptiveTheme).toBe(true);
+    expect(sanitizeProfileTheme({ adaptiveTheme: false }).adaptiveTheme).toBe(false);
+    expect(sanitizeProfileTheme({ adaptiveTheme: true }).adaptiveTheme).toBe(true);
+  });
+});
+
 describe("profile presentation controls", () => {
   it("accepts a continuous global roundness value", () => {
     const theme = sanitizeProfileTheme({ ...DEFAULT_THEME, radius: 31 });

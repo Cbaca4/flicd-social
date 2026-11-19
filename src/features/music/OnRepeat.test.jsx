@@ -50,6 +50,9 @@ describe("OnRepeat", () => {
 
     render(<OnRepeat track={null} onTrackChange={() => {}} />);
 
+    expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
+    expect(mocks.getMusicTracks).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Song" }));
     expect(await screen.findByRole("searchbox", { name: "Search profile music" })).toBeInTheDocument();
     fireEvent.click(await screen.findByRole("option"));
 
@@ -57,7 +60,7 @@ describe("OnRepeat", () => {
       expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith("song-1", expect.objectContaining({user:'me'}));
       expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
       expect(screen.getByText("Night Drive")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Remove profile music" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Change Song" })).toBeInTheDocument();
     });
   });
 
@@ -66,6 +69,34 @@ describe("OnRepeat", () => {
 
     expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
     expect(screen.getByText("Night Drive")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Remove profile music" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change Song" })).toBeInTheDocument();
   });
+  it("keeps the picker closed on removal, close and re-entry until explicitly requested", async () => {
+    mocks.getMusicTracks.mockResolvedValue([song]);
+    mocks.setProfileMusicTrack.mockResolvedValue({ profile_music_track_id: null });
+    render(<OnRepeat track={song} onTrackChange={() => {}} />);
+    expect(screen.queryByRole("dialog", { name: "Select profile music" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Change Song" }));
+    await screen.findByRole("searchbox", { name: "Search profile music" });
+    fireEvent.click(screen.getByRole("button", { name: "Close music picker" }));
+    expect(screen.queryByRole("dialog", { name: "Select profile music" })).not.toBeInTheDocument();
+    expect(mocks.getMusicTracks).toHaveBeenCalledTimes(0);
+    fireEvent.click(screen.getByRole("button", { name: "Change Song" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove current song" }));
+    await waitFor(() => {
+      expect(mocks.setProfileMusicTrack).toHaveBeenCalledWith(null, expect.objectContaining({ user: "me" }));
+      expect(screen.queryByRole("dialog", { name: "Select profile music" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Choose Song" })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole("searchbox", { name: "Search profile music" })).not.toBeInTheDocument();
+  });
+
+  it("dismisses via Escape and never loads suggestions before explicit open", () => {
+    render(<OnRepeat track={null} />);
+    expect(mocks.getMusicTracks).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Choose Song" }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Select profile music" })).not.toBeInTheDocument();
+  });
+
 });

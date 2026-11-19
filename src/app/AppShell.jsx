@@ -1,16 +1,18 @@
 import React from 'react';
+import { appColorCssVars } from '../features/theme/appColor.js';
+import '../features/theme/GlobalAppTheme.css';
 import BottomNav from '../components/navigation/BottomNav.jsx';
 import OnboardingGate from '../features/onboarding/OnboardingGate.jsx';
 import Companion from '../features/companion/Companion.jsx';
 import { getActiveSeasonalEvent } from '../features/seasonal/seasonalEvents.js';
 
-export default function AppShell({ userId, screen, onNavigate, onCapture, children, unread = 0, notificationsUnread = 0 }) {
+export default function AppShell({ userId, screen, onNavigate, onCapture, children, unread = 0, notificationsUnread = 0, appColor }) {
   const [ready, setReady] = React.useState(false);
   const handleReady = React.useCallback(() => setReady(true), []);
   const seasonalEvent = getActiveSeasonalEvent();
 
   return (
-    <div className="flicd-app">
+    <div className="flicd-app" style={appColorCssVars(appColor)} data-app-color-mode={appColor?.enabled ? appColor.mode : "default"}>
       <div className="app-frame">
         <main className="app-content">
           <OnboardingGate onReady={handleReady}>{children}</OnboardingGate>

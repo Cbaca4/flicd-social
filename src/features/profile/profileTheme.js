@@ -1,3 +1,5 @@
+import { DEFAULT_APP_COLOR, sanitizeAppColor } from "../theme/appColor.js";
+
 const SECTION_DEFAULT = {
   background: "#252832",
   border: "#343844",
@@ -10,6 +12,8 @@ export const DEFAULT_THEME = {
   background: "#17191e",
   backgroundStyle: "solid",
   backgroundMedia: null,
+  adaptiveTheme: true,
+  appColor: { ...DEFAULT_APP_COLOR },
   accent: "#ffb52e",
   cardOpacity: 0.94,
   radius: 22,
@@ -151,6 +155,8 @@ export function sanitizeProfileTheme(input = {}) {
   t.showBoards = Boolean(t.showBoards);
   t.showInterests = Boolean(t.showInterests);
   t.showMusic = Boolean(t.showMusic);
+  t.adaptiveTheme = t.adaptiveTheme !== false;
+  t.appColor = sanitizeAppColor(t.appColor);
   t.profileLinks = sanitizeProfileLinks(t.profileLinks);
 
   t.backgroundMedia = normalizeBackgroundMedia(t.backgroundMedia);
