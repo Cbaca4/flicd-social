@@ -15,6 +15,7 @@ describe("per-account application colors", () => {
         const color = { enabled: true, hue, intensity: 90, mode };
         const vars = appColorCssVars(color);
         expect(vars["--amber"]).toContain("hsl(");
+        expect(vars["--flicd-hue"]).toBe(String(hue));
         expect(vars["--flicd-global-accent"]).toBe(vars["--amber"]);
         expect(accessibleAccent(hue, 90, mode).contrast).toBeGreaterThanOrEqual(4.5);
       }
