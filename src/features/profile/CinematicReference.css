@@ -506,3 +506,40 @@
     transition-duration: .01ms !important; animation-duration: .01ms !important;
   }
 }
+
+/* Owner actions: editing and sharing only, no redundant Following control. */
+.profile-space-layout .profile-hero-actions { grid-template-columns:minmax(0,1fr) 56px !important; }
+.profile-space-layout .profile-hero-actions .profile-edit-action { min-width:0; }
+@media(max-width:620px) { .profile-space-layout .profile-hero-actions { grid-template-columns:minmax(0,1fr) 46px !important; } }
+
+/* Respect the signed-in member's global hue without recoloring uploaded media. */
+.flicd-app[data-app-color-mode="dark"] .profile-space-layout,
+.flicd-app[data-app-color-mode="light"] .profile-space-layout {
+  --flicd-pink:var(--flicd-global-accent);
+  --flicd-mauve:var(--flicd-global-accent);
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-wordmark span,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery-tab.is-active,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .cinematic-on-repeat .profile-space-panel-title,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery-board-panel > .btn {
+  color:var(--flicd-global-accent) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-gallery-tab.is-active::after {
+  background:var(--flicd-global-accent); box-shadow:0 0 12px var(--flicd-global-soft);
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-avatar.avatar.lg {
+  border-color:var(--flicd-global-accent); box-shadow:0 0 0 2px var(--flicd-global-soft),0 12px 32px rgba(7,4,15,.35);
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-avatar-crown,
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .profile-mini-stats .profile-stat--inline:hover,
+.flicd-app:not([data-app-color-mode="default"]) .bottom-dock .nav-btn.active {
+  color:var(--flicd-global-accent);
+}
+.flicd-app:not([data-app-color-mode="default"]) .profile-space-layout .cinematic-music-progress input[type="range"] {
+  background:linear-gradient(90deg,var(--flicd-global-accent) var(--music-progress,0%),rgba(245,221,246,.28) var(--music-progress,0%));
+}
+.flicd-app:not([data-app-color-mode="default"]) .bottom-dock .capture-core {
+  border-color:var(--flicd-global-accent);
+  color:var(--flicd-global-accent);
+  background:var(--flicd-global-soft);
+}
