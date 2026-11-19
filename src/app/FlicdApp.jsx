@@ -739,6 +739,31 @@ function AccountApp({ session, authScope }) {
     links: theme.profileLinks || [],
   };
 
+  const saveAppColor = async (nextColor) => {
+    const current = authScope.begin("profile-save");
+    if (!current()) return;
+    if (!supabaseProfile?.id || supabaseProfile.id !== session?.user?.id) throw new Error("Profile is still loading.");
+    const normalized = sanitizeProfileTheme({ ...theme, appColor: nextColor });
+    let result;
+    try {
+      result = await createAccountClient(captureAuthScope(authScope, current))
+        .from("profiles")
+        .update({ profile_theme: normalized })
+        .eq("id", supabaseProfile.id)
+        .select()
+        .single();
+    } catch (error) {
+      if (current()) throw error;
+      return;
+    }
+    if (!current()) return;
+    if (result?.error) throw result.error;
+    if (!result?.data) throw new Error("App color changes could not be verified.");
+    setSupabaseProfile(result.data);
+    setTheme(normalized);
+    onToast("App colors saved");
+  };
+
   let content;
 
   if (publicProfile) {
@@ -878,31 +903,6 @@ function AccountApp({ session, authScope }) {
           return true;
         }} likePending={pendingLikeIds.has(activePost.id)} onUserSelect={openPublicProfile} /> : <Home dumps={dumps} activeSpace={activeSpace} onOpen={() => {}} loading={false} error="" onUserSelect={openPublicProfile} />;
   }
-
-  const saveAppColor = async (nextColor) => {
-    const current = authScope.begin("profile-save");
-    if (!current()) return;
-    if (!supabaseProfile?.id || supabaseProfile.id !== session?.user?.id) throw new Error("Profile is still loading.");
-    const normalized = sanitizeProfileTheme({ ...theme, appColor: nextColor });
-    let result;
-    try {
-      result = await createAccountClient(captureAuthScope(authScope, current))
-        .from("profiles")
-        .update({ profile_theme: normalized })
-        .eq("id", supabaseProfile.id)
-        .select()
-        .single();
-    } catch (error) {
-      if (current()) throw error;
-      return;
-    }
-    if (!current()) return;
-    if (result?.error) throw result.error;
-    if (!result?.data) throw new Error("App color changes could not be verified.");
-    setSupabaseProfile(result.data);
-    setTheme(normalized);
-    onToast("App colors saved");
-  };
 
   const navigationScreen = screen === "viewer" ? "home" : ["create-dump", "create-roll", "create-choose", "profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? (["profile-settings", "edit-profile", "boards", "spaces", "notifications", "archive"].includes(screen) ? "profile" : "home") : screen;
 
