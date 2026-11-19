@@ -3,7 +3,7 @@ import "./ImmersiveHybrid.css";
 import "./CinematicReference.css";
 import useProfileAccent from "./useProfileAccent.js";
 import ProfilePostTile from "./ProfilePostTile.jsx";
-import { Settings, Plus, ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal, Share2, Crown, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
+import { Settings, Plus, ChevronLeft, ChevronRight, MoreHorizontal, Share2, Crown, Pin, LayoutGrid, Pencil, Palette, Images, Users, LogOut, ShieldCheck, Bell, SlidersHorizontal, Database, HelpCircle, Info, UserRoundCog, Archive as ArchiveIcon } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { getPinnedBoards } from "./boardPinning.js";
 import { getRelationshipCounts } from "../social/socialApi.js";
@@ -151,7 +151,10 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
   const [now, setNow] = React.useState(() => Date.now());
   const [relationshipCounts, setRelationshipCounts] = React.useState({ followers: profile?.followers ?? 0, following: profile?.following ?? 0 });
   const pinnedBoards = getPinnedBoards(boards);
-  const ownPosts = posts.filter((post) => post?.authorId && post.authorId === profile?.id && (!post.expiresAt || post.expiresAt > now));
+  // Only currently live, expiring posts belong in public-facing Dumps/Rolls.
+  // Kept media and the private Archive are deliberately not folded into this gallery.
+  const ownPosts = posts.filter((post) => post?.authorId === profile?.id &&
+    ["24h", "once"].includes(post?.mode) && Number.isFinite(post?.expiresAt) && post.expiresAt > now);
   const displayedPosts = ownPosts.filter((post) => (post.type === "roll" ? "rolls" : "dumps") === contentTab);
   const adaptiveAccent = useProfileAccent(theme?.backgroundMedia, theme?.adaptiveTheme !== false);
   React.useEffect(() => {
@@ -166,6 +169,10 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
     const timer = window.setTimeout(() => setNow(Date.now()), delay);
     return () => window.clearTimeout(timer);
   }, [posts, profile?.id, now]);
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
   React.useEffect(() => {
     const refreshVisibleProfile = () => {
       if (document.visibilityState === "visible") setNow(Date.now());
@@ -280,7 +287,6 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             </div>
           )}
           <div className="profile-hero-actions">
-            <button type="button" className="profile-following-action" onClick={() => setRelationshipList("following")} aria-label="Following list">Following <ChevronDown size={17}/></button>
             <button type="button" className="profile-edit-action" onClick={onEditProfile} aria-label="Edit Profile">Edit Profile</button>
             <button type="button" className="profile-share-action" onClick={shareProfile} aria-label="Share profile"><Share2 size={21}/></button>
           </div>
@@ -300,6 +306,7 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
                 onClick={() => setContentTab(key)}>{label}</button>
             ))}
           </div>
+          {contentTab !== "boards" && <div className="profile-active-post-policy"><span>Live moments · disappear after 24h</span>{onArchive && <button type="button" onClick={onArchive}><ArchiveIcon size={13} /> Private Archive</button>}</div>}
           {pinnedBoards.length > 0 && contentTab !== "boards" && (
             <section className="profile-featured-boards" aria-label="Pinned Boards">
               <div className="profile-featured-boards-heading">
@@ -328,14 +335,14 @@ export default function Profile({ profile, activeSpace, onSwitchSpaces, theme, o
             ) : displayedPosts.length ? (
               <div className="profile-gallery-grid">
                 {displayedPosts.map((post) => (
-                  <ProfilePostTile key={post.id} post={post} onOpen={onOpenPost} />
+                  <ProfilePostTile key={post.id} post={post} now={now} onOpen={onOpenPost} />
                 ))}
               </div>
             ) : (
               <div className="profile-gallery-empty">
                 <Images size={24} aria-hidden="true" />
                 <strong>No {contentTab} yet</strong>
-                <span>Your active {contentTab} will appear here.</span>
+                <span>Only live posts appear here. Your private Archive and pinned Boards keep the memories you choose.</span>
               </div>
             )}
           </div>
