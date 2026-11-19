@@ -27,6 +27,31 @@ vi.mock("../social/socialApi.js", () => ({
 }));
 
 describe("handheld profile layout", () => {
+  it("never offers a Following action on the owner profile but preserves following statistics", () => {
+    render(<Profile profile={{ id: "owner", handle: "baco", followers: 4, following: 7 }}
+      activeSpace={{ handle: "baco" }} theme={DEFAULT_THEME} boards={[]} />);
+    expect(screen.queryByRole("button", { name: "Following list" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Share profile" })).toBeInTheDocument();
+    expect(screen.getByText("Following")).toBeInTheDocument();
+  });
+
+  it("opens Color Studio through Settings and saves a new app hue", async () => {
+    const onSaveAppearance = vi.fn().mockResolvedValue(undefined);
+    render(<Profile profile={{ id: "owner", handle: "baco" }}
+      activeSpace={{ handle: "baco" }} theme={DEFAULT_THEME} boards={[]}
+      onSaveAppearance={onSaveAppearance} />);
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: /Color Studio/ }));
+    expect(screen.getByTestId("app-color-studio")).toBeInTheDocument();
+    fireEvent.change(screen.getByRole("slider", { name: "App hue" }), { target: { value: "205" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save colors" }));
+    await vi.waitFor(() => expect(onSaveAppearance).toHaveBeenCalledWith(expect.objectContaining({
+      enabled: true, hue: 205, intensity: 75, mode: "dark",
+    })));
+  });
+
+
   it("renders the cinematic reference hierarchy with functional navigation", () => {
     const onBack = vi.fn();
     const onEditProfile = vi.fn();
