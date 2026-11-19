@@ -137,13 +137,13 @@ describe("handheld profile layout", () => {
     expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(document.querySelector(".profile-username-heading")).toHaveTextContent("@baco");
     expect(document.querySelector(".profile-space-layout")).toBeTruthy();
-    expect(document.querySelector(".profile-space-grid")).toBeTruthy();
+    expect(document.querySelector(".profile-cinematic-topbar")).toBeTruthy();
     expect(document.querySelector(".profile-gallery")).toBeTruthy();
-    expect(document.querySelector(".profile-space-side")).toBeTruthy();
+    expect(document.querySelector(".profile-gallery-tabs")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Boards" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "On Repeat", exact: true })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Profile Studio", exact: true })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Switch spaces", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("tablist", { name: "Profile content" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Boards", exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Website" })).toHaveAttribute("href", "https://example.com");
@@ -248,8 +248,8 @@ describe("handheld profile layout", () => {
     );
 
     expect(screen.getByRole("button", { name: "Edit Profile" })).toBeInTheDocument();
-    expect(document.querySelector(".profile-action-label--full")).toBeTruthy();
-    expect(document.querySelector(".profile-action-label--compact")).toBeTruthy();
+    expect(document.querySelector(".profile-edit-action")).toBeTruthy();
+    expect(document.querySelector(".profile-share-action")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Switch spaces", exact: true })).toBeInTheDocument();
   });
 
@@ -282,7 +282,7 @@ describe("handheld profile layout", () => {
     const { rerender } = render(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
       theme={{ ...DEFAULT_THEME, backgroundMedia }} boards={[]} />);
     const hero = document.querySelector(".profile-space-hero");
-    expect(hero.style.backgroundColor).toBe("rgba(22, 15, 30, 0.28)");
+    expect(hero).not.toHaveClass("custom-hero-media");
     expect(document.querySelector(".profile-background-media img")).toHaveAttribute("src", backgroundMedia.url);
 
     rerender(<Profile profile={{ handle: "baco" }} activeSpace={{ handle: "baco" }}
@@ -296,7 +296,7 @@ describe("handheld profile layout", () => {
       }} boards={[]} />);
     expect(hero.style.backgroundSize).toBe("cover");
     expect(hero.style.backgroundPosition).toBe("50% 50%");
-    expect(hero.style.backgroundColor).not.toBe("rgba(22, 15, 30, 0.28)");
+    expect(hero).toHaveClass("custom-hero-media");
   });
 
   it("renders background framing controls without the removed identity controls", () => {
