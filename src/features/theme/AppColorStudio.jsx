@@ -4,13 +4,13 @@ import { DEFAULT_APP_COLOR, sanitizeAppColor, appColorCssVars, accessibleAccent 
 import "./AppColorStudio.css";
 
 export default function AppColorStudio({ initialValue, onBack, onSave }) {
-  const [draft, setDraft] = React.useState(() => ({ ...sanitizeAppColor(initialValue), enabled: true }));
+  const [draft, setDraft] = React.useState(() => sanitizeAppColor(initialValue));
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const preview = appColorCssVars({ ...draft, enabled: true });
   const accent = accessibleAccent(draft.hue, draft.intensity, draft.mode).css;
 
-  const update = (key, value) => setDraft((current) => sanitizeAppColor({ ...current, [key]: value }));
+  const update = (key, value) => setDraft((current) => sanitizeAppColor({ ...current, [key]: value, ...(key === "enabled" ? {} : { enabled: true }) }));
   const save = async () => {
     if (saving) return;
     setSaving(true);
