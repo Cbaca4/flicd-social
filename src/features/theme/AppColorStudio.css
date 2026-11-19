@@ -24,3 +24,19 @@
 .app-color-preview-grid div { aspect-ratio:1; border-radius:10px; }
 .app-color-preview-nav { display:flex; justify-content:space-between; margin-top:23px; color:var(--muted); font-size:24px; }
 @media(max-width:700px) { .app-color-studio-layout { grid-template-columns:1fr; } .app-color-studio { padding-bottom:125px; } }
+
+/* Accessible text on user-selected primary accents, including light mode. */
+.flicd-app:not([data-app-color-mode="default"]) .btn-primary,
+.flicd-app:not([data-app-color-mode="default"]) .pill.active,
+.flicd-app:not([data-app-color-mode="default"]) .capture-core {
+  color:var(--flicd-accent-ink) !important;
+}
+.flicd-app:not([data-app-color-mode="default"]) .nav-btn.active,
+.flicd-app:not([data-app-color-mode="default"]) .on-repeat-change-song {
+  color:var(--flicd-global-accent);
+}
+.flicd-app:not([data-app-color-mode="default"]) .btn:focus-visible,
+.flicd-app:not([data-app-color-mode="default"]) button:focus-visible,
+.flicd-app:not([data-app-color-mode="default"]) input:focus-visible {
+  outline:2px solid var(--flicd-global-accent); outline-offset:3px;
+}
