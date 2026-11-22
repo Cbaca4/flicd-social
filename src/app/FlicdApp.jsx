@@ -16,6 +16,7 @@ import {
 } from "../features/profile/boardApi.js";
 
 import Auth from "../features/auth/Auth.jsx";
+import PasswordReset from "../features/auth/PasswordReset.jsx";
 import AppShell from "./AppShell.jsx";
 
 import Home, { Viewer } from "../features/home/Home.jsx";
@@ -128,11 +129,14 @@ function formatDumpRecord(dump) {
 export default function FlicdApp() {
   const [boundary] = React.useState(createAuthBoundary);
   const [auth, setAuth] = React.useState(null);
+  const [passwordRecovery, setPasswordRecovery] = React.useState(false);
   React.useEffect(() => {
     let active = true, receivedAuthEvent = false, previous = null;
     const accept = (event, session) => {
       if (!active) return;
       const scope = boundary.accept(session, event);
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      else if (event === "SIGNED_OUT") setPasswordRecovery(false);
       if (previous && previous !== scope) {
         void Promise.resolve(closeAllMediaSessions()).catch(() => {});
         stopAudio();
@@ -153,6 +157,7 @@ export default function FlicdApp() {
     };
   }, [boundary]);
   if (!auth?.session) return <Auth onLogin={() => {}} />;
+  if (passwordRecovery) return <PasswordReset onComplete={() => setPasswordRecovery(false)} />;
   // Every account-owned surface and draft has this lifetime, including AppShell.
   return <AuthScopeContext.Provider value={auth.scope}><AccountApp key={auth.scope.generation} session={auth.session} authScope={auth.scope} /></AuthScopeContext.Provider>;
 }
@@ -326,7 +331,9 @@ function AccountApp({ session, authScope }) {
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
-      // The live feed must not wait for a potentially slow archive synchronization.\n      // getFeedDumps independently filters expired posts before rendering.\n      const savedDumps = await getFeedDumps();
+      // The live feed must not wait for a potentially slow archive synchronization.
+      // getFeedDumps independently filters expired posts before rendering.
+      const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
       if (!current()) return;
       const hydrated = await hydrateDumpInteractions(formattedDumps);
@@ -888,7 +895,7 @@ function AccountApp({ session, authScope }) {
   } else if (screen === "create-roll") {
     content = <RollBuilder spaces={spaces} activeSpaceId={activeSpaceId} onCancel={() => setScreen("home")} onPost={postRoll} />;
   } else {
-    content = activePost ? <Viewer post={activePost} currentUserId={session.user.id} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={async (dumpId, receipt) => {
+    content = activePost ? <Viewer post={activePost} currentUserId={session.user.id} authScope={authScope} initialCommentsOpen={viewerCommentsOpen} onClose={closeViewer} onLike={toggleLike} onComment={comment} onKeep={keep} onMarkViewed={async (dumpId, receipt) => {
           if (!authScope.isCurrent()) throw new Error("Authenticated context changed.");
           const confirmed = await markDumpViewed(dumpId, receipt);
           if (confirmed !== true) throw new Error("View acknowledgement was not confirmed.");

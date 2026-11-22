@@ -33,19 +33,33 @@ export default function PeopleDiscovery({ onUserSelect }) {
     const timer = setTimeout(async () => {
       setSearchLoading(true);
       setSearchError("");
-      const { data, error } = await supabase
-        .from("profiles")
+      // Avoid interpolating user input into PostgREST's .or() expression
+      // language. Commas, parentheses and operators must stay literal text.
+      // Escape LIKE wildcards so a search cannot broaden itself via % or _.
+      const pattern = "%" + clean.replace(/[\\%_]/g, "\\$&") + "%";
+      const search = (column) => supabase.from("profiles")
         .select("id,username,avatar_url,is_private")
-        .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
-        .limit(18);
-      if (cancelled) return;
-      setSearchLoading(false);
-      if (error) {
-        setSearchResults([]);
-        setSearchError("People search is unavailable right now.");
-        return;
+        .ilike(column, pattern).limit(18);
+      try {
+        const [byUsername, byName] = await Promise.all([
+          search("username"), search("display_name"),
+        ]);
+        if (cancelled) return;
+        if (byUsername.error || byName.error) throw byUsername.error || byName.error;
+        const unique = new Map();
+        for (const person of [...(byUsername.data || []), ...(byName.data || [])]) {
+          unique.set(person.id, person);
+        }
+        setSearchResults(Array.from(unique.values()).slice(0, 18));
+        setSearchError("");
+      } catch {
+        if (!cancelled) {
+          setSearchResults([]);
+          setSearchError("People search is unavailable right now.");
+        }
+      } finally {
+        if (!cancelled) setSearchLoading(false);
       }
-      setSearchResults(data || []);
     }, 220);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [query]);

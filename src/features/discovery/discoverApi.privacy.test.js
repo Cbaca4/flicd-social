@@ -12,14 +12,16 @@ const query=(data)=>{
 };
 beforeEach(()=>vi.clearAllMocks());
 describe('discovery metadata privacy',()=>{
- it('retains consumed/global-marked public once metadata while preserving ordinary expiry and private-author discovery boundaries',async()=>{
+ it('retains fresh consumed public once metadata but expires old once and 24h posts, excluding private authors',async()=>{
   let profileCalls=0;
   from.mockImplementation(table=>{
    if(table==='profiles')return profileCalls++===0?query({interests:[]}):query([{id:'publicAuthor',is_private:false,username:'public'},{id:'privateAuthor',is_private:true,username:'private'}]);
    if(table==='dump_views')return query([{dump_id:'consumed'}]);
    return query([
-    {id:'consumed',user_id:'publicAuthor',expiry:'once',created_at:'2020-01-01'},
-    {id:'globally-marked',user_id:'publicAuthor',expiry:'once',once_viewed_at:'2020-01-01',created_at:'2020-01-01'},
+    {id:'old-consumed',user_id:'publicAuthor',expiry:'once',created_at:'2020-01-01'},
+    {id:'old-globally-marked',user_id:'publicAuthor',expiry:'once',once_viewed_at:'2020-01-01',created_at:'2020-01-01'},
+    {id:'consumed',user_id:'publicAuthor',expiry:'once',created_at:new Date().toISOString()},
+    {id:'globally-marked',user_id:'publicAuthor',expiry:'once',once_viewed_at:'2020-01-01',created_at:new Date().toISOString()},
     {id:'old-24h',user_id:'publicAuthor',expiry:'24h',created_at:'2020-01-01'},
     {id:'private',user_id:'privateAuthor',expiry:'once',created_at:new Date().toISOString()},
     {id:'current',user_id:'publicAuthor',expiry:'24h',created_at:new Date().toISOString(),dump_items:[{id:'frame',position:0,image_path:'publicAuthor/private.png',media_bucket:'flicd-dump-private'}]},

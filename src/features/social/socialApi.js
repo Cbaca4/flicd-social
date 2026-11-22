@@ -37,8 +37,23 @@ export async function ensureCurrentProfile(authScope) {
   scope.assertUser(user?.id);
   if (authError) throw authError;
   if (!user) throw new Error("You must be logged in.");
+  const fields = "id,username,display_name,bio,avatar_url,profile_theme,interests,onboarding_completed,is_private";
+  const { data: existing, error: readError } = await client.from("profiles")
+    .select(fields).eq("id", scope.user).maybeSingle();
+  scope.assertCurrent();
+  if (readError) throw readError;
+  // Never overwrite a member's chosen username when the onboarding gate remounts.
+  if (existing) return existing;
+
   const fallbackUsername = user.user_metadata?.username || `user_${user.id.slice(0, 8)}`;
-  const { data, error } = await client.from("profiles").upsert({ id: scope.user, username: fallbackUsername }, { onConflict: "id" }).select("id,username,display_name,bio,avatar_url,profile_theme,interests,onboarding_completed,is_private").single();
+  const { error: insertError } = await client.from("profiles")
+    .upsert({ id: scope.user, username: fallbackUsername }, { onConflict: "id", ignoreDuplicates: true });
+  scope.assertCurrent();
+  if (insertError) throw insertError;
+
+  // Read the winning row after a possible concurrent first-login insert.
+  const { data, error } = await client.from("profiles").select(fields).eq("id", scope.user).single();
+  scope.assertCurrent();
   if (error) throw error;
   return data;
 }

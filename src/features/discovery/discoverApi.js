@@ -52,12 +52,11 @@ function normalizeItems(items) {
 }
 
 function isLiveDump(dump) {
-  if (!dump?.created_at) return true;
-  if (dump.expiry === "once") return true;
-  if (dump.expiry === "24h") {
-    return new Date(dump.created_at).getTime() > Date.now() - 24 * 60 * 60 * 1000;
-  }
-  return true;
+  // View Once means one reveal per non-owner *during* the 24h post lifetime.
+  // Filtering Explore is presentation only; the gateway/RLS must enforce access.
+  if (!["24h", "once"].includes(dump?.expiry) || !dump?.created_at) return true;
+  const created = new Date(dump.created_at).getTime();
+  return !Number.isFinite(created) || created > Date.now() - 24 * 60 * 60 * 1000;
 }
 
 export async function getExploreCandidates({ limit = 90 } = {}) {

@@ -46,6 +46,15 @@ beforeEach(() => {
 });
 
 describe("FlicdApp view acknowledgement", () => {
+  it("routes PASSWORD_RECOVERY to the password form before exposing the application", async () => {
+    render(<FlicdApp />);
+    await act(async () => authListener.current("PASSWORD_RECOVERY", {
+      user: { id: "viewer" }, session_id: "recovery-session",
+    }));
+    expect(screen.getByRole("heading", { name: "Set a new password" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open post" })).not.toBeInTheDocument();
+  });
+
   it("discards a feed response belonging to the account that signed out", async () => {
     let oldFeed;
     loadFeed.mockImplementationOnce(() => new Promise(resolve => { oldFeed = resolve; })).mockResolvedValueOnce([]);
