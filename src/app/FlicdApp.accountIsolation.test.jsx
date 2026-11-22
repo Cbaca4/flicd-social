@@ -70,6 +70,20 @@ describe('account-generation async isolation',()=>{
  it('late like failure cannot clear a new generation pending like or show its failure',async()=>{
   const a=deferred(),b=deferred();m.like.mockReturnValueOnce(a.promise).mockReturnValueOnce(b.promise);await start();let old,latest;act(()=>{old=m.ui.home.onLike('feed-A');});await switched(true);await nav('home');act(()=>{latest=m.ui.home.onLike('feed-A');});await act(async()=>{a.reject(new Error('old-private'));await old;});expect(m.ui.home.pendingLikeIds.has('feed-A')).toBe(true);expect(screen.queryByText('old-private')).not.toBeInTheDocument();await act(async()=>{b.resolve();await latest;});expect(m.ui.home.pendingLikeIds.has('feed-A')).toBe(false);
  });
+ it('passes the signed-in app generation into Viewer and invalidates it on account switching',async()=>{
+  await start();
+  act(()=>m.ui.home.onOpen(m.ui.home.dumps[0]));
+  const ownerScope=m.ui.viewer.authScope;
+  expect(ownerScope.user).toBe('A');
+  expect(ownerScope.isCurrent()).toBe(true);
+  await auth('B');
+  expect(ownerScope.isCurrent()).toBe(false);
+  await nav('home');
+  act(()=>m.ui.home.onOpen(m.ui.home.dumps[0]));
+  expect(m.ui.viewer.authScope.user).toBe('B');
+  expect(m.ui.viewer.authScope.isCurrent()).toBe(true);
+  expect(m.ui.viewer.authScope).not.toBe(ownerScope);
+ });
  it('late comment and acknowledgement results cannot affect a replacement account Viewer/feed',async()=>{
   const comment=deferred(),ack=deferred();m.comment.mockReturnValueOnce(comment.promise);m.ack.mockReturnValueOnce(ack.promise);await start();act(()=>m.ui.home.onOpen(m.ui.home.dumps[0]));let c,a;act(()=>{c=m.ui.viewer.onComment('feed-A','private comment');a=m.ui.viewer.onMarkViewed('feed-A',{}).catch(e=>e);});await switched(true);await act(async()=>{comment.resolve({id:'old-comment',text:'private comment'});ack.resolve(true);await c;await a;});expect(screen.queryByTestId('viewer')).not.toBeInTheDocument();await nav('home');expect(m.ui.home.dumps[0].comments).toEqual([]);expect(m.ui.home.dumps[0].viewed).toBe(false);
  });
