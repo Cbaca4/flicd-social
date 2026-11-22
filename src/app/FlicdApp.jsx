@@ -16,6 +16,7 @@ import {
 } from "../features/profile/boardApi.js";
 
 import Auth from "../features/auth/Auth.jsx";
+import PasswordReset from "../features/auth/PasswordReset.jsx";
 import AppShell from "./AppShell.jsx";
 
 import Home, { Viewer } from "../features/home/Home.jsx";
@@ -128,11 +129,14 @@ function formatDumpRecord(dump) {
 export default function FlicdApp() {
   const [boundary] = React.useState(createAuthBoundary);
   const [auth, setAuth] = React.useState(null);
+  const [passwordRecovery, setPasswordRecovery] = React.useState(false);
   React.useEffect(() => {
     let active = true, receivedAuthEvent = false, previous = null;
     const accept = (event, session) => {
       if (!active) return;
       const scope = boundary.accept(session, event);
+      if (event === "PASSWORD_RECOVERY") setPasswordRecovery(true);
+      else if (event === "SIGNED_OUT") setPasswordRecovery(false);
       if (previous && previous !== scope) {
         void Promise.resolve(closeAllMediaSessions()).catch(() => {});
         stopAudio();
@@ -153,6 +157,7 @@ export default function FlicdApp() {
     };
   }, [boundary]);
   if (!auth?.session) return <Auth onLogin={() => {}} />;
+  if (passwordRecovery) return <PasswordReset onComplete={() => setPasswordRecovery(false)} />;
   // Every account-owned surface and draft has this lifetime, including AppShell.
   return <AuthScopeContext.Provider value={auth.scope}><AccountApp key={auth.scope.generation} session={auth.session} authScope={auth.scope} /></AuthScopeContext.Provider>;
 }
