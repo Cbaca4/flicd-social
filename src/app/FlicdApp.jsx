@@ -326,7 +326,9 @@ function AccountApp({ session, authScope }) {
     if (!session) return;
     setFeedState({ status: "loading", error: "" });
     try {
-      // The live feed must not wait for a potentially slow archive synchronization.\n      // getFeedDumps independently filters expired posts before rendering.\n      const savedDumps = await getFeedDumps();
+      // The live feed must not wait for a potentially slow archive synchronization.
+      // getFeedDumps independently filters expired posts before rendering.
+      const savedDumps = await getFeedDumps();
       const formattedDumps = savedDumps.map(formatDumpRecord);
       if (!current()) return;
       const hydrated = await hydrateDumpInteractions(formattedDumps);
