@@ -1030,7 +1030,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
         <div className="viewer-scrim-layer" aria-hidden="true" />
 
         {(unlockingOnce || unlockError || (isOwnOnce && ownerLoading)) && (
-          <div role={unlockError ? "alert" : "status" className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)" }}>
+          <div role={unlockError ? "alert" : "status"} className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)" }}>
             {unlockError || (isOwnOnce ? "Loading original photo…" : "Confirming view…")}
             {isOwnOnce && unlockError && (
               <button
