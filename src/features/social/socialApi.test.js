@@ -30,6 +30,29 @@ function chain(result) {
 }
 
 describe("social API", () => {
+  it("does not overwrite a member's chosen username when onboarding checks their profile", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "me", user_metadata: { username: "old-signup-name" } } }, error: null });
+    const existing = chain({ data: { id: "me", username: "chosen-handle" }, error: null });
+    from.mockImplementationOnce(() => existing);
+    const { ensureCurrentProfile } = await import("./socialApi.js");
+    await expect(ensureCurrentProfile(testAuthScope("me"))).resolves.toMatchObject({ username: "chosen-handle" });
+    expect(existing.upsert).not.toHaveBeenCalled();
+    expect(from).toHaveBeenCalledTimes(1);
+  });
+
+  it("creates a missing profile only if absent, then re-reads the winning row", async () => {
+    getUser.mockResolvedValue({ data: { user: { id: "me", user_metadata: { username: "signup-handle" } } }, error: null });
+    const lookup = chain({ data: null, error: null });
+    const insert = chain({ data: null, error: null });
+    const winner = chain({ data: { id: "me", username: "signup-handle" }, error: null });
+    from.mockImplementationOnce(() => lookup).mockImplementationOnce(() => insert).mockImplementationOnce(() => winner);
+    const { ensureCurrentProfile } = await import("./socialApi.js");
+    await expect(ensureCurrentProfile(testAuthScope("me"))).resolves.toMatchObject({ username: "signup-handle" });
+    expect(insert.upsert).toHaveBeenCalledWith(
+      { id: "me", username: "signup-handle" },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+  });
   it("follows a public profile as accepted", async () => {
     getUser.mockResolvedValue({ data: { user: { id: "me" } }, error: null });
     from.mockImplementationOnce(() => chain({ data: { is_private: false }, error: null }))
