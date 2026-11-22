@@ -55,6 +55,47 @@ describe('View Once trusted React boundary',()=>{
   expect(claim).not.toHaveBeenCalled();
  });
 
+ it('shows creator loading and times out a hung owner photo request with a safe retry',async()=>{
+  vi.useFakeTimers();
+  try {
+    ownerFrames.mockReturnValueOnce(new Promise(()=>{}));
+    renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
+    expect(screen.getByText('Loading original photo…')).toBeInTheDocument();
+    await act(async()=>vi.advanceTimersByTime(15010));
+    expect(screen.getByRole('alert')).toHaveTextContent('timed out');
+    expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
+    expect(close).toHaveBeenCalled();
+    expect(claim).not.toHaveBeenCalled();
+    expect(factory).not.toHaveBeenCalled();
+  } finally {
+    cleanup();
+    vi.useRealTimers();
+  }
+ });
+
+ it('reports a browser image decode failure and can display a fresh owner URL after retry',async()=>{
+  ownerFrames.mockResolvedValueOnce(['blob:broken-original']).mockResolvedValueOnce(['blob:retry-original']);
+  renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
+  const image=await screen.findByRole('img',{name:'Private frame'});
+  expect(image).toHaveAttribute('src','blob:broken-original');
+  fireEvent.error(image);
+  expect(screen.getByRole('alert')).toHaveTextContent('browser could not display');
+  fireEvent.click(screen.getByRole('button',{name:'Retry photo'}));
+  expect(await screen.findByRole('img',{name:'Private frame'})).toHaveAttribute('src','blob:retry-original');
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
+ it('shows an explicit space switch when another space has the only live post',()=>{
+  const onSwitchSpaces=vi.fn();
+  render(<Home dumps={[{...post,channel:'main'}]} activeSpace={{id:'gym',label:'Gym'}} onSwitchSpaces={onSwitchSpaces}/>);
+  expect(screen.getByText(/No active posts in Gym/)).toBeInTheDocument();
+  expect(screen.getByText(/1 post in other spaces/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button',{name:'Switch spaces'}));
+  expect(onSwitchSpaces).toHaveBeenCalledOnce();
+  expect(screen.queryByRole('button',{name:'Open view-once post'})).not.toBeInTheDocument();
+ });
+
  it('explains missing source IDs instead of claiming that a user consumed a view',async()=>{
   ownerFactory.mockImplementationOnce(()=>{throw new Error('Valid original photo identities are required.');});
   renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');

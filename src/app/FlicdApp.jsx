@@ -789,6 +789,7 @@ function AccountApp({ session, authScope }) {
       loading={feedState.status === "loading"}
       error={feedState.status === "error" ? feedState.error : ""}
       onRetry={loadDumps}
+      onSwitchSpaces={() => setScreen("spaces")}
       onOpen={(post) => {
         if (!authScope.isCurrent()) return;
         authScope.cancel("viewer");

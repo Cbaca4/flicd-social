@@ -114,7 +114,7 @@ describe("Home feed states", () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
-  it("preserves the existing empty state when the feed is ready with no posts", () => {
+  it("explains the active-space and 24-hour filter when the feed has no live posts", () => {
     render(
       <Home
         dumps={[]}
@@ -125,7 +125,8 @@ describe("Home feed states", () => {
       />,
     );
 
-    expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
+    expect(screen.getByText("Nothing in this space yet")).toBeInTheDocument();
+    expect(screen.getByText(/Only posts from the last 24 hours/)).toBeInTheDocument();
   });
 });
 
