@@ -323,7 +323,7 @@ describe("handheld profile layout", () => {
     expect(screen.queryByLabelText("Favorite artist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Profile status")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Profile message")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Global roundness")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Global roundness")).not.toBeInTheDocument();
     const adaptiveThemeToggle = screen.getByRole("button", { name: "Adaptive Theme" });
     expect(adaptiveThemeToggle).toHaveAttribute("aria-pressed", "true");
     fireEvent.click(adaptiveThemeToggle);
@@ -353,7 +353,9 @@ describe("handheld profile layout", () => {
     const studio = screen.getByTestId("profile-studio-screen");
 
     expect(studio).toHaveAttribute("data-scroll-container", "screen");
-    expect(screen.getByText("Sections")).toBeInTheDocument();
+    expect(screen.getByText("Profile header photo")).toBeInTheDocument();
+    expect(screen.getByLabelText("Profile header background photo")).toBeInTheDocument();
+    expect(screen.queryByText("Sections", { exact: true })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Save Profile/i })).toBeInTheDocument();
     expect(screen.queryByLabelText("Favorite artist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Profile font")).not.toBeInTheDocument();
