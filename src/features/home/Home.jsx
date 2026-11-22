@@ -42,7 +42,7 @@ function useDumpMediaUrl(item, enabled = true) {
   return item?.imageUrl || (resolved?.key === key ? resolved.url : null) || getDumpItemMediaUrl(imagePath, mediaBucket);
 }
 
-function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal }) {
+function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, musicPlaying = false, onToggleMusic, distanceLabel = "", blurred = false, alreadyViewed = false, onReveal, onImageError }) {
   const [failedUrl, setFailedUrl] = React.useState(null);
   // Never fetch view-once image bytes while the reveal overlay is showing.
   const imageUrl = useDumpMediaUrl(item, !blurred);
@@ -72,7 +72,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
         <img
           src={imageUrl}
           alt={item?.note || `Moment ${index + 1}`}
-          onError={() => setFailedUrl(imageUrl)}
+          onError={() => { setFailedUrl(imageUrl); onImageError?.(); }}
           style={{
             width: "100%",
             height: "auto",
@@ -150,7 +150,7 @@ function MediaFrame({ item, index, post, onUserSelect, musicMuted = false, music
   );
 }
 
-function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMuted, musicPlaying, onToggleMusic, distanceLabel, revealedOnce, onceViewedAtOpen, onReveal }) {
+function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMuted, musicPlaying, onToggleMusic, distanceLabel, revealedOnce, onceViewedAtOpen, onReveal, onImageError }) {
   const [dragX, setDragX] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const viewportRef = React.useRef(null);
@@ -276,6 +276,7 @@ function SwipeMediaCarousel({ post, index, onIndexChange, onUserSelect, musicMut
               distanceLabel={distanceLabel}
               blurred={post.mode === "once" && (onceViewedAtOpen || !revealedOnce)}
               alreadyViewed={post.mode === "once" && onceViewedAtOpen}
+              onImageError={onImageError}
               onReveal={() => {
                 if (itemIndex !== index || post.mode !== "once" || revealedOnce) return;
                 onReveal?.();
@@ -454,8 +455,9 @@ export function DumpCard({
     </article>
   );
 }
-export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKeep,currentUserId=null,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry}){
+export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKeep,currentUserId=null,pendingLikeIds = new Set(),onUserSelect,onNotifications,notificationsUnread=0,loading=false,error='',onRetry,onSwitchSpaces}){
   const visible=dumps.filter(d=>d.channel===activeSpace.id);
+  const inOtherSpaces=dumps.filter(d=>d.channel!==activeSpace.id).length;
 
   if(loading){
     return <div className="screen"><div className="stack">{[0,1,2].map(key=><div key={key} className="feed-skeleton card" data-testid="feed-skeleton" aria-hidden="true"/> )}</div></div>;
@@ -474,7 +476,13 @@ export default function Home({dumps,activeSpace,onOpen,onCommentOpen,onLike,onKe
         {notificationsUnread>0&&<span className="nav-unread-badge">{notificationsUnread>9?"9+":notificationsUnread}</span>}
       </button>
     </div>
-    <div className="stack">{visible.length===0?<EmptyState title="Nothing here yet" text="Follow people from this space or create a new dump."/>:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} onKeep={onKeep} currentUserId={currentUserId} likePending={pendingLikeIds.has(p.id)}/>)}</div>
+    <div className="stack">{visible.length===0?<EmptyState
+      title="Nothing in this space yet"
+      text={inOtherSpaces
+        ? `No active posts in ${activeSpace.label || activeSpace.id}. You have ${inOtherSpaces} post${inOtherSpaces===1?"":"s"} in other spaces.`
+        : "Only posts from the last 24 hours appear here. Follow people or create a new dump."}
+      action={inOtherSpaces && onSwitchSpaces ? <button className="btn" type="button" onClick={onSwitchSpaces}>Switch spaces</button> : null}
+    />:visible.map(p=><DumpCard key={p.id} post={p} onOpen={onOpen} onCommentOpen={onCommentOpen} onLike={onLike} onKeep={onKeep} currentUserId={currentUserId} likePending={pendingLikeIds.has(p.id)}/>)}</div>
   </div>;
 }
 
@@ -575,6 +583,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
   const [unlockingOnce,setUnlockingOnce]=React.useState(false);
   const [unlockError,setUnlockError]=React.useState('');
   const [ownerLoadAttempt,setOwnerLoadAttempt]=React.useState(0);
+  const [ownerLoading,setOwnerLoading]=React.useState(false);
   const [reportError,setReportError]=React.useState('');
   const [reportMessage,setReportMessage]=React.useState('');
   const [gifPickerOpen,setGifPickerOpen]=React.useState(false);
@@ -604,33 +613,48 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
     if (!isOwnOnce) return undefined;
     let active = true;
     let page;
+    let timeout;
+    setOwnerLoading(true);
     setUnlockError("");
     setUnlockedMediaUrls(null);
     try {
-      // Anchor owner media to the signed-in app generation, not a StrictMode
-      // child-effect lifetime. The media gateway still verifies owner and session.
+      // Anchor owner media to AccountApp, not a transient StrictMode effect.
+      // The gateway still verifies the creator and session on every frame.
       const scope = authScope ? captureAuthScope(authScope) : account.capture();
       page = createOwnerMediaSession(post.items || [], { authScope: scope });
       mediaSessionRef.current = page;
+      // A hung local gateway must not leave an invisible, unrecoverable viewer.
+      timeout = setTimeout(() => {
+        if (!active || !account.isCurrent()) return;
+        active = false;
+        void page?.close();
+        if (mediaSessionRef.current === page) mediaSessionRef.current = null;
+        setOwnerLoading(false);
+        setUnlockError("Original photo request timed out. Check the local media gateway, then retry.");
+      }, 15000);
       void page.loadFrames().then((urls) => {
         if (active && account.isCurrent()) {
           setUnlockedMediaUrls(urls);
           setUnlockError("");
+          setOwnerLoading(false);
         }
       }).catch((error) => {
         if (active && account.isCurrent()) {
           console.error("Unable to load owner's original photo:", error?.status ?? error?.name ?? "media_unavailable");
+          setOwnerLoading(false);
           setUnlockError(describeOwnerPhotoFailure(error));
         }
-      });
+      }).finally(() => clearTimeout(timeout));
     } catch (error) {
       if (account.isCurrent()) {
         console.error("Unable to start owner photo session:", error?.name ?? "invalid_session");
+        setOwnerLoading(false);
         setUnlockError(describeOwnerPhotoFailure(error));
       }
     }
     return () => {
       active = false;
+      clearTimeout(timeout);
       void page?.close();
       if (mediaSessionRef.current === page) mediaSessionRef.current = null;
     };
@@ -949,7 +973,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       role="dialog"
       aria-modal="true"
       aria-label={`Viewing @${authorLabel}`}
-      aria-busy={unlockingOnce}
+      aria-busy={unlockingOnce || ownerLoading}
     >
       <div className="viewer-surface">
         <div className="viewer-media-layer">
@@ -962,6 +986,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
             musicPlaying={musicPlaying}
             onToggleMusic={toggleMusic}
             distanceLabel={distanceLabel}
+            onImageError={isOwnOnce ? () => setUnlockError("Your browser could not display this original photo. Retry photo.") : undefined}
             revealedOnce={revealedOnce}
             onceViewedAtOpen={onceLocked}
             onReveal={async () => {
@@ -1004,9 +1029,9 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
 
         <div className="viewer-scrim-layer" aria-hidden="true" />
 
-        {(unlockingOnce || unlockError) && (
-          <div role={unlockError ? "alert" : "status"} className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)" }}>
-            {unlockError || "Confirming view…"}
+        {(unlockingOnce || unlockError || (isOwnOnce && ownerLoading)) && (
+          <div role={unlockError ? "alert" : "status" className="subtitle" style={{ position: "absolute", top: "max(64px, env(safe-area-inset-top))", left: 16, right: 16, zIndex: 40, padding: "12px 16px", borderRadius: 12, color: "var(--text)", background: "rgba(5,6,8,.94)" }}>
+            {unlockError || (isOwnOnce ? "Loading original photo…" : "Confirming view…")}
             {isOwnOnce && unlockError && (
               <button
                 type="button"
