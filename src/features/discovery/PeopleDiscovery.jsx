@@ -36,19 +36,7 @@ export default function PeopleDiscovery({ onUserSelect }) {
       // Avoid interpolating user input into PostgREST's .or() expression
       // language. Commas, parentheses and operators must stay literal text.
       // Escape LIKE wildcards so a search cannot broaden itself via % or _.
-      const pattern = "%" + clean.replace(/[\\%_]/g, "\\      const { data, error } = await supabase
-        .from("profiles")
-        .select("id,username,avatar_url,is_private")
-        .or(`username.ilike.%${clean}%,display_name.ilike.%${clean}%`)
-        .limit(18);
-      if (cancelled) return;
-      setSearchLoading(false);
-      if (error) {
-        setSearchResults([]);
-        setSearchError("People search is unavailable right now.");
-        return;
-      }
-      setSearchResults(data || []);") + "%";
+      const pattern = "%" + clean.replace(/[\\%_]/g, "\\$&") + "%";
       const search = (column) => supabase.from("profiles")
         .select("id,username,avatar_url,is_private")
         .ilike(column, pattern).limit(18);
