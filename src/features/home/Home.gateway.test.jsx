@@ -111,7 +111,7 @@ describe('View Once trusted React boundary',()=>{
  it('explains missing source IDs instead of claiming that a user consumed a view',async()=>{
   ownerFactory.mockImplementationOnce(()=>{throw new Error('Valid original photo identities are required.');});
   renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
-  expect(await screen.findByRole('alert')).toHaveTextContent('missing original photo identifiers');
+  expect(await screen.findByRole('alert')).toHaveTextContent('no usable original-photo ID');
   expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
   expect(factory).not.toHaveBeenCalled();
  });
