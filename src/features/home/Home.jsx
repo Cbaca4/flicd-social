@@ -542,7 +542,8 @@ function describeOwnerPhotoFailure(error) {
   if (error?.status === 403) return "Your original photo request was denied (403). Check that you're signed into the creator account.";
   if (error?.status === 415) return "The original photo format could not be delivered (415).";
   if (error?.status === 503) return "The original photo service is temporarily unavailable (503). Check the local media gateway and retry.";
-  if (error?.message?.includes("identities")) return "The post is missing original photo identifiers. Refresh your feed and reopen it.";
+  if (error?.message?.includes("identities")) return "This post has no usable original-photo ID. Reopen it in the latest build.";
+  if (error?.message?.includes("metadata could not be verified")) return "The private gateway returned unverified creator photo details. Check the post HTTP status in the gateway terminal.";
   if (error?.message?.includes("Authenticated context changed")) return "Your signed-in account changed while opening the photo. Refresh the page and retry.";
   if (error?.message?.includes("Authenticated session changed")) return "Your sign-in session changed while opening the photo. Sign in again and retry.";
   if (error?.message?.includes("not configured")) return "The local media gateway isn't configured. Restart Vite with the staging gateway setting.";
