@@ -77,7 +77,7 @@ export function createMediaApi({ origin, getSession, fetchImpl = fetch, objectUr
                     !Number.isInteger(item.position) || item.position < 0) ||
                   new Set(candidates.map(item => item.id)).size !== candidates.length ||
                   new Set(candidates.map(item => item.position)).size !== candidates.length) {
-                throw new Error("Valid original photo identities are required.");
+                throw new Error("Creator original photo metadata could not be verified by the gateway.");
               }
               // Never return an image path, bucket, or public URL to the browser.
               ownerItems = candidates.map(item => ({
