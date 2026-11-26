@@ -116,6 +116,15 @@ describe('View Once trusted React boundary',()=>{
   expect(factory).not.toHaveBeenCalled();
  });
 
+ it('distinguishes invalid private gateway metadata from locally missing IDs',async()=>{
+  ownerFrames.mockRejectedValueOnce(new Error('Creator original photo metadata could not be verified by the gateway.'));
+  renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
+  expect(await screen.findByRole('alert')).toHaveTextContent('gateway returned unverified creator photo details');
+  expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
  it('replays the creator load safely in root Strict Mode without a one-view claim',async()=>{
   const ownPost={...post,authorId:'owner'};
   renderAccount(
