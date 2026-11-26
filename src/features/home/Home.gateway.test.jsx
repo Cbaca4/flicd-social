@@ -111,9 +111,18 @@ describe('View Once trusted React boundary',()=>{
  it('explains missing source IDs instead of claiming that a user consumed a view',async()=>{
   ownerFactory.mockImplementationOnce(()=>{throw new Error('Valid original photo identities are required.');});
   renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
-  expect(await screen.findByRole('alert')).toHaveTextContent('missing original photo identifiers');
+  expect(await screen.findByRole('alert')).toHaveTextContent('no usable original-photo ID');
   expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
   expect(factory).not.toHaveBeenCalled();
+ });
+
+ it('distinguishes invalid private gateway metadata from locally missing IDs',async()=>{
+  ownerFrames.mockRejectedValueOnce(new Error('Creator original photo metadata could not be verified by the gateway.'));
+  renderAccount(<Viewer post={{...post,authorId:'owner'}} currentUserId='owner'/>,'owner');
+  expect(await screen.findByRole('alert')).toHaveTextContent('gateway returned unverified creator photo details');
+  expect(screen.getByRole('button',{name:'Retry photo'})).toBeInTheDocument();
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
  });
 
  it('replays the creator load safely in root Strict Mode without a one-view claim',async()=>{

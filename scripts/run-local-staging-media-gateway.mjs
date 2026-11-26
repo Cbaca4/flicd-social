@@ -107,6 +107,9 @@ const server = http.createServer(async (req, res) => {
     const result = await gateway(wrapped);
     // Diagnostics for the local-only preview: route and HTTP status only.
     // Never print bearer credentials, request bodies, image locations or IDs.
+    if (req.url === '/media/post') {
+      console.log("[staging media] post HTTP " + result.status);
+    }
     if (req.url === '/media/owner/frame') {
       console.log("[staging media] owner/frame HTTP " + result.status);
     }
@@ -114,7 +117,10 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(result.status, Object.fromEntries(result.headers.entries()));
     res.end(Buffer.from(await result.arrayBuffer()));
   } catch {
-    // Never include tokens, SQL, upstream response bodies or object paths in logs.
+    // Only route/status diagnostics. Never log bearer tokens, request bodies,
+    // private media locations, item IDs or upstream SQL errors.
+    if (req.url === '/media/post') console.log("[staging media] post HTTP 503");
+    if (req.url === '/media/owner/frame') console.log("[staging media] owner/frame HTTP 503");
     sendError(res, 503, 'gateway_unavailable');
   } finally {
     inflight -= 1;

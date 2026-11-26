@@ -65,7 +65,7 @@ describe('browser media protocol',()=>{
   const f=fixture(),scope=testAuthScope('viewer');
   f.fetchImpl.mockResolvedValue(json(metadata));
   const page=f.api.createOwnerSession([],{dumpId,authScope:scope});
-  await expect(page.loadFrames()).rejects.toThrow('identities');
+  await expect(page.loadFrames()).rejects.toThrow('metadata could not be verified');
   expect(f.fetchImpl.mock.calls).toHaveLength(1);
   expect(f.fetchImpl.mock.calls[0][0]).toContain('/media/post');
   expect(f.objectUrls.createObjectURL).not.toHaveBeenCalled();
