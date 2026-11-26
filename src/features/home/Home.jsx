@@ -621,7 +621,7 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       // Anchor owner media to AccountApp, not a transient StrictMode effect.
       // The gateway still verifies the creator and session on every frame.
       const scope = authScope ? captureAuthScope(authScope) : account.capture();
-      page = createOwnerMediaSession(post.items || [], { authScope: scope });
+      page = createOwnerMediaSession(post.items || [], { authScope: scope, dumpId: post.id });
       mediaSessionRef.current = page;
       // A hung local gateway must not leave an invisible, unrecoverable viewer.
       timeout = setTimeout(() => {
@@ -634,6 +634,9 @@ function ViewerSession({post,onClose,onLike,onComment,onKeep,onMarkViewed,likePe
       }, 15000);
       void page.loadFrames().then((urls) => {
         if (active && account.isCurrent()) {
+          // View Once feed rows intentionally omit dump_items under RLS.
+          // The gateway supplies item IDs and notes without private paths.
+          if (Array.isArray(page.items) && page.items.length) setSessionItems(page.items);
           setUnlockedMediaUrls(urls);
           setUnlockError("");
           setOwnerLoading(false);

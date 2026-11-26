@@ -40,6 +40,18 @@ describe('View Once trusted React boundary',()=>{
   expect(factory).not.toHaveBeenCalled();
   expect(onMarkViewed).not.toHaveBeenCalled();
  });
+ it('renders the original when RLS removed all dump_items from the creator feed',async()=>{
+  const persistedId='10000000-0000-4000-8000-000000000009';
+  const restored=[{id:'10000000-0000-4000-8000-000000000010',position:0,note:'Recovered original'}];
+  ownerFactory.mockReturnValue({items:restored,loadFrames:ownerFrames,close});
+  const filteredPost={...post,id:persistedId,authorId:'owner',items:[],viewed:false};
+  renderAccount(<Viewer post={filteredPost} currentUserId='owner'/>,'owner');
+  expect(await screen.findByRole('img',{name:'Recovered original'})).toHaveAttribute('src','blob:owner-frame');
+  expect(ownerFactory).toHaveBeenCalledWith([],expect.objectContaining({dumpId:persistedId,authScope:expect.any(Object)}));
+  expect(factory).not.toHaveBeenCalled();
+  expect(claim).not.toHaveBeenCalled();
+ });
+
  it('lets the creator retry a transient owner-frame failure without ever consuming a one-time claim',async()=>{
   ownerFrames.mockRejectedValueOnce(Object.assign(new Error('gateway offline'),{status:503}))
     .mockResolvedValueOnce(['blob:owner-frame']);

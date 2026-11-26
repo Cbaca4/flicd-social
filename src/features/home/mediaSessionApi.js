@@ -42,23 +42,49 @@ export function createMediaApi({ origin, getSession, fetchImpl = fetch, objectUr
     blob: async (route, body, options) => (await request(route, body, { ...options, binary: true })).data,
     // Owners use a separate server-authorized route, not a View Once claim.
     // Every page owns short-lived blob URLs; none survive navigation or sign-out.
-    createOwnerSession(items, { authScope } = {}) {
+    createOwnerSession(items, { authScope, dumpId = null } = {}) {
       const scope = captureAuthScope(authScope);
-      const ids = Array.isArray(items) ? items.map(item => item?.id) : [];
-      if (!ids.length || ids.some(id => !UUID.test(id)) || new Set(ids).size !== ids.length) {
+      const incomingIds = Array.isArray(items) ? items.map(item => item?.id) : [];
+      const hasValidLocalIds = incomingIds.length > 0 &&
+        incomingIds.every(id => typeof id === "string" && UUID.test(id)) &&
+        new Set(incomingIds).size === incomingIds.length;
+      // The restrictive dump_items SELECT policy intentionally hides View Once
+      // originals from the feed, including from their creator. The protected
+      // media/post endpoint supplies only item IDs, positions and notes.
+      if (!hasValidLocalIds && !UUID.test(dumpId || "")) {
         throw new Error("Valid original photo identities are required.");
       }
+      let ownerItems = hasValidLocalIds ? items : null;
       let closed = false, frameUrls = null, pending = null;
       const urls = new Set();
       const revoke = () => { for (const url of urls) objectUrls.revokeObjectURL(url); urls.clear(); frameUrls = null; };
       const pagehide = () => { void page.close(); };
       const page = {
         get closed() { return closed; },
+        get items() { return ownerItems; },
         async loadFrames() {
           if (closed || !scope.isCurrent()) throw new Error("This viewing session has ended.");
           if (frameUrls) return frameUrls;
           if (pending) return pending;
           pending = (async () => {
+            if (!ownerItems) {
+              const metadata = await json("post", { dumpId }, { authScope: scope, isCurrent: () => !closed });
+              if (closed || !scope.isCurrent()) throw new Error("This viewing session has ended.");
+              const candidates = metadata?.dump_items;
+              if (metadata?.id !== dumpId || metadata?.user_id !== scope.user ||
+                  metadata?.expiry !== "once" || !Array.isArray(candidates) || !candidates.length ||
+                  candidates.some(item => !UUID.test(item?.id) ||
+                    !Number.isInteger(item.position) || item.position < 0) ||
+                  new Set(candidates.map(item => item.id)).size !== candidates.length ||
+                  new Set(candidates.map(item => item.position)).size !== candidates.length) {
+                throw new Error("Valid original photo identities are required.");
+              }
+              // Never return an image path, bucket, or public URL to the browser.
+              ownerItems = candidates.map(item => ({
+                id: item.id, position: item.position, note: typeof item.note === "string" ? item.note : "",
+              })).sort((a, b) => a.position - b.position);
+            }
+            const ids = ownerItems.map(item => item.id);
             const created = [];
             const results = await Promise.allSettled(ids.map(async (itemId) => {
               const result = await request("owner/frame", { itemId }, { binary: true, authScope: scope, isCurrent: () => !closed });

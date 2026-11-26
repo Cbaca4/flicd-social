@@ -31,6 +31,61 @@ describe('browser media protocol',()=>{
   expect(f.fetchImpl.mock.calls.filter(([url])=>url.endsWith('/owner/frame'))).toHaveLength(2);
   await second.close();
  });
+ it('recovers RLS-hidden creator item IDs from gateway metadata without a one-view claim',async()=>{
+  const f=fixture(),scope=testAuthScope('viewer');
+  const restored=[{id:claimId,position:0,note:'Original frame'}];
+  f.fetchImpl.mockImplementation(async url=>{
+    if(url.endsWith('/media/post')) return json({id:dumpId,user_id:'viewer',expiry:'once',dump_items:restored});
+    if(url.endsWith('/media/owner/frame')) return new Response(new Uint8Array([137,80,78,71]),{headers:{'Content-Type':'image/png'}});
+    throw new Error('Unexpected media route');
+  });
+  const page=f.api.createOwnerSession([],{dumpId,authScope:scope});
+  expect(f.fetchImpl).not.toHaveBeenCalled();
+  expect(await page.loadFrames()).toEqual(['blob:local-frame']);
+  expect(page.items).toEqual(restored);
+  expect(f.fetchImpl.mock.calls.map(([url])=>url)).toEqual([
+    'http://127.0.0.1:9339/media/post',
+    'http://127.0.0.1:9339/media/owner/frame',
+  ]);
+  expect(JSON.parse(f.fetchImpl.mock.calls[0][1].body)).toEqual({dumpId});
+  expect(JSON.parse(f.fetchImpl.mock.calls[1][1].body)).toEqual({itemId:claimId});
+  expect(f.fetchImpl.mock.calls.some(([url])=>url.includes('/once/'))).toBe(false);
+  await page.close();
+  expect(f.objectUrls.revokeObjectURL).toHaveBeenCalledWith('blob:local-frame');
+ });
+
+ it.each([
+  {id:claimId,user_id:'viewer',expiry:'once',dump_items:[{id:claimId,position:0}]},
+  {id:dumpId,user_id:'other',expiry:'once',dump_items:[{id:claimId,position:0}]},
+  {id:dumpId,user_id:'viewer',expiry:'24h',dump_items:[{id:claimId,position:0}]},
+  {id:dumpId,user_id:'viewer',expiry:'once',dump_items:[]},
+  {id:dumpId,user_id:'viewer',expiry:'once',dump_items:[{id:'not-uuid',position:0}]},
+  {id:dumpId,user_id:'viewer',expiry:'once',dump_items:[{id:claimId,position:0},{id:claimId,position:1}]},
+ ])('rejects incorrect, unauthenticated or malformed owner metadata before reading bytes (%j)',async metadata=>{
+  const f=fixture(),scope=testAuthScope('viewer');
+  f.fetchImpl.mockResolvedValue(json(metadata));
+  const page=f.api.createOwnerSession([],{dumpId,authScope:scope});
+  await expect(page.loadFrames()).rejects.toThrow('identities');
+  expect(f.fetchImpl.mock.calls).toHaveLength(1);
+  expect(f.fetchImpl.mock.calls[0][0]).toContain('/media/post');
+  expect(f.objectUrls.createObjectURL).not.toHaveBeenCalled();
+  await page.close();
+ });
+
+ it('cannot dispatch an owner frame after the page closes while fetching metadata',async()=>{
+  const f=fixture(),scope=testAuthScope('viewer');
+  let resolve;
+  f.fetchImpl.mockImplementationOnce(()=>new Promise(done=>{resolve=done;}));
+  const page=f.api.createOwnerSession([],{dumpId,authScope:scope});
+  const pending=page.loadFrames();
+  await vi.waitFor(()=>expect(resolve).toBeTypeOf('function'));
+  await page.close();
+  resolve(json({id:dumpId,user_id:'viewer',expiry:'once',dump_items:[{id:claimId,position:0}]}));
+  await expect(pending).rejects.toThrow('ended');
+  expect(f.fetchImpl.mock.calls).toHaveLength(1);
+  expect(f.objectUrls.createObjectURL).not.toHaveBeenCalled();
+ });
+
  it('rejects owner frame reads after a page closes before the response without creating an object URL',async()=>{
   const f=fixture(),scope=testAuthScope('viewer');
   let resolve;
